@@ -7,6 +7,7 @@ with OCR support.
 
 from pathlib import Path
 from typing import Tuple
+
 from loguru import logger
 
 try:

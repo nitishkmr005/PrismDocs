@@ -4,16 +4,16 @@ LangGraph workflow for document generation.
 Defines the state machine workflow for converting documents.
 """
 
-from typing import TypedDict
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 from loguru import logger
 
 from ..domain.models import WorkflowState
 from .nodes import (
     detect_format_node,
+    generate_output_node,
+    generate_visuals_node,
     parse_content_node,
     transform_content_node,
-    generate_output_node,
     validate_output_node,
 )
 
@@ -58,9 +58,10 @@ def build_workflow() -> StateGraph:
     1. detect_format → Detect input format from extension/URL
     2. parse_content → Extract content using appropriate parser
     3. transform_content → Structure content for output
-    4. generate_output → Generate PDF or PPTX
-    5. validate_output → Validate generated file
-    6. Conditional retry on validation errors (max 3 attempts)
+    4. generate_visuals → Generate SVG visualizations from content
+    5. generate_output → Generate PDF or PPTX
+    6. validate_output → Validate generated file
+    7. Conditional retry on validation errors (max 3 attempts)
 
     Returns:
         Compiled StateGraph ready for execution
@@ -71,6 +72,7 @@ def build_workflow() -> StateGraph:
     workflow.add_node("detect_format", detect_format_node)
     workflow.add_node("parse_content", parse_content_node)
     workflow.add_node("transform_content", transform_content_node)
+    workflow.add_node("generate_visuals", generate_visuals_node)
     workflow.add_node("generate_output", generate_output_node)
     workflow.add_node("validate_output", validate_output_node)
 
@@ -78,7 +80,8 @@ def build_workflow() -> StateGraph:
     workflow.set_entry_point("detect_format")
     workflow.add_edge("detect_format", "parse_content")
     workflow.add_edge("parse_content", "transform_content")
-    workflow.add_edge("transform_content", "generate_output")
+    workflow.add_edge("transform_content", "generate_visuals")
+    workflow.add_edge("generate_visuals", "generate_output")
     workflow.add_edge("generate_output", "validate_output")
 
     # Conditional retry logic
@@ -91,18 +94,27 @@ def build_workflow() -> StateGraph:
         }
     )
 
-    logger.debug("Built LangGraph workflow with 5 nodes")
+    logger.debug("Built LangGraph workflow with 6 nodes")
 
     return workflow.compile()
 
 
-def run_workflow(input_path: str, output_format: str = "pdf") -> WorkflowState:
+def run_workflow(
+    input_path: str,
+    output_format: str = "pdf",
+    output_path: str = "",
+    llm_service = None,
+    metadata: dict = None
+) -> WorkflowState:
     """
     Run the document generation workflow.
 
     Args:
         input_path: Path to input file or URL
         output_format: Desired output format (pdf or pptx)
+        output_path: Optional custom output path
+        llm_service: Optional LLM service for content enhancement
+        metadata: Optional metadata to include in the document
 
     Returns:
         Final workflow state with output_path or errors
@@ -117,9 +129,10 @@ def run_workflow(input_path: str, output_format: str = "pdf") -> WorkflowState:
         "output_format": output_format,
         "raw_content": "",
         "structured_content": {},
-        "output_path": "",
+        "output_path": output_path,
         "errors": [],
-        "metadata": {},
+        "metadata": metadata or {},
+        "llm_service": llm_service,
     }
 
     logger.info(f"Starting workflow: {input_path} → {output_format}")

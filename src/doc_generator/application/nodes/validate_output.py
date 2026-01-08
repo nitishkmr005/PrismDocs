@@ -5,10 +5,11 @@ Validates generated output file.
 """
 
 from pathlib import Path
+
 from loguru import logger
 
-from ...domain.models import WorkflowState
 from ...domain.exceptions import ValidationError
+from ...domain.models import WorkflowState
 
 
 def validate_output_node(state: WorkflowState) -> WorkflowState:

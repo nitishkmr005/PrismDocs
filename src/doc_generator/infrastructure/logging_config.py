@@ -5,6 +5,7 @@ Configures loguru for structured logging with custom formatting.
 """
 
 import sys
+
 from loguru import logger
 
 

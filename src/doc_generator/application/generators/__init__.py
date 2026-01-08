@@ -4,11 +4,10 @@ Generators for different output formats.
 Provides factory function to get appropriate generator for output format.
 """
 
-from .pdf_generator import PDFGenerator
-from .pptx_generator import PPTXGenerator
-
 from ...domain.content_types import OutputFormat
 from ...domain.exceptions import UnsupportedFormatError
+from .pdf_generator import PDFGenerator
+from .pptx_generator import PPTXGenerator
 
 
 def get_generator(output_format: str):

@@ -7,28 +7,28 @@ including markdown parsing, styling, and flowable creation.
 
 from __future__ import annotations
 
-from pathlib import Path
 import hashlib
 import html
 import re
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Iterator
 
-from reportlab.lib import colors
-from reportlab.lib.units import inch
-from reportlab.lib.utils import ImageReader
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import (
-    Paragraph,
-    Spacer,
-    Preformatted,
-    Table,
-    TableStyle,
-    Image,
-)
 from cairosvg import svg2png
 from loguru import logger
+from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import (
+    Image,
+    Paragraph,
+    Preformatted,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 # Color palette (migrated from build_transformer_pdf.py lines 33-43)
 PALETTE = {

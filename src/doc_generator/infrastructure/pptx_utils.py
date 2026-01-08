@@ -6,13 +6,12 @@ Optimized for corporate/executive presentations.
 """
 
 from pathlib import Path
-from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.dml.color import RGBColor
-from pptx.oxml.ns import nsmap
-from loguru import logger
 
+from loguru import logger
+from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN
+from pptx.util import Inches, Pt
 
 # Corporate color theme - Professional and executive-friendly
 THEME_COLORS = {
@@ -285,7 +284,7 @@ def add_image_slide(
         left = Inches(1.5)
         top = Inches(1.5)
         max_width = Inches(7)
-        max_height = Inches(3.5)
+        Inches(3.5)
 
         slide.shapes.add_picture(
             str(image_path),
@@ -429,8 +428,9 @@ def add_chart_slide(
     # Convert SVG to PNG and add to slide
     if svg_path.exists():
         try:
-            import cairosvg
             import tempfile
+
+            import cairosvg
 
             # Convert SVG to PNG
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:

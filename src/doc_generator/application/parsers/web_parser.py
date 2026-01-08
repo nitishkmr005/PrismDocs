@@ -6,13 +6,11 @@ Fetches and converts web pages to markdown.
 
 from pathlib import Path
 from typing import Tuple
+
 from loguru import logger
 
-from ...infrastructure.markitdown_adapter import (
-    convert_url_to_markdown,
-    is_markitdown_available
-)
 from ...domain.exceptions import ParseError
+from ...infrastructure.markitdown_adapter import convert_url_to_markdown, is_markitdown_available
 
 
 class WebParser:

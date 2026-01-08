@@ -5,25 +5,24 @@ Generates PDF documents from structured markdown content.
 """
 
 from pathlib import Path
+
 from loguru import logger
-
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
+from ...domain.exceptions import GenerationError
 from ...infrastructure.pdf_utils import (
-    PALETTE,
     create_custom_styles,
     inline_md,
-    parse_markdown_lines,
     make_banner,
-    make_image_flowable,
     make_code_block,
+    make_image_flowable,
     make_mermaid_flowable,
     make_quote,
     make_table,
+    parse_markdown_lines,
     rasterize_svg,
 )
-from ...domain.exceptions import GenerationError
 
 
 class PDFGenerator:
@@ -48,7 +47,8 @@ class PDFGenerator:
         Generate PDF from structured content.
 
         Args:
-            content: Structured content dictionary with 'title' and 'markdown' keys
+            content: Structured content dictionary with 'title', 'markdown',
+                     and optional 'visualizations' keys
             metadata: Document metadata
             output_dir: Output directory
 
@@ -64,9 +64,16 @@ class PDFGenerator:
             self.image_cache.mkdir(parents=True, exist_ok=True)
 
             # Create output path
+            # Get title for document content
             title = metadata.get("title", "document")
-            safe_title = title.replace(" ", "_").replace("/", "_")
-            output_path = output_dir / f"{safe_title}.pdf"
+
+            # Check for custom filename for output file
+            if "custom_filename" in metadata:
+                filename = metadata["custom_filename"]
+            else:
+                filename = title.replace(" ", "_").replace("/", "_")
+
+            output_path = output_dir / f"{filename}.pdf"
 
             logger.info(f"Generating PDF: {output_path.name}")
 
@@ -76,8 +83,11 @@ class PDFGenerator:
             if not markdown_content:
                 raise GenerationError("No content provided for PDF generation")
 
+            # Get visualizations if available
+            visualizations = content.get("visualizations", [])
+
             # Create PDF
-            self._create_pdf(output_path, title, markdown_content, metadata)
+            self._create_pdf(output_path, title, markdown_content, metadata, visualizations)
 
             logger.info(f"PDF generated successfully: {output_path}")
 
@@ -92,7 +102,8 @@ class PDFGenerator:
         output_path: Path,
         title: str,
         markdown_content: str,
-        metadata: dict
+        metadata: dict,
+        visualizations: list[dict] = None
     ) -> None:
         """
         Create PDF document.
@@ -102,7 +113,10 @@ class PDFGenerator:
             title: Document title
             markdown_content: Markdown content to convert
             metadata: Document metadata
+            visualizations: Optional list of visualization dictionaries
         """
+        visualizations = visualizations or []
+
         # Create document
         doc = SimpleDocTemplate(
             str(output_path),
@@ -177,6 +191,27 @@ class PDFGenerator:
             else:  # para
                 if content_item.strip():
                     story.append(Paragraph(inline_md(content_item), self.styles["BodyCustom"]))
+
+        # Add visualizations section if available
+        if visualizations:
+            story.append(Spacer(1, 20))
+            story.append(make_banner("Visualizations", self.styles))
+            story.append(Spacer(1, 12))
+
+            for visual in visualizations:
+                vis_title = visual.get("title", "Visualization")
+                svg_path = visual.get("path", "")
+
+                if svg_path:
+                    svg_path = Path(svg_path)
+                    if svg_path.exists():
+                        # Rasterize SVG to PNG for PDF embedding
+                        png_path = rasterize_svg(svg_path, self.image_cache)
+                        if png_path:
+                            story.extend(make_image_flowable(vis_title, png_path, self.styles))
+                            story.append(Spacer(1, 8))
+                            vis_type = visual.get("type", "diagram")
+                            logger.debug(f"Added {vis_type} visualization to PDF: {vis_title}")
 
         # Build PDF
         element_count = len(story)

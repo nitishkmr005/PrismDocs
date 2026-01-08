@@ -4,12 +4,11 @@ Parsers for different input formats.
 Provides factory function to get appropriate parser for content format.
 """
 
-from .unified_parser import UnifiedParser
-from .markdown_parser import MarkdownParser
-from .web_parser import WebParser
-
 from ...domain.content_types import ContentFormat
 from ...domain.exceptions import UnsupportedFormatError
+from .markdown_parser import MarkdownParser
+from .unified_parser import UnifiedParser
+from .web_parser import WebParser
 
 
 def get_parser(content_format: str):

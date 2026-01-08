@@ -4,8 +4,8 @@ Protocol interfaces for parsers and generators.
 Defines abstract interfaces that implementations must follow.
 """
 
-from typing import Protocol, Tuple
 from pathlib import Path
+from typing import Protocol, Tuple
 
 
 class ContentParser(Protocol):

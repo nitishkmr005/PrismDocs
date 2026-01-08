@@ -9,6 +9,7 @@ from loguru import logger
 
 from ...domain.models import WorkflowState
 from ...infrastructure.llm_service import get_llm_service
+from ...utils.content_cleaner import clean_content_for_output
 
 
 def transform_content_node(state: WorkflowState) -> WorkflowState:
@@ -33,9 +34,12 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
         metadata = state.get("metadata", {})
         output_format = state.get("output_format", "pdf")
 
-        # Base structured content
+        # Clean content before structuring
+        cleaned_content = clean_content_for_output(content)
+
+        # Base structured content with cleaned markdown
         structured = {
-            "markdown": content,
+            "markdown": cleaned_content,
             "title": metadata.get("title", "Document"),
         }
 
@@ -45,21 +49,21 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
         if llm.is_available():
             logger.info("LLM service available - enhancing content")
 
-            # Generate executive summary
-            executive_summary = llm.generate_executive_summary(content)
+            # Generate executive summary using cleaned content
+            executive_summary = llm.generate_executive_summary(cleaned_content)
             if executive_summary:
                 structured["executive_summary"] = executive_summary
                 logger.debug("Generated executive summary")
 
             # For PPTX output, generate optimized slide structure
             if output_format == "pptx":
-                slides = llm.generate_slide_structure(content)
+                slides = llm.generate_slide_structure(cleaned_content)
                 if slides:
                     structured["slides"] = slides
                     logger.debug(f"Generated {len(slides)} slide structures")
 
             # Suggest chart data
-            chart_suggestions = llm.suggest_chart_data(content)
+            chart_suggestions = llm.suggest_chart_data(cleaned_content)
             if chart_suggestions:
                 structured["charts"] = chart_suggestions
                 logger.debug(f"Suggested {len(chart_suggestions)} charts")
@@ -71,7 +75,7 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
 
         logger.info(
             f"Transformed content: title='{structured['title']}', "
-            f"{len(content)} chars, "
+            f"{len(cleaned_content)} chars (cleaned from {len(content)}), "
             f"enhanced={'slides' in structured or 'executive_summary' in structured}"
         )
 

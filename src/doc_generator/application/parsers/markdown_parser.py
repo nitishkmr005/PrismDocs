@@ -4,13 +4,14 @@ Direct markdown file parser.
 Parses markdown files with frontmatter support (Hugo-style).
 """
 
+import re
 from pathlib import Path
 from typing import Tuple
-import re
+
 from loguru import logger
 
-from ...infrastructure.file_system import read_text_file, validate_file_exists
 from ...domain.exceptions import ParseError
+from ...infrastructure.file_system import read_text_file, validate_file_exists
 
 
 class MarkdownParser:

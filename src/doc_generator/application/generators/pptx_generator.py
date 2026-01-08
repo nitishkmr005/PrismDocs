@@ -6,21 +6,22 @@ Supports LLM-enhanced slide generation for executive presentations.
 """
 
 from pathlib import Path
+
 from loguru import logger
 
+from ...domain.exceptions import GenerationError
+from ...infrastructure.pdf_utils import parse_markdown_lines
 from ...infrastructure.pptx_utils import (
-    create_presentation,
-    add_title_slide,
-    add_content_slide,
-    add_section_header_slide,
-    add_image_slide,
-    add_executive_summary_slide,
     add_chart_slide,
+    add_content_slide,
+    add_executive_summary_slide,
+    add_image_slide,
+    add_section_header_slide,
+    add_title_slide,
+    create_presentation,
     save_presentation,
 )
-from ...infrastructure.pdf_utils import parse_markdown_lines
 from ...infrastructure.svg_generator import generate_chart
-from ...domain.exceptions import GenerationError
 
 
 class PPTXGenerator:
@@ -57,9 +58,16 @@ class PPTXGenerator:
             output_dir.mkdir(parents=True, exist_ok=True)
 
             # Create output path
+            # Get title for presentation content
             title = metadata.get("title", "presentation")
-            safe_title = title.replace(" ", "_").replace("/", "_")
-            output_path = output_dir / f"{safe_title}.pptx"
+
+            # Check for custom filename for output file
+            if "custom_filename" in metadata:
+                filename = metadata["custom_filename"]
+            else:
+                filename = title.replace(" ", "_").replace("/", "_")
+
+            output_path = output_dir / f"{filename}.pptx"
 
             logger.info(f"Generating PPTX: {output_path.name}")
 
@@ -71,7 +79,7 @@ class PPTXGenerator:
 
             # Check for LLM enhancements
             has_llm_enhancements = any(
-                key in content for key in ["slides", "executive_summary", "charts"]
+                key in content for key in ["slides", "executive_summary", "charts", "visualizations"]
             )
 
             if has_llm_enhancements:
@@ -145,6 +153,10 @@ class PPTXGenerator:
             # Add chart slides if suggested
             charts = structured_content.get("charts", [])
             self._add_chart_slides(prs, charts, output_path.parent)
+
+            # Add visualization slides if generated
+            visualizations = structured_content.get("visualizations", [])
+            self._add_visualization_slides(prs, visualizations)
         else:
             # No LLM enhancement - use markdown-based generation
             self._add_slides_from_markdown(prs, markdown_content)
@@ -203,6 +215,33 @@ class PPTXGenerator:
                 logger.debug(f"Added chart slide: {title}")
             except Exception as e:
                 logger.warning(f"Failed to generate chart: {e}")
+
+    def _add_visualization_slides(self, prs, visualizations: list[dict]) -> None:
+        """
+        Add visualization slides from generated SVGs.
+
+        Args:
+            prs: Presentation object
+            visualizations: List of visualization dictionaries with type, title, path
+        """
+        for visual in visualizations:
+            title = visual.get("title", "Visualization")
+            svg_path = visual.get("path", "")
+
+            if not svg_path:
+                continue
+
+            svg_path = Path(svg_path)
+            if not svg_path.exists():
+                logger.warning(f"Visualization SVG not found: {svg_path}")
+                continue
+
+            try:
+                add_chart_slide(prs, title, svg_path)
+                vis_type = visual.get("type", "unknown")
+                logger.debug(f"Added {vis_type} visualization slide: {title}")
+            except Exception as e:
+                logger.warning(f"Failed to add visualization slide: {e}")
 
     def _add_slides_from_markdown(self, prs, markdown_content: str) -> None:
         """

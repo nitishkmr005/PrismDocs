@@ -5,11 +5,12 @@ Generates PDF or PPTX from structured content.
 """
 
 from pathlib import Path
+
 from loguru import logger
 
+from ...domain.exceptions import GenerationError
 from ...domain.models import WorkflowState
 from ..generators import get_generator
-from ...domain.exceptions import GenerationError
 
 
 def generate_output_node(state: WorkflowState) -> WorkflowState:
@@ -26,15 +27,30 @@ def generate_output_node(state: WorkflowState) -> WorkflowState:
         # Get appropriate generator
         generator = get_generator(state["output_format"])
 
-        # Get output directory
-        output_dir = Path("src/output")
+        # Check if custom output_path is provided
+        custom_output_path = state.get("output_path", "")
 
-        # Generate output file
-        output_path = generator.generate(
-            content=state["structured_content"],
-            metadata=state["metadata"],
-            output_dir=output_dir
-        )
+        if custom_output_path:
+            # Use custom output path if provided
+            custom_path = Path(custom_output_path)
+            output_dir = custom_path.parent
+            # Generate with custom path by passing output_dir and using metadata to set filename
+            state["metadata"]["custom_filename"] = custom_path.stem
+            output_path = generator.generate(
+                content=state["structured_content"],
+                metadata=state["metadata"],
+                output_dir=output_dir
+            )
+        else:
+            # Get default output directory
+            output_dir = Path("src/output")
+
+            # Generate output file with default naming
+            output_path = generator.generate(
+                content=state["structured_content"],
+                metadata=state["metadata"],
+                output_dir=output_dir
+            )
 
         state["output_path"] = str(output_path)
 

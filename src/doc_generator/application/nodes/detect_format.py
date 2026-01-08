@@ -5,10 +5,11 @@ Detects input format from file extension or URL pattern.
 """
 
 from pathlib import Path
+
 from loguru import logger
 
-from ...domain.models import WorkflowState
 from ...domain.content_types import ContentFormat
+from ...domain.models import WorkflowState
 
 
 def detect_format_node(state: WorkflowState) -> WorkflowState:

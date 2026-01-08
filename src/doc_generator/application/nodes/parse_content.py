@@ -6,9 +6,9 @@ Parses input content using appropriate parser.
 
 from loguru import logger
 
+from ...domain.exceptions import ParseError
 from ...domain.models import WorkflowState
 from ..parsers import get_parser
-from ...domain.exceptions import ParseError
 
 
 def parse_content_node(state: WorkflowState) -> WorkflowState:

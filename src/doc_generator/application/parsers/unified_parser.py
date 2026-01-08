@@ -6,13 +6,11 @@ Handles PDF, DOCX, PPTX, XLSX, and images with advanced OCR support.
 
 from pathlib import Path
 from typing import Tuple
+
 from loguru import logger
 
-from ...infrastructure.docling_adapter import (
-    convert_document_to_markdown,
-    is_docling_available
-)
 from ...domain.exceptions import ParseError
+from ...infrastructure.docling_adapter import convert_document_to_markdown, is_docling_available
 
 
 class UnifiedParser:

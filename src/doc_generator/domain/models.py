@@ -4,11 +4,12 @@ Domain models for document generator.
 Defines Pydantic models for workflow state, configuration, and content structures.
 """
 
-from typing import TypedDict, Literal
 from pathlib import Path
+from typing import TypedDict
+
 from pydantic import BaseModel, Field
 
-from .content_types import ContentFormat, OutputFormat
+from .content_types import OutputFormat
 
 
 class WorkflowState(TypedDict, total=False):
@@ -24,6 +25,7 @@ class WorkflowState(TypedDict, total=False):
         output_path: Path to generated file
         errors: List of errors encountered
         metadata: Additional metadata (title, author, etc.)
+        llm_service: Optional LLM service for content enhancement
     """
     input_path: str
     input_format: str
@@ -33,6 +35,7 @@ class WorkflowState(TypedDict, total=False):
     output_path: str
     errors: list[str]
     metadata: dict
+    llm_service: object
 
 
 class GeneratorConfig(BaseModel):

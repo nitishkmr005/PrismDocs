@@ -4,9 +4,10 @@ LLM service for intelligent content transformation.
 Provides OpenAI-powered content summarization, slide generation, and enhancement.
 """
 
-import os
 import json
+import os
 from typing import Optional
+
 from loguru import logger
 from openai import OpenAI
 
@@ -73,7 +74,7 @@ Respond with ONLY the bullet points, no introduction or conclusion."""
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an executive communication specialist who creates clear, impactful summaries for senior leadership."},
+                    {"role": "system", "content": "You are an executive communication specialist who creates clear, impactful summaries for senior leadership."},  # noqa: E501
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
@@ -128,7 +129,7 @@ Respond in JSON format:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a presentation design expert who creates compelling executive presentations. Always respond with valid JSON."},
+                    {"role": "system", "content": "You are a presentation design expert who creates compelling executive presentations. Always respond with valid JSON."},  # noqa: E501
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.4,
@@ -198,7 +199,7 @@ Respond with ONLY the enhanced bullet points, one per line, starting with "-".""
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an executive communication specialist."},
+                    {"role": "system", "content": "You are an executive communication specialist."},  # noqa: E501
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
@@ -242,7 +243,7 @@ Respond with ONLY the speaker notes text."""
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a presentation coach."},
+                    {"role": "system", "content": "You are a presentation coach."},  # noqa: E501
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.4,
@@ -285,7 +286,7 @@ Example format:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a data visualization expert."},
+                    {"role": "system", "content": "You are a data visualization expert."},  # noqa: E501
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
@@ -301,6 +302,143 @@ Example format:
             return []
         except Exception as e:
             logger.error(f"Failed to suggest chart data: {e}")
+            return []
+
+    def suggest_visualizations(self, content: str, max_visuals: int = 3) -> list[dict]:
+        """
+        Analyze content and suggest visual diagrams.
+
+        Automatically detects patterns in content that can be visualized as:
+        - Architecture diagrams (system components, layers)
+        - Flowcharts (processes, decisions, steps)
+        - Comparison visuals (feature comparisons, options)
+        - Concept maps (hierarchical relationships)
+        - Mind maps (topic overviews)
+
+        Args:
+            content: Content to analyze for visualization opportunities
+            max_visuals: Maximum number of visualizations to suggest
+
+        Returns:
+            List of visualization suggestions with type, title, and structured data
+        """
+        if not self.is_available():
+            return []
+
+        prompt = f"""Analyze this content and suggest visual diagrams that would help explain key concepts.
+Look for:
+1. System architectures or component relationships → architecture diagram
+2. Step-by-step processes or decision flows → flowchart
+3. Comparisons between options/features → comparison_visual
+4. Hierarchical concept relationships → concept_map
+5. Topic overviews with subtopics → mind_map
+
+Content:
+{content[:6000]}
+
+For each visualization opportunity (maximum {max_visuals}), provide structured data.
+IMPORTANT: Keep text labels short (max 20 characters) to prevent overlap.
+
+Return JSON with "visualizations" array. Each visualization must have:
+- type: "architecture", "flowchart", "comparison_visual", "concept_map", or "mind_map"
+- title: Short descriptive title
+- data: Type-specific structured data (see formats below)
+
+Data formats:
+
+For architecture:
+{{
+  "components": [{{"id": "1", "name": "Component Name", "layer": "frontend|backend|database|external|infrastructure"}}],
+  "connections": [{{"from": "1", "to": "2", "label": "connection type"}}]
+}}
+
+For flowchart:
+{{
+  "nodes": [{{"id": "1", "type": "start|end|process|decision", "text": "Node text"}}],
+  "edges": [{{"from": "1", "to": "2", "label": "optional label"}}]
+}}
+
+For comparison_visual:
+{{
+  "items": ["Option A", "Option B"],
+  "categories": [{{"name": "Category", "scores": [8, 6]}}]
+}}
+
+For concept_map:
+{{
+  "concepts": [{{"id": "1", "text": "Concept", "level": 0}}],
+  "relationships": [{{"from": "1", "to": "2", "label": "relates to"}}]
+}}
+
+For mind_map:
+{{
+  "central": "Main Topic",
+  "branches": [{{"text": "Branch 1", "children": ["Sub 1.1", "Sub 1.2"]}}]
+}}
+
+If no good visualization opportunities exist, return {{"visualizations": []}}"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a visual communication expert who creates clear, informative diagrams. "
+                                   "You identify the best visualization type for each concept and structure data precisely. "  # noqa: E501
+                                   "Keep all text labels SHORT (under 20 chars) to prevent overlap in diagrams."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.4,
+                max_tokens=2000,
+                response_format={"type": "json_object"}
+            )
+            result = response.choices[0].message.content.strip()
+            logger.debug(f"Visualization suggestions raw response: {result[:300]}...")
+
+            data = json.loads(result)
+
+            # Handle various response formats
+            if isinstance(data, dict):
+                visuals = data.get("visualizations", data.get("visuals", []))
+                if not visuals and len(data) == 1:
+                    visuals = list(data.values())[0]
+            elif isinstance(data, list):
+                visuals = data
+            else:
+                visuals = []
+
+            # Validate and clean visualizations
+            valid_visuals = []
+            valid_types = {"architecture", "flowchart", "comparison_visual", "concept_map", "mind_map"}
+
+            for visual in visuals[:max_visuals]:
+                if not isinstance(visual, dict):
+                    continue
+
+                vis_type = visual.get("type", "")
+                if vis_type not in valid_types:
+                    continue
+
+                vis_data = visual.get("data", {})
+                if not vis_data:
+                    continue
+
+                valid_visuals.append({
+                    "type": vis_type,
+                    "title": visual.get("title", f"{vis_type.replace('_', ' ').title()} Diagram"),
+                    "data": vis_data
+                })
+
+            logger.info(f"Suggested {len(valid_visuals)} visualizations")
+            return valid_visuals
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse visualization suggestions JSON: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Failed to suggest visualizations: {e}")
             return []
 
 
