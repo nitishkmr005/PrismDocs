@@ -18,36 +18,41 @@ Three-layer clean architecture: `Domain → Application → Infrastructure`
 ## Project Layout
 ```
 src/{project}/domain|application|infrastructure/
-tests/           # All tests (mirrors src/ structure)
-docs/            # Extended docs (see docs/README.md for index)
+tests/           # Mirrors src/ structure
+docs/            # See docs structure below
 ```
 
-## Key Files
-- `pyproject.toml`: All dependencies (use `uv`, pin versions)
-- `Makefile`: Single entry point for all commands
-- `.env`: Secrets (never commit, use `.env.example`)
-- `tests/conftest.py`: Shared fixtures
+## Documentation Structure
+```
+docs/
+├── architecture/architecture.md   # Diagrams, system design
+├── claude-code/                   # hooks, mcp-servers, skills, subagents
+├── guides/setup.md                # Setup guide
+├── learnings/YYYY-MM-session.md   # Session-date based learnings
+├── plans/YYYY-MM-DD-topic.md      # Date based plans
+└── project/                       # DECISIONS, MILESTONES, SPEC, STATUS
+```
 
-## Code Conventions
-- Linting handled by pre-commit hooks (ruff/biome) - no manual style enforcement
-- Use `loguru` for logging, never `print()`
-- One responsibility per module
-- Reference patterns: see `src/{project}/domain/` for examples
+**Naming:** UPPERCASE.md for project/, lowercase for others, date prefixes for learnings/plans.
 
-## Documentation
-- Root: `README.md` only (objective, setup, run, structure)
-- Extended docs: `docs/` with index
-- Docstrings: Google style, required for public APIs
+## Skills (update docs automatically)
+- `/session-start` - Review STATUS.md, suggest tasks
+- `/session-end` - Update STATUS.md, optional retro
+- `/update-status` - Update docs/project/STATUS.md
+- `/retro` - Create docs/learnings/YYYY-MM-session.md
+- `/create-issues` - MILESTONES.md → GitHub issues
+- `/new-milestone` - Add to MILESTONES.md
 
 ## Workflow
-1. Read relevant files before changes (use `file:line` references)
-2. Simplest working version first
-3. Run `make lint` after code changes
-4. Run `make test` before committing
-5. One end-to-end test minimum
+1. `/session-start` at beginning
+2. Read relevant files before changes (use `file:line` references)
+3. Simplest working version first
+4. Run `make lint` after code changes
+5. Run `make test` before committing
+6. `/session-end` at end (updates STATUS.md)
 
 ## Principles
 - Simplicity over complexity
 - No premature abstraction
-- Delete unused code (no backwards-compat hacks)
+- Delete unused code
 - Evidence before assertions (run tests, don't assume)
