@@ -22,7 +22,7 @@ todos:
     status: completed
   - id: test-generation
     content: Test PDF generation to verify SVGs are embedded correctly
-    status: in_progress
+    status: completed
 ---
 
 # SVG Fix, Validation Loop, and Code Reorganization
