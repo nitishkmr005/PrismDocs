@@ -6,6 +6,9 @@
 
 _Use `/update-status` to update this file at end of session._
 
+## What changed last session?
+_TBD_
+
 ## Current Milestone
 v5
 
