@@ -4,40 +4,42 @@
 Document Generator
 
 ## Overview
-Productized document generation platform that lets users bring their own LLM API key to create artifacts (PDF, PPTX, Markdown, FAQ docs, podcast MP3) from multi-source inputs, available via a frontend app and a Python package.
+Productized document generation platform where users bring their own LLM API key to create artifacts (PDF, PPTX, Markdown, FAQ docs, podcast MP3) from multi-source inputs via a frontend app, API, or Python package.
 
 ## Product Purpose
-Enable users to synthesize structured, reusable documents from messy inputs using their own LLM credentials, with consistent outputs across API, UI, and package interfaces.
+Let users turn messy inputs into structured, reusable artifacts using their own LLM credentials, with consistent outputs across UI, API, and package interfaces.
 
 ## Who Is This Product For
-- Teams and individuals who need reliable document artifacts from mixed inputs
-- Developers who want a Python-first package and a hosted API
+- Teams and individuals who need reliable artifacts from mixed inputs
+- Developers who want a Python-first package plus a hosted API
 - Product teams that need UI-driven generation for non-technical users
 
 ## Problems It Solves
 - Manual, time-consuming synthesis across multiple formats and sources
-- Inconsistent outputs when prompts and templates are ad hoc
-- Hard-to-automate workflows without a unified API and UI
+- Inconsistent outputs caused by ad hoc prompts and templates
+- Hard-to-automate workflows without a unified API, UI, and package
 
 ## What the Product Does
 - Ingests files, URLs, and folders of sources
 - Normalizes and synthesizes content using an LLM (user-provided API key)
 - Generates PDF, PPTX, Markdown, FAQ docs, and podcast MP3 artifacts
 - Exposes generation via FastAPI and a Python package
+- Provides a frontend UI for artifact creation and chat
 - Supports RAG-based chat for document Q&A
 
 ## Functionality
 - Multi-format input parsing with OCR support where needed
-- LLM-driven synthesis and summarization
+- LLM-driven synthesis, summarization, and content creation
 - Artifact generation (PDF, PPTX, Markdown, FAQ, MP3)
 - FastAPI service and Python package interfaces
-- Auth, logging, and database-backed inputs
+- Frontend UI with authentication
+- Logging and database-backed inputs
 - Dockerized execution for portability
 
 ## Goals
 1. Accept multiple input formats (PDF, Markdown, TXT, DOCX, PPTX, XLSX, URLs, images)
 2. Generate professional PDF, PPTX, Markdown, FAQ, and MP3 outputs
-3. Support BYO LLM API keys in frontend and Python package
+3. Support BYO LLM API keys in frontend, API, and Python package
 4. Provide a FastAPI backend with a clean, deployable interface
 5. Stay Python-first and containerized for portability
 
@@ -136,6 +138,6 @@ Hybrid Clean Architecture:
 - [ ] PDF output generates correctly
 - [ ] PPTX output generates correctly
 - [ ] Markdown/FAQ/MP3 outputs generate correctly
-- [ ] API and Python package can generate artifacts end-to-end
+- [ ] Frontend, API, and Python package can generate artifacts end-to-end
 - [ ] Docker container builds and runs
 - [ ] Tests pass with >80% coverage
