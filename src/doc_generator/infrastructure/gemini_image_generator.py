@@ -129,6 +129,19 @@ Style requirements:
 - Wide aspect ratio (16:9 or similar)
 - No text in the image"""
 
+        elif image_type == ImageType.MERMAID:
+            return f"""Create a professional, clean flowchart/diagram image that represents: {prompt}
+
+Style requirements:
+- Clean, modern diagram design with clear flow
+- Use boxes, arrows, and connections to show relationships
+- Professional color scheme (blues, grays, with accent colors)
+- Include clear labels for each step/component
+- Make it suitable for inclusion in a corporate document
+- High contrast for readability when printed
+- No watermarks or decorative elements
+- Focus on clarity and visual hierarchy"""
+
         else:
             return prompt
 
@@ -248,6 +261,87 @@ Style requirements:
             section_title=section_title,
             output_path=output_path
         )
+
+    def generate_diagram_from_mermaid(
+        self,
+        mermaid_code: str,
+        output_path: Path
+    ) -> Optional[Path]:
+        """
+        Generate a diagram image from mermaid code description.
+
+        Instead of rendering mermaid code, this converts it to a natural language
+        description and generates a professional diagram image using Gemini.
+
+        Args:
+            mermaid_code: Mermaid diagram code
+            output_path: Path to save the generated image
+
+        Returns:
+            Path to saved image or None if generation failed
+        """
+        # Parse mermaid code to create a description
+        description = self._describe_mermaid(mermaid_code)
+
+        return self.generate_image(
+            prompt=description,
+            image_type=ImageType.MERMAID,
+            section_title="Diagram",
+            output_path=output_path
+        )
+
+    def _describe_mermaid(self, mermaid_code: str) -> str:
+        """
+        Convert mermaid code to a natural language description.
+
+        Args:
+            mermaid_code: Mermaid diagram code
+
+        Returns:
+            Natural language description of the diagram
+        """
+        lines = mermaid_code.strip().split('\n')
+
+        # Detect diagram type
+        diagram_type = "flowchart"
+        if lines:
+            first_line = lines[0].lower().strip()
+            if first_line.startswith('graph'):
+                diagram_type = "flowchart"
+            elif first_line.startswith('sequencediagram'):
+                diagram_type = "sequence diagram"
+            elif first_line.startswith('classDiagram'):
+                diagram_type = "class diagram"
+            elif first_line.startswith('stateDiagram'):
+                diagram_type = "state diagram"
+            elif first_line.startswith('erDiagram'):
+                diagram_type = "entity relationship diagram"
+            elif first_line.startswith('gantt'):
+                diagram_type = "gantt chart"
+            elif first_line.startswith('pie'):
+                diagram_type = "pie chart"
+
+        # Extract nodes and connections
+        nodes = []
+        for line in lines[1:]:
+            line = line.strip()
+            if not line or line.startswith('%'):
+                continue
+            # Extract text between brackets
+            import re
+            matches = re.findall(r'\[([^\]]+)\]', line)
+            for m in matches:
+                if m not in nodes:
+                    nodes.append(m)
+
+        # Build description
+        if nodes:
+            nodes_desc = ", ".join(nodes[:10])
+            return f"A {diagram_type} showing: {nodes_desc}. The diagram shows the flow and relationships between these components with arrows and connections."
+        else:
+            # Fallback to simplified code description
+            simplified = ' '.join(lines[:5])
+            return f"A {diagram_type} representing: {simplified}"
 
 
 def encode_image_base64(image_path: Path) -> str:

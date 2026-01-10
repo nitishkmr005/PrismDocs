@@ -5,6 +5,7 @@ Generates PowerPoint presentations from structured markdown content.
 Supports LLM-enhanced slide generation for executive presentations.
 """
 
+import hashlib
 from pathlib import Path
 
 from loguru import logger
@@ -34,7 +35,41 @@ class PPTXGenerator:
 
     def __init__(self):
         """Initialize PPTX generator."""
-        pass
+        self._image_cache: Path | None = None
+
+    def _generate_mermaid_image(self, mermaid_code: str) -> Path | None:
+        """
+        Generate an image from mermaid code using Gemini.
+
+        Args:
+            mermaid_code: Mermaid diagram code
+
+        Returns:
+            Path to generated image or None if failed
+        """
+        if not self._image_cache:
+            return None
+
+        try:
+            from ...infrastructure.gemini_image_generator import get_gemini_generator
+        except ImportError:
+            logger.warning("Gemini generator not available")
+            return None
+
+        self._image_cache.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256(mermaid_code.encode("utf-8")).hexdigest()[:12]
+        out_path = self._image_cache / f"mermaid-pptx-{digest}.png"
+
+        if out_path.exists():
+            return out_path
+
+        generator = get_gemini_generator()
+        if not generator.is_available():
+            logger.warning("Gemini not available for mermaid rendering")
+            return None
+
+        result = generator.generate_diagram_from_mermaid(mermaid_code, out_path)
+        return result
 
     def generate(self, content: dict, metadata: dict, output_dir: Path) -> Path:
         """
@@ -57,6 +92,9 @@ class PPTXGenerator:
         try:
             # Ensure output directory exists
             output_dir.mkdir(parents=True, exist_ok=True)
+
+            # Set up image cache for mermaid diagrams
+            self._image_cache = output_dir / "images"
 
             # Create output path
             # Get title for presentation content
@@ -369,9 +407,23 @@ class PPTXGenerator:
                 if content_item:
                     current_slide_content.append(f"Table with {len(content_item)} rows")
 
-            # Mermaid diagrams - add placeholder
+            # Mermaid diagrams - generate image using Gemini
             elif kind == "mermaid":
-                current_slide_content.append("Diagram (see source)")
+                # Flush current slide if any
+                if current_slide_title and current_slide_content:
+                    add_content_slide(prs, current_slide_title, current_slide_content, is_bullets)
+                    current_slide_content = []
+                    current_slide_title = None
+
+                # Try to generate diagram image
+                mermaid_image = self._generate_mermaid_image(content_item)
+                if mermaid_image and mermaid_image.exists():
+                    add_image_slide(prs, "Diagram", mermaid_image, "Process Flow Diagram")
+                else:
+                    # Fallback to text placeholder
+                    if not current_slide_title:
+                        current_slide_title = "Diagram"
+                    current_slide_content.append("See accompanying PDF for diagram")
 
             # Limit content per slide (max 7 items)
             if len(current_slide_content) >= 7:

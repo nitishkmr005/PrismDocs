@@ -497,6 +497,42 @@ def render_mermaid(
     return out_path if out_path.exists() else None
 
 
+def render_mermaid_with_gemini(
+    mermaid_text: str,
+    image_cache: Path
+) -> Path | None:
+    """
+    Generate a diagram image from mermaid code using Gemini.
+
+    Args:
+        mermaid_text: Mermaid diagram code
+        image_cache: Directory for cached images
+
+    Returns:
+        Path to generated PNG or None if generation failed
+    """
+    try:
+        from .gemini_image_generator import get_gemini_generator
+    except ImportError:
+        logger.warning("Gemini generator not available")
+        return None
+
+    image_cache.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha256(mermaid_text.encode("utf-8")).hexdigest()[:12]
+    out_path = image_cache / f"mermaid-gemini-{digest}.png"
+
+    if out_path.exists():
+        return out_path
+
+    generator = get_gemini_generator()
+    if not generator.is_available():
+        logger.warning("Gemini not available for mermaid rendering")
+        return None
+
+    result = generator.generate_diagram_from_mermaid(mermaid_text, out_path)
+    return result
+
+
 def make_mermaid_flowable(
     mermaid_text: str,
     styles: dict,
@@ -505,6 +541,8 @@ def make_mermaid_flowable(
 ) -> list:
     """
     Create mermaid diagram flowable.
+
+    First tries mmdc CLI, then falls back to Gemini image generation.
 
     Args:
         mermaid_text: Mermaid diagram code
@@ -515,7 +553,13 @@ def make_mermaid_flowable(
     Returns:
         List of flowables (Image + spacer or styled code block)
     """
+    # Try mmdc first
     rendered = render_mermaid(mermaid_text, image_cache, mmdc_path)
+
+    # If mmdc fails, try Gemini
+    if not rendered:
+        logger.info("Trying Gemini for mermaid diagram generation")
+        rendered = render_mermaid_with_gemini(mermaid_text, image_cache)
 
     if not rendered:
         # Show mermaid code in a styled diagram box instead of generic placeholder

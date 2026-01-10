@@ -112,6 +112,8 @@ class GeneratorSettings(BaseSettings):
     temp_dir: Path = Path("src/output/temp")
     default_output_format: str = "pdf"
     max_retries: int = Field(default=3, ge=1, le=10)
+    # Audience type: technical (default), executive, client, educational
+    audience: str = "technical"
 
 
 class LlmSettings(BaseSettings):
