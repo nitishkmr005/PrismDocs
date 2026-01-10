@@ -80,8 +80,39 @@ def load_structured_content(
         return None
 
 
+def load_image_manifest(images_dir: Path) -> Optional[dict]:
+    manifest_path = images_dir / "manifest.json"
+    if not manifest_path.exists():
+        return None
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load image manifest: {e}")
+        return None
+
+
+def save_image_manifest(
+    images_dir: Path,
+    content_hash: str,
+    section_titles: list[str]
+) -> None:
+    try:
+        images_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = images_dir / "manifest.json"
+        data = {
+            "content_hash": content_hash,
+            "section_titles": section_titles
+        }
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Failed to save image manifest: {e}")
+
+
 def load_existing_images(
-    images_dir: Path = Path("src/output/images")
+    images_dir: Path = Path("src/output/images"),
+    expected_hash: Optional[str] = None
 ) -> dict:
     """
     Load existing section images from disk.
@@ -101,6 +132,12 @@ def load_existing_images(
         logger.warning(f"Images directory not found: {images_dir}")
         return section_images
     
+    if expected_hash:
+        manifest = load_image_manifest(images_dir)
+        if not manifest or manifest.get("content_hash") != expected_hash:
+            logger.info("Image cache skipped due to content hash mismatch")
+            return section_images
+
     # Find all section images
     for img_path in sorted(images_dir.glob("section_*_infographic.png")):
         # Parse section ID from filename: section_0_infographic.png -> 0

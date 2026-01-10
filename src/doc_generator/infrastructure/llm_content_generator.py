@@ -8,12 +8,20 @@ for long documents.
 
 import json
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Optional
 
 from loguru import logger
 
 from .settings import get_settings
+
+try:
+    from google import genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    GENAI_AVAILABLE = False
+    logger.warning("google-genai not installed - Gemini content generation disabled")
 
 try:
     from anthropic import Anthropic
@@ -71,6 +79,11 @@ class LLMContentGenerator:
         r'^[A-Z][a-z]+\s+[A-Z][a-z]+\s*$',  # Two word section titles
         r'^\d{1,2}:\d{2}\s*$',  # Timestamps as section breaks
     ]
+
+    _total_calls: int = 0
+    _models_used: set[str] = set()
+    _providers_used: set[str] = set()
+    _call_details: list[dict] = []
     
     def __init__(self, api_key: Optional[str] = None):
         """
@@ -87,6 +100,7 @@ class LLMContentGenerator:
         self.settings = get_settings()
         self.claude_api_key = api_key or os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
         self.openai_api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.gemini_api_key = api_key or os.getenv("GEMINI_API_KEY")
         
         # Content generation client (prefer OpenAI GPT-4o)
         self.content_client = None
@@ -98,20 +112,33 @@ class LLMContentGenerator:
         self.visual_provider = None
         self.visual_model = None
         
-        # Setup content generation client (OpenAI only - Claude disabled)
-        if self.openai_api_key and OPENAI_AVAILABLE:
-            self.content_client = OpenAI(api_key=self.openai_api_key)
-            self.content_provider = "openai"
-            self.content_model = self.settings.llm.content_model
-            logger.info(f"Content Generator initialized with OpenAI: {self.content_model}")
-        elif False and self.claude_api_key and ANTHROPIC_AVAILABLE:
-            # Claude support disabled
-            self.content_client = Anthropic(api_key=self.claude_api_key)
-            self.content_provider = "claude"
-            self.content_model = self.settings.llm.svg_model
-            logger.info(f"Content Generator initialized with Claude (fallback): {self.content_model}")
+        # Setup content generation client (provider-driven)
+        self.content_provider = self.settings.llm.content_provider or "openai"
+        self.content_model = self.settings.llm.content_model or self.settings.llm.model
+
+        if self.content_provider == "gemini":
+            if self.gemini_api_key and GENAI_AVAILABLE:
+                self.content_client = genai.Client(api_key=self.gemini_api_key)
+                logger.info(f"Content Generator initialized with Gemini: {self.content_model}")
+            else:
+                logger.warning("Gemini requested but not available for content generation")
+                self.content_client = None
+        elif self.content_provider == "openai":
+            if self.openai_api_key and OPENAI_AVAILABLE:
+                self.content_client = OpenAI(api_key=self.openai_api_key)
+                logger.info(f"Content Generator initialized with OpenAI: {self.content_model}")
+            else:
+                logger.warning("OpenAI requested but not available for content generation")
+                self.content_client = None
+        elif self.content_provider == "claude":
+            if self.claude_api_key and ANTHROPIC_AVAILABLE:
+                self.content_client = Anthropic(api_key=self.claude_api_key)
+                logger.info(f"Content Generator initialized with Claude: {self.content_model}")
+            else:
+                logger.warning("Claude requested but not available for content generation")
+                self.content_client = None
         else:
-            logger.warning("No OpenAI API key available for content generation")
+            logger.warning("Unsupported content provider requested - content generation disabled")
         
         # Setup visual data client (OpenAI only - Claude disabled)
         if self.openai_api_key and OPENAI_AVAILABLE:
@@ -360,7 +387,18 @@ Topic hint: {topic_hint if topic_hint else "Not provided"}
 Return ONLY the title, nothing else. No quotes, no explanation."""
 
         try:
-            if self.content_provider == "claude":
+            self._record_usage(step="content_title")
+            if self.content_provider == "gemini":
+                start_time = time.perf_counter()
+                prompt_text = prompt
+                response = self.content_client.models.generate_content(
+                    model=self.content_model,
+                    contents=prompt_text
+                )
+                title = (response.text or "").strip()
+                self._record_call_details(start_time, response, step="content_title")
+            elif self.content_provider == "claude":
+                start_time = time.perf_counter()
                 response = self.content_client.messages.create(
                     model=self.content_model,
                     max_tokens=100,
@@ -368,7 +406,9 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                     messages=[{"role": "user", "content": prompt}]
                 )
                 title = response.content[0].text.strip()
+                self._record_call_details(start_time, response, step="content_title")
             else:  # OpenAI
+                start_time = time.perf_counter()
                 response = self.content_client.chat.completions.create(
                     model=self.content_model,
                     max_completion_tokens=100,
@@ -376,6 +416,7 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                     messages=[{"role": "user", "content": prompt}]
                 )
                 title = response.choices[0].message.content.strip()
+                self._record_call_details(start_time, response, step="content_title")
 
             # Clean up title (remove quotes if present)
             title = title.strip('"\'')
@@ -387,7 +428,19 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
 
     def _call_llm(self, prompt: str, max_tokens: int) -> str:
         """Make an LLM API call for content generation."""
+        self._record_usage(step="content_generate")
+        if self.content_provider == "gemini":
+            start_time = time.perf_counter()
+            full_prompt = f"{self._get_system_prompt()}\n\n{prompt}"
+            response = self.content_client.models.generate_content(
+                model=self.content_model,
+                contents=full_prompt
+            )
+            self._record_call_details(start_time, response, step="content_generate")
+            response_text = (response.text or "").strip()
+            return response_text
         if self.content_provider == "claude":
+            start_time = time.perf_counter()
             response = self.content_client.messages.create(
                 model=self.content_model,
                 max_tokens=max_tokens,
@@ -395,8 +448,10 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                 system=self._get_system_prompt(),
                 messages=[{"role": "user", "content": prompt}]
             )
+            self._record_call_details(start_time, response, step="content_generate")
             return response.content[0].text
         else:  # OpenAI
+            start_time = time.perf_counter()
             response = self.content_client.chat.completions.create(
                 model=self.content_model,
                 max_completion_tokens=max_tokens,
@@ -406,7 +461,57 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                     {"role": "user", "content": prompt}
                 ]
             )
+            self._record_call_details(start_time, response, step="content_generate")
             return response.choices[0].message.content
+
+    def _record_usage(self, step: str) -> None:
+        LLMContentGenerator._total_calls += 1
+        if self.content_model:
+            LLMContentGenerator._models_used.add(self.content_model)
+        if self.content_provider:
+            LLMContentGenerator._providers_used.add(self.content_provider)
+        logger.opt(colors=True).info(
+            "<cyan>LLM call</cyan> provider={} model={}",
+            self.content_provider,
+            self.content_model
+        )
+
+    def _record_call_details(self, start_time: float, response, step: str) -> None:
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        input_tokens = None
+        output_tokens = None
+
+        if response is not None:
+            usage = getattr(response, "usage_metadata", None)
+            if usage:
+                input_tokens = getattr(usage, "prompt_token_count", None)
+                output_tokens = getattr(usage, "candidates_token_count", None)
+            usage = getattr(response, "usage", None)
+            if usage:
+                input_tokens = getattr(usage, "prompt_tokens", input_tokens)
+                output_tokens = getattr(usage, "completion_tokens", output_tokens)
+
+        LLMContentGenerator._call_details.append({
+            "kind": "llm",
+            "step": step,
+            "provider": self.content_provider,
+            "model": self.content_model,
+            "duration_ms": duration_ms,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+        })
+
+    @classmethod
+    def usage_summary(cls) -> dict:
+        return {
+            "total_calls": cls._total_calls,
+            "models": sorted(cls._models_used),
+            "providers": sorted(cls._providers_used),
+        }
+
+    @classmethod
+    def usage_details(cls) -> list[dict]:
+        return list(cls._call_details)
     
     def _get_system_prompt(self) -> str:
         """Get the system prompt for content generation."""

@@ -14,6 +14,7 @@ generator:
 
   # Maximum retries for generation failures (1-10)
   max_retries: 3
+  reuse_cache_by_default: true
 
 # Logging configuration
 logging:
@@ -69,7 +70,9 @@ parsers:
 
 # LLM service settings
 llm:
-  model: "gpt-4o-mini"
+  model: "gemini-3-pro-preview"
+  content_provider: "gemini"
+  content_model: "gemini-3-pro-preview"
   max_summary_points: 5
   max_slides: 10
   max_tokens_summary: 500

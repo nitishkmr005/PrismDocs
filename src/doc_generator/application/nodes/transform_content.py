@@ -10,7 +10,9 @@ from loguru import logger
 from ...domain.models import WorkflowState
 from ...infrastructure.llm_content_generator import LLMContentGenerator, get_content_generator
 from ...infrastructure.llm_service import get_llm_service
+from ...infrastructure.settings import get_settings
 from ...utils.content_cleaner import clean_content_for_output
+from ...utils.content_cache import load_structured_content
 
 
 def _detect_content_type(input_format: str, raw_content: str) -> str:
@@ -79,6 +81,30 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
         
         logger.info(f"Transforming content: type={content_type}, format={input_format}, topic={topic}")
         
+        # Try cache reuse if requested/default and content hash matches
+        settings = get_settings()
+        if "use_cache" in metadata:
+            use_cache = metadata.get("use_cache")
+        elif "reuse_cache" in metadata:
+            use_cache = metadata.get("reuse_cache")
+        else:
+            use_cache = settings.generator.reuse_cache_by_default
+
+        if use_cache:
+            cached = load_structured_content(state.get("input_path", ""))
+            if cached:
+                cached_hash = cached.get("content_hash")
+                current_hash = metadata.get("content_hash")
+                if cached_hash and current_hash and cached_hash == current_hash:
+                    state["structured_content"] = cached
+                    metadata["from_cache"] = True
+                    if "title" not in metadata or not metadata["title"]:
+                        metadata["title"] = cached.get("title", metadata.get("title", "Document"))
+                    state["metadata"] = metadata
+                    logger.info("Reused cached structured content (content hash match)")
+                    return state
+                logger.info("Cache ignored due to content hash mismatch")
+
         # Get content generator
         content_generator = get_content_generator()
         
@@ -161,6 +187,7 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
                     if slides:
                         structured["slides"] = slides
         
+        structured["content_hash"] = metadata.get("content_hash")
         state["structured_content"] = structured
         
         # Update metadata with generated title

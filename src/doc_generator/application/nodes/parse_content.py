@@ -4,6 +4,8 @@ Content parsing node for LangGraph workflow.
 Parses input content using appropriate parser.
 """
 
+import hashlib
+
 from loguru import logger
 
 from ...domain.exceptions import ParseError
@@ -30,6 +32,9 @@ def parse_content_node(state: WorkflowState) -> WorkflowState:
 
         state["raw_content"] = content
         state["metadata"].update(metadata)
+        state["metadata"]["content_hash"] = hashlib.sha256(
+            content.encode("utf-8")
+        ).hexdigest()
 
         logger.info(f"Parsed content: {len(content)} characters, title='{metadata.get('title', 'N/A')}'")
 

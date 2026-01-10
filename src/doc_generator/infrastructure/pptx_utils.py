@@ -29,7 +29,8 @@ THEME_COLORS = {
     "gradient_end": RGBColor(135, 169, 107),
 }
 
-FONT_NAME = "Trebuchet MS"
+TITLE_FONT_NAME = "Georgia"
+BODY_FONT_NAME = "Verdana"
 
 
 def create_presentation() -> Presentation:
@@ -89,14 +90,14 @@ def add_title_slide(prs: Presentation, title: str, subtitle: str = "") -> None:
 
     # Title - large, professional, left-aligned
     title_box = slide.shapes.add_textbox(
-        Inches(0.7), Inches(1.4),
-        Inches(8.5), Inches(2)
+        Inches(0.7), Inches(1.2),
+        Inches(8.5), Inches(1.6)
     )
     tf = title_box.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = title
-    p.font.name = FONT_NAME
+    p.font.name = TITLE_FONT_NAME
     p.font.size = Pt(44)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -105,14 +106,14 @@ def add_title_slide(prs: Presentation, title: str, subtitle: str = "") -> None:
     # Subtitle
     if subtitle:
         subtitle_box = slide.shapes.add_textbox(
-            Inches(0.7), Inches(3.4),
-            Inches(8.5), Inches(0.8)
+            Inches(0.7), Inches(3.1),
+            Inches(8.5), Inches(0.9)
         )
         tf = subtitle_box.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
         p.text = subtitle
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(18)
         p.font.color.rgb = THEME_COLORS["muted"]
         p.alignment = PP_ALIGN.LEFT
@@ -177,7 +178,7 @@ def add_content_slide(
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = title
-    p.font.name = FONT_NAME
+    p.font.name = TITLE_FONT_NAME
     p.font.size = Pt(30)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -211,16 +212,18 @@ def add_content_slide(
 
         if is_bullets:
             p.text = f"•  {clean_item}"
-            p.font.name = FONT_NAME
+            p.font.name = BODY_FONT_NAME
             p.font.size = Pt(18)
             p.font.color.rgb = THEME_COLORS["ink"]
             p.space_after = Pt(10)
+            p.line_spacing = Pt(24)
         else:
             p.text = clean_item
-            p.font.name = FONT_NAME
+            p.font.name = BODY_FONT_NAME
             p.font.size = Pt(16)
             p.font.color.rgb = THEME_COLORS["muted"]
             p.space_after = Pt(8)
+            p.line_spacing = Pt(22)
 
     # Add speaker notes if provided
     if speaker_notes:
@@ -277,7 +280,7 @@ def add_section_header_slide(prs: Presentation, section_title: str) -> None:
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = section_title
-    p.font.name = FONT_NAME
+    p.font.name = TITLE_FONT_NAME
     p.font.size = Pt(42)
     p.font.color.rgb = THEME_COLORS["background"]
     p.font.bold = True
@@ -329,7 +332,7 @@ def add_image_slide(
     text_frame = title_box.text_frame
     p = text_frame.paragraphs[0]
     p.text = title
-    p.font.name = FONT_NAME
+    p.font.name = TITLE_FONT_NAME
     p.font.size = Pt(28)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -358,7 +361,7 @@ def add_image_slide(
         text_frame = caption_box.text_frame
         p = text_frame.paragraphs[0]
         p.text = caption
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(14)
         p.font.color.rgb = THEME_COLORS["muted"]
         p.font.italic = True
@@ -406,7 +409,7 @@ def add_executive_summary_slide(
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = title
-    p.font.name = FONT_NAME
+    p.font.name = TITLE_FONT_NAME
     p.font.size = Pt(28)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -442,7 +445,7 @@ def add_executive_summary_slide(
         tf = num_box.text_frame
         p = tf.paragraphs[0]
         p.text = f"{i + 1}"
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(16)
         p.font.color.rgb = THEME_COLORS["background"]
         p.font.bold = True
@@ -458,7 +461,7 @@ def add_executive_summary_slide(
         p = tf.paragraphs[0]
         clean_point = point.lstrip("•-* ").strip()
         p.text = clean_point
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(16)
         p.font.color.rgb = THEME_COLORS["ink"]
 
@@ -506,7 +509,7 @@ def add_chart_slide(
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = title
-    p.font.name = FONT_NAME
+    p.font.name = TITLE_FONT_NAME
     p.font.size = Pt(28)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -543,7 +546,7 @@ def add_chart_slide(
         tf = caption_box.text_frame
         p = tf.paragraphs[0]
         p.text = caption
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(12)
         p.font.color.rgb = THEME_COLORS["muted"]
         p.font.italic = True
@@ -597,7 +600,7 @@ def add_two_column_slide(
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = title
-    p.font.name = FONT_NAME
+    p.font.name = BODY_FONT_NAME
     p.font.size = Pt(28)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -611,7 +614,7 @@ def add_two_column_slide(
         tf = left_title_box.text_frame
         p = tf.paragraphs[0]
         p.text = left_title
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(18)
         p.font.color.rgb = THEME_COLORS["accent"]
         p.font.bold = True
@@ -629,7 +632,7 @@ def add_two_column_slide(
         else:
             p = tf.add_paragraph()
         p.text = f"•  {item.lstrip('•-* ').strip()}"
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(16)
         p.font.color.rgb = THEME_COLORS["ink"]
         p.space_after = Pt(8)
@@ -652,7 +655,7 @@ def add_two_column_slide(
         tf = right_title_box.text_frame
         p = tf.paragraphs[0]
         p.text = right_title
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(18)
         p.font.color.rgb = THEME_COLORS["teal"]
         p.font.bold = True
@@ -670,7 +673,7 @@ def add_two_column_slide(
         else:
             p = tf.add_paragraph()
         p.text = f"•  {item.lstrip('•-* ').strip()}"
-        p.font.name = FONT_NAME
+        p.font.name = BODY_FONT_NAME
         p.font.size = Pt(16)
         p.font.color.rgb = THEME_COLORS["ink"]
         p.space_after = Pt(8)

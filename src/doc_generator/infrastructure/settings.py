@@ -112,6 +112,7 @@ class GeneratorSettings(BaseSettings):
     temp_dir: Path = Path("src/output/temp")
     default_output_format: str = "pdf"
     max_retries: int = Field(default=3, ge=1, le=10)
+    reuse_cache_by_default: bool = True
     # Audience type: technical (default), executive, client, educational
     audience: str = "technical"
 
@@ -120,13 +121,14 @@ class LlmSettings(BaseSettings):
     """LLM service settings with separate configs for content and visuals."""
 
     # Content generation settings (OpenAI GPT-4o)
-    content_model: str = "gpt-5.2"
-    content_provider: str = "openai"  # "openai" or "claude"
+    content_model: str = "gemini-3-pro-preview"
+    content_provider: str = "gemini"  # "gemini" or "openai"
     content_max_tokens: int = 8000
     content_temperature: float = 0.4
     
     # Legacy model setting (fallback)
-    model: str = "gpt-5.2"
+    model: str = "gemini-3-pro-preview"
+
     
     # Summary and slide generation
     max_summary_points: int = 5

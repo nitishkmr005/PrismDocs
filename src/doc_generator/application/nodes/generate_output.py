@@ -72,7 +72,13 @@ def generate_output_node(state: WorkflowState) -> WorkflowState:
 
         # Cache structured content for future use
         metadata = state.get("metadata", {})
-        if metadata.get("cache_content", False):
+        if "cache_content" in metadata:
+            cache_content = metadata.get("cache_content", False)
+        else:
+            settings = get_settings()
+            cache_content = settings.generator.reuse_cache_by_default
+
+        if cache_content:
             from ...utils.content_cache import save_structured_content
             input_path = state.get("input_path", "")
             if input_path:

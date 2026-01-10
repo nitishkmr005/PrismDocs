@@ -473,16 +473,22 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         images_dir.mkdir(parents=True, exist_ok=True)
 
         # Check for skip_image_generation flag
-        skip_generation = metadata.get("skip_image_generation", False)
+        if "skip_image_generation" in metadata:
+            skip_generation = metadata.get("skip_image_generation", False)
+        else:
+            skip_generation = settings.generator.reuse_cache_by_default
         
         if skip_generation:
-            # Load existing images instead of generating new ones
+            # Load existing images instead of generating new ones (hash-verified)
             from ...utils.content_cache import load_existing_images
-            section_images = load_existing_images(images_dir)
-            structured_content["section_images"] = section_images
-            state["structured_content"] = structured_content
-            logger.info(f"Loaded {len(section_images)} existing images (generation skipped)")
-            return state
+            content_hash = metadata.get("content_hash")
+            section_images = load_existing_images(images_dir, expected_hash=content_hash)
+            if section_images:
+                structured_content["section_images"] = section_images
+                state["structured_content"] = structured_content
+                logger.info(f"Loaded {len(section_images)} existing images (generation skipped)")
+                return state
+            logger.info("Image cache mismatch, regenerating images")
 
         # Extract sections from markdown
         sections = _extract_sections(markdown)
@@ -500,6 +506,7 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         skipped_count = 0
         reused_count = 0
 
+        section_titles = [section["title"] for section in sections]
         for section in sections:
             section_id = section["id"]
             section_title = section["title"]
@@ -563,6 +570,9 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
 
         # Store in structured content
         structured_content["section_images"] = section_images
+        from ...utils.content_cache import save_image_manifest
+        if metadata.get("content_hash"):
+            save_image_manifest(images_dir, metadata["content_hash"], section_titles)
         state["structured_content"] = structured_content
 
         logger.info(

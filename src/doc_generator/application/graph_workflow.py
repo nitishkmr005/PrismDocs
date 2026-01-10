@@ -8,6 +8,9 @@ from langgraph.graph import END, StateGraph
 from loguru import logger
 
 from ..domain.models import WorkflowState
+from ..infrastructure.gemini_image_generator import GeminiImageGenerator
+from ..infrastructure.llm_content_generator import LLMContentGenerator
+from ..infrastructure.llm_service import LLMService
 from .nodes import (
     detect_format_node,
     generate_images_node,
@@ -146,4 +149,67 @@ def run_workflow(
     else:
         logger.info(f"Workflow completed successfully: {result.get('output_path', 'N/A')}")
 
+    llm_usage = LLMService.usage_summary()
+    content_usage = LLMContentGenerator.usage_summary()
+    total_llm_calls = llm_usage["total_calls"] + content_usage["total_calls"]
+    models_used = sorted(set(llm_usage["models"]) | set(content_usage["models"]))
+    providers_used = sorted(set(llm_usage["providers"]) | set(content_usage["providers"]))
+    gemini_usage = GeminiImageGenerator.usage_summary()
+    logger.opt(colors=True).info(
+        "<cyan>LLM usage</cyan> calls={} models={} providers={}",
+        total_llm_calls,
+        models_used,
+        providers_used,
+    )
+    logger.opt(colors=True).info(
+        "<magenta>Gemini usage</magenta> calls={} models={}",
+        gemini_usage["total_calls"],
+        gemini_usage["models"],
+    )
+
+    llm_details = LLMService.usage_details() + LLMContentGenerator.usage_details()
+    image_details = GeminiImageGenerator.usage_details()
+    call_rows = llm_details + image_details
+    if call_rows:
+        logger.opt(colors=True).info(
+            "<cyan>Call timings</cyan>\n{}",
+            _format_call_table(call_rows)
+        )
+
     return result
+
+
+def _format_call_table(rows: list[dict]) -> str:
+    headers = ["type", "step", "provider", "model", "sec", "in_tokens", "out_tokens"]
+    table_rows = [headers]
+
+    for row in rows:
+        kind = row.get("kind", "")
+        step = row.get("step", "")
+        provider = row.get("provider", "")
+        model = row.get("model", "")
+        duration_ms = row.get("duration_ms")
+        duration_sec = "-"
+        if isinstance(duration_ms, (int, float)):
+            duration_sec = f"{duration_ms / 1000:.2f}"
+        input_tokens = row.get("input_tokens")
+        output_tokens = row.get("output_tokens")
+        in_str = str(input_tokens) if input_tokens is not None else "-"
+        out_str = str(output_tokens) if output_tokens is not None else "-"
+        table_rows.append([kind, step, provider, model, duration_sec, in_str, out_str])
+
+    col_widths = [max(len(str(row[i])) for row in table_rows) for i in range(len(headers))]
+
+    lines = []
+    header_line = "  ".join(
+        str(headers[i]).ljust(col_widths[i]) for i in range(len(headers))
+    )
+    lines.append(header_line)
+    lines.append("  ".join("-" * col_widths[i] for i in range(len(headers))))
+
+    for row in table_rows[1:]:
+        lines.append("  ".join(
+            str(row[i]).ljust(col_widths[i]) for i in range(len(headers))
+        ))
+
+    return "\n".join(lines)

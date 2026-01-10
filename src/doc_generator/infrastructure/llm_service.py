@@ -6,11 +6,21 @@ Provides OpenAI and Claude-powered content summarization, slide generation, and 
 
 import json
 import os
+import time
 from typing import Optional
 
 from loguru import logger
 
 from .settings import get_settings
+
+try:
+    from google import genai
+    from google.genai import types
+    GENAI_AVAILABLE = True
+except ImportError:
+    GENAI_AVAILABLE = False
+    types = None
+    logger.warning("google-genai not installed - Gemini LLM disabled")
 
 try:
     from openai import OpenAI
@@ -39,6 +49,7 @@ class LLMService:
         self,
         api_key: Optional[str] = None,
         model: str = "gpt-4o-mini",
+        provider: str = "openai",
         max_summary_points: int = 5,
         max_slides: int = 10,
         max_tokens_summary: int = 500,
@@ -56,10 +67,12 @@ class LLMService:
         # Try to determine which API to use
         self.claude_api_key = api_key or os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
         self.openai_api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.gemini_api_key = api_key or os.getenv("GEMINI_API_KEY")
         
         self.model = model
         self.client = None
         self.provider = None
+        self.requested_provider = provider
         self.max_summary_points = max_summary_points
         self.max_slides = max_slides
         self.max_tokens_summary = max_tokens_summary
@@ -67,8 +80,14 @@ class LLMService:
         self.temperature_summary = temperature_summary
         self.temperature_slides = temperature_slides
 
-        # Prefer OpenAI (Claude/Anthropic support disabled)
-        if self.openai_api_key and OPENAI_AVAILABLE:
+        if provider == "gemini":
+            if self.gemini_api_key and GENAI_AVAILABLE:
+                self.client = genai.Client(api_key=self.gemini_api_key)
+                self.provider = "gemini"
+                logger.info(f"LLM service initialized with Gemini: {model}")
+            else:
+                logger.warning("Gemini requested but not available - LLM features disabled")
+        elif provider == "openai" and self.openai_api_key and OPENAI_AVAILABLE:
             self.client = OpenAI(api_key=self.openai_api_key)
             self.provider = "openai"
             logger.info(f"LLM service initialized with OpenAI: {model}")
@@ -80,13 +99,26 @@ class LLMService:
                 self.model = "claude-sonnet-4-20250514"
             logger.info(f"LLM service initialized with Claude: {self.model}")
         else:
-            logger.warning("No OpenAI API key provided - LLM features disabled")
+            logger.warning("Unsupported LLM provider requested - LLM features disabled")
+
+    _total_calls: int = 0
+    _models_used: set[str] = set()
+    _providers_used: set[str] = set()
+    _call_details: list[dict] = []
 
     def is_available(self) -> bool:
         """Check if LLM service is available."""
         return self.client is not None
 
-    def _call_llm(self, system_msg: str, user_msg: str, max_tokens: int, temperature: float, json_mode: bool = False) -> str:
+    def _call_llm(
+        self,
+        system_msg: str,
+        user_msg: str,
+        max_tokens: int,
+        temperature: float,
+        json_mode: bool = False,
+        step: str = "llm_call"
+    ) -> str:
         """
         Call LLM provider (OpenAI or Claude).
         
@@ -104,6 +136,55 @@ class LLMService:
             return ""
             
         try:
+            LLMService._total_calls += 1
+            if self.model:
+                LLMService._models_used.add(self.model)
+            if self.provider:
+                LLMService._providers_used.add(self.provider)
+            logger.opt(colors=True).info(
+                "<cyan>LLM call</cyan> provider={} model={}",
+                self.provider,
+                self.model
+            )
+            start_time = time.perf_counter()
+            input_tokens = None
+            output_tokens = None
+
+            if self.provider == "gemini":
+                prompt = user_msg
+                if system_msg:
+                    prompt = f"System: {system_msg}\n\nUser: {user_msg}"
+                if json_mode:
+                    prompt += "\n\nRespond with valid JSON only."
+                if json_mode and types is not None:
+                    response = self.client.models.generate_content(
+                        model=self.model,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json"
+                        )
+                    )
+                else:
+                    response = self.client.models.generate_content(
+                        model=self.model,
+                        contents=prompt
+                    )
+                usage = getattr(response, "usage_metadata", None)
+                if usage:
+                    input_tokens = getattr(usage, "prompt_token_count", None)
+                    output_tokens = getattr(usage, "candidates_token_count", None)
+                duration_ms = int((time.perf_counter() - start_time) * 1000)
+                LLMService._call_details.append({
+                    "kind": "llm",
+                    "step": step,
+                    "provider": self.provider,
+                    "model": self.model,
+                    "duration_ms": duration_ms,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                })
+                response_text = (response.text or "").strip()
+                return response_text
             if self.provider == "claude":
                 response = self.client.messages.create(
                     model=self.model,
@@ -112,6 +193,16 @@ class LLMService:
                     system=system_msg,
                     messages=[{"role": "user", "content": user_msg}]
                 )
+                duration_ms = int((time.perf_counter() - start_time) * 1000)
+                LLMService._call_details.append({
+                    "kind": "llm",
+                    "step": step,
+                    "provider": self.provider,
+                    "model": self.model,
+                    "duration_ms": duration_ms,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                })
                 return response.content[0].text
             else:  # openai
                 kwargs = {
@@ -126,10 +217,69 @@ class LLMService:
                 if json_mode:
                     kwargs["response_format"] = {"type": "json_object"}
                 response = self.client.chat.completions.create(**kwargs)
+                usage = getattr(response, "usage", None)
+                if usage:
+                    input_tokens = getattr(usage, "prompt_tokens", None)
+                    output_tokens = getattr(usage, "completion_tokens", None)
+                duration_ms = int((time.perf_counter() - start_time) * 1000)
+                LLMService._call_details.append({
+                    "kind": "llm",
+                    "step": step,
+                    "provider": self.provider,
+                    "model": self.model,
+                    "duration_ms": duration_ms,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                })
                 return response.choices[0].message.content.strip()
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             return ""
+
+    def _safe_json_load(self, text: str) -> Optional[object]:
+        if not text:
+            return None
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        start_idx = None
+        for i, ch in enumerate(text):
+            if ch in "{[":
+                start_idx = i
+                break
+        if start_idx is None:
+            return None
+
+        stack = []
+        for i in range(start_idx, len(text)):
+            ch = text[i]
+            if ch in "{[":
+                stack.append(ch)
+            elif ch in "}]":
+                if not stack:
+                    continue
+                stack.pop()
+                if not stack:
+                    candidate = text[start_idx:i + 1]
+                    try:
+                        return json.loads(candidate)
+                    except json.JSONDecodeError:
+                        return None
+        return None
+
+    @classmethod
+    def usage_summary(cls) -> dict:
+        return {
+            "total_calls": cls._total_calls,
+            "models": sorted(cls._models_used),
+            "providers": sorted(cls._providers_used),
+        }
+
+    @classmethod
+    def usage_details(cls) -> list[dict]:
+        return list(cls._call_details)
 
     def generate_executive_summary(self, content: str, max_points: Optional[int] = None) -> str:
         """
@@ -162,7 +312,13 @@ Content:
 Respond with ONLY the bullet points, no introduction or conclusion."""
 
         try:
-            summary = self._call_llm(system_msg, user_msg, self.max_tokens_summary, self.temperature_summary)
+            summary = self._call_llm(
+                system_msg,
+                user_msg,
+                self.max_tokens_summary,
+                self.temperature_summary,
+                step="executive_summary"
+            )
             logger.debug(f"Generated executive summary: {len(summary)} chars")
             return summary
         except Exception as e:
@@ -190,11 +346,12 @@ Requirements:
 - Maximum {max_slides} slides (excluding title slide)
 - Each slide should have:
   - A clear, action-oriented title (5-8 words)
-  - 3-5 bullet points (concise, 10 words max each)
+  - 3-4 bullet points (concise, 7-10 words max each)
   - Speaker notes (2-3 sentences for context)
 - Focus on key messages that matter to senior leadership
 - Use professional business language
 - Structure for logical flow
+ - Ensure bullet points are parallel in structure and style
 
 Content:
 {content[:8000]}
@@ -212,10 +369,29 @@ Respond in JSON format:
 
         try:
             system_msg = "You are a presentation design expert who creates compelling executive presentations. Always respond with valid JSON."
-            result = self._call_llm(system_msg, prompt, self.max_tokens_slides, self.temperature_slides, json_mode=True)
+            result = self._call_llm(
+                system_msg,
+                prompt,
+                self.max_tokens_slides,
+                self.temperature_slides,
+                json_mode=True,
+                step="slide_structure"
+            )
             logger.debug(f"Slide structure raw response: {result[:200]}...")
 
-            data = json.loads(result)
+            data = self._safe_json_load(result)
+            if data is None:
+                retry = self._call_llm(
+                    system_msg,
+                    prompt,
+                    self.max_tokens_slides,
+                    self.temperature_slides,
+                    json_mode=True,
+                    step="slide_structure:retry"
+                )
+                data = self._safe_json_load(retry)
+            if data is None:
+                raise ValueError("Invalid JSON response")
 
             # Handle various response formats
             if isinstance(data, dict):
@@ -279,7 +455,9 @@ Respond in JSON format:
 Requirements:
 - One slide per section (maximum {max_slides})
 - Title must match the section title exactly
-- 3-4 bullet points per slide, 10 words max each
+- 3-4 bullet points per slide, 7-10 words max each
+- Bullets should be parallel, action-led, and slide-ready
+- Avoid filler phrases and long sentences
 - Bullets should align to the section content and image hint
 - Provide 1-2 sentence speaker notes per slide
 
@@ -300,8 +478,27 @@ Respond in JSON format:
 
         try:
             system_msg = "You are a presentation designer creating concise, slide-ready content. Always respond with valid JSON."
-            result = self._call_llm(system_msg, prompt, self.max_tokens_slides, self.temperature_slides, json_mode=True)
-            data = json.loads(result)
+            result = self._call_llm(
+                system_msg,
+                prompt,
+                self.max_tokens_slides,
+                self.temperature_slides,
+                json_mode=True,
+                step="section_slide_structure"
+            )
+            data = self._safe_json_load(result)
+            if data is None:
+                retry = self._call_llm(
+                    system_msg,
+                    prompt,
+                    self.max_tokens_slides,
+                    self.temperature_slides,
+                    json_mode=True,
+                    step="section_slide_structure:retry"
+                )
+                data = self._safe_json_load(retry)
+            if data is None:
+                raise ValueError("Invalid JSON response")
 
             slides = []
             if isinstance(data, dict):
@@ -353,7 +550,7 @@ Respond with ONLY the enhanced bullet points, one per line, starting with "-".""
 
         try:
             system_msg = "You are an executive communication specialist."
-            result = self._call_llm(system_msg, prompt, 300, 0.3)
+            result = self._call_llm(system_msg, prompt, 300, 0.3, step="enhance_bullets")
             enhanced = [line.lstrip("- ").strip() for line in result.split("\n") if line.strip().startswith("-")]
             return enhanced if enhanced else bullets
         except Exception as e:
@@ -389,7 +586,7 @@ Respond with ONLY the speaker notes text."""
 
         try:
             system_msg = "You are a presentation coach."
-            return self._call_llm(system_msg, prompt, 200, 0.4)
+            return self._call_llm(system_msg, prompt, 200, 0.4, step="speaker_notes")
         except Exception as e:
             logger.error(f"Failed to generate speaker notes: {e}")
             return ""
@@ -424,8 +621,27 @@ Example format:
 
         try:
             system_msg = "You are a data visualization expert."
-            result = self._call_llm(system_msg, prompt, 1000, 0.3, json_mode=True)
-            data = json.loads(result)
+            result = self._call_llm(
+                system_msg,
+                prompt,
+                1000,
+                0.3,
+                json_mode=True,
+                step="chart_suggestions"
+            )
+            data = self._safe_json_load(result)
+            if data is None:
+                retry = self._call_llm(
+                    system_msg,
+                    prompt,
+                    1000,
+                    0.3,
+                    json_mode=True,
+                    step="chart_suggestions:retry"
+                )
+                data = self._safe_json_load(retry)
+            if data is None:
+                raise ValueError("Invalid JSON response")
             if isinstance(data, dict):
                 charts = data.get("charts", data.get("data", []))
                 if not charts and len(data) == 1:
@@ -516,10 +732,28 @@ If no good visualization opportunities exist, return {{"visualizations": []}}"""
             system_msg = ("You are a visual communication expert who creates clear, informative diagrams. "
                          "You identify the best visualization type for each concept and structure data precisely. "
                          "Keep all text labels SHORT (under 20 chars) to prevent overlap in diagrams.")
-            result = self._call_llm(system_msg, prompt, 2000, 0.4, json_mode=True)
+            result = self._call_llm(
+                system_msg,
+                prompt,
+                2000,
+                0.4,
+                json_mode=True,
+                step="visualization_suggestions"
+            )
             logger.debug(f"Visualization suggestions raw response: {result[:300]}...")
-
-            data = json.loads(result)
+            data = self._safe_json_load(result)
+            if data is None:
+                retry = self._call_llm(
+                    system_msg,
+                    prompt,
+                    2000,
+                    0.4,
+                    json_mode=True,
+                    step="visualization_suggestions:retry"
+                )
+                data = self._safe_json_load(retry)
+            if data is None:
+                raise ValueError("Invalid JSON response")
 
             # Handle various response formats
             if isinstance(data, dict):
@@ -582,9 +816,12 @@ def get_llm_service(api_key: Optional[str] = None) -> LLMService:
     if _llm_service is None:
         settings = get_settings()
         llm_settings = settings.llm
+        provider = llm_settings.content_provider or "openai"
+        model = llm_settings.content_model or llm_settings.model
         _llm_service = LLMService(
             api_key=api_key,
-            model=llm_settings.model,
+            model=model,
+            provider=provider,
             max_summary_points=llm_settings.max_summary_points,
             max_slides=llm_settings.max_slides,
             max_tokens_summary=llm_settings.max_tokens_summary,

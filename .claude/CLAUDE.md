@@ -54,3 +54,12 @@ docs/
 - Simplicity over complexity
 - No premature abstraction
 - Evidence before assertions
+
+## Logging Format (Generic)
+Use a consistent, high-signal CLI log layout with a header, step list, optional LLM table, and completion summary. Keep it concise.
+Progress lines like `[1/5] Step Name` with short sub-lines (e.g., reuse/cache notes) are required. Use emojis where appropriate.
+
+Notes:
+- Keep table columns aligned with fixed spacing.
+- Use seconds (two decimals).
+- Include LLM call table when available.

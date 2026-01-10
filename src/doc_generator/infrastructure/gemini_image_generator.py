@@ -32,6 +32,9 @@ class GeminiImageGenerator:
     Supports infographic and decorative image generation with automatic
     rate limiting to stay within 20 requests/minute.
     """
+    _total_calls: int = 0
+    _models_used: set[str] = set()
+    _call_details: list[dict] = []
 
     def __init__(self, api_key: Optional[str] = None):
         """
@@ -178,7 +181,16 @@ Style requirements:
         enhanced_prompt = self._enhance_prompt(prompt, image_type)
 
         try:
-            logger.info(f"Generating {image_type.value} image for: {section_title}")
+            GeminiImageGenerator._total_calls += 1
+            if self.settings.gemini_model:
+                GeminiImageGenerator._models_used.add(self.settings.gemini_model)
+            logger.opt(colors=True).info(
+                "<magenta>Gemini image call</magenta> model={} type={} section={}",
+                self.settings.gemini_model,
+                image_type.value,
+                section_title
+            )
+            start_time = time.perf_counter()
 
             # Create chat with image generation capabilities
             chat = self.client.chats.create(
@@ -201,6 +213,16 @@ Style requirements:
                     image = part.as_image()
                     if image:
                         image.save(str(output_path))
+                        duration_ms = int((time.perf_counter() - start_time) * 1000)
+                        GeminiImageGenerator._call_details.append({
+                            "kind": "image",
+                            "step": "image_generate",
+                            "provider": "gemini",
+                            "model": self.settings.gemini_model,
+                            "duration_ms": duration_ms,
+                            "input_tokens": None,
+                            "output_tokens": None,
+                        })
                         logger.success(f"Generated image saved: {output_path}")
                         return output_path
 
@@ -210,6 +232,17 @@ Style requirements:
         except Exception as e:
             logger.error(f"Failed to generate image for '{section_title}': {e}")
             return None
+
+    @classmethod
+    def usage_summary(cls) -> dict:
+        return {
+            "total_calls": cls._total_calls,
+            "models": sorted(cls._models_used),
+        }
+
+    @classmethod
+    def usage_details(cls) -> list[dict]:
+        return list(cls._call_details)
 
     def generate_infographic(
         self,
