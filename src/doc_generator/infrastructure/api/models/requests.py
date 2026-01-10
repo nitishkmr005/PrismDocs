@@ -1,0 +1,89 @@
+"""Pydantic request models for the API."""
+
+from enum import Enum
+from typing import Annotated, Literal, Union
+
+from pydantic import BaseModel, Field
+
+
+class OutputFormat(str, Enum):
+    PDF = "pdf"
+    PPTX = "pptx"
+
+
+class Provider(str, Enum):
+    GOOGLE = "google"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+
+
+class Audience(str, Enum):
+    TECHNICAL = "technical"
+    EXECUTIVE = "executive"
+    CLIENT = "client"
+    EDUCATIONAL = "educational"
+
+
+class ImageStyle(str, Enum):
+    AUTO = "auto"
+    INFOGRAPHIC = "infographic"
+    HANDWRITTEN = "handwritten"
+    MINIMALIST = "minimalist"
+    CORPORATE = "corporate"
+    EDUCATIONAL = "educational"
+    DIAGRAM = "diagram"
+    CHART = "chart"
+    MERMAID = "mermaid"
+    DECORATIVE = "decorative"
+
+
+class FileSource(BaseModel):
+    type: Literal["file"] = "file"
+    file_id: str
+
+
+class UrlSource(BaseModel):
+    type: Literal["url"] = "url"
+    url: str
+
+
+class TextSource(BaseModel):
+    type: Literal["text"] = "text"
+    content: str
+
+
+SourceItem = Annotated[
+    Union[FileSource, UrlSource, TextSource],
+    Field(discriminator="type"),
+]
+
+
+class SourceCategories(BaseModel):
+    primary: list[SourceItem] = Field(default_factory=list)
+    supporting: list[SourceItem] = Field(default_factory=list)
+    reference: list[SourceItem] = Field(default_factory=list)
+    data: list[SourceItem] = Field(default_factory=list)
+    other: dict[str, list[SourceItem]] = Field(default_factory=dict)
+
+
+class Preferences(BaseModel):
+    audience: Audience = Audience.TECHNICAL
+    image_style: ImageStyle = ImageStyle.AUTO
+    temperature: float = Field(default=0.4, ge=0.0, le=1.0)
+    max_tokens: int = Field(default=8000, ge=100, le=32000)
+    max_slides: int = Field(default=10, ge=1, le=50)
+    max_summary_points: int = Field(default=5, ge=1, le=20)
+
+
+class CacheOptions(BaseModel):
+    reuse: bool = True
+
+
+class GenerateRequest(BaseModel):
+    output_format: OutputFormat
+    sources: SourceCategories
+    provider: Provider = Provider.GOOGLE
+    model: str = "gemini-3-pro-preview"
+    image_model: str = "gemini-3-pro-image-preview"
+    preferences: Preferences = Field(default_factory=Preferences)
+    cache: CacheOptions = Field(default_factory=CacheOptions)
