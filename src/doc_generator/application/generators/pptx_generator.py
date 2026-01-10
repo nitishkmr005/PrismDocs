@@ -6,6 +6,7 @@ Supports LLM-enhanced slide generation for executive presentations.
 """
 
 import hashlib
+import re
 from pathlib import Path
 
 from loguru import logger
@@ -36,6 +37,7 @@ class PPTXGenerator:
     def __init__(self):
         """Initialize PPTX generator."""
         self._image_cache: Path | None = None
+        self._max_bullets_per_slide = 4
 
     def _generate_mermaid_image(self, mermaid_code: str) -> Path | None:
         """
@@ -98,7 +100,8 @@ class PPTXGenerator:
 
             # Create output path
             # Get title for presentation content
-            title = metadata.get("title", "presentation")
+            markdown_content = content.get("markdown", content.get("raw_content", ""))
+            title = self._resolve_display_title(metadata.get("title", "presentation"), markdown_content)
 
             # Check for custom filename for output file
             if "custom_filename" in metadata:
@@ -109,9 +112,6 @@ class PPTXGenerator:
             output_path = output_dir / f"{filename}.pptx"
 
             logger.info(f"Generating PPTX: {output_path.name}")
-
-            # Get markdown content
-            markdown_content = content.get("markdown", content.get("raw_content", ""))
 
             if not markdown_content:
                 raise GenerationError("No content provided for PPTX generation")
@@ -168,7 +168,12 @@ class PPTXGenerator:
         subtitle = metadata.get("subtitle", metadata.get("author", ""))
         add_title_slide(prs, title, subtitle)
 
+        agenda_items = self._extract_agenda(markdown_content)
+        if agenda_items:
+            add_content_slide(prs, "Agenda", agenda_items, is_bullets=True)
+
         # Check for LLM-enhanced content
+        allow_diagrams = metadata.get("enable_pptx_diagrams", False)
         if structured_content:
             # Add executive summary if available
             executive_summary = structured_content.get("executive_summary", "")
@@ -181,28 +186,26 @@ class PPTXGenerator:
                     add_executive_summary_slide(prs, "Executive Summary", summary_points)
                     logger.debug("Added executive summary slide")
 
-            # Use LLM-generated slide structure if available
-            slides = structured_content.get("slides", [])
-            if slides:
-                self._add_llm_slides(prs, slides)
-            else:
-                # Fallback to markdown-based generation
-                self._add_slides_from_markdown(prs, markdown_content)
-
-            # Add chart slides if suggested
-            charts = structured_content.get("charts", [])
-            self._add_chart_slides(prs, charts, output_path.parent)
-
-            # Add visualization slides if generated
-            visualizations = structured_content.get("visualizations", [])
-            self._add_visualization_slides(prs, visualizations)
-
-            # Add section image slides (Gemini-generated)
             section_images = structured_content.get("section_images", {})
-            self._add_section_image_slides(prs, section_images)
+            self._add_slides_from_markdown(
+                prs,
+                markdown_content,
+                allow_diagrams,
+                section_images=section_images
+            )
+
+            if allow_diagrams:
+                # Add chart slides if suggested
+                charts = structured_content.get("charts", [])
+                self._add_chart_slides(prs, charts, output_path.parent)
+
+                # Add visualization slides if generated
+                visualizations = structured_content.get("visualizations", [])
+                self._add_visualization_slides(prs, visualizations)
+
         else:
             # No LLM enhancement - use markdown-based generation
-            self._add_slides_from_markdown(prs, markdown_content)
+            self._add_slides_from_markdown(prs, markdown_content, allow_diagrams, section_images={})
 
         # Save presentation
         save_presentation(prs, output_path)
@@ -223,11 +226,11 @@ class PPTXGenerator:
             speaker_notes = slide_data.get("speaker_notes", "")
 
             if title and bullets:
-                add_content_slide(
+                normalized = self._expand_bullets(bullets)
+                self._add_bullet_slide_series(
                     prs,
                     title,
-                    bullets,
-                    is_bullets=True,
+                    normalized,
                     speaker_notes=speaker_notes
                 )
 
@@ -316,7 +319,13 @@ class PPTXGenerator:
             except Exception as e:
                 logger.warning(f"Failed to add section image slide: {e}")
 
-    def _add_slides_from_markdown(self, prs, markdown_content: str) -> None:
+    def _add_slides_from_markdown(
+        self,
+        prs,
+        markdown_content: str,
+        allow_diagrams: bool = False,
+        section_images: dict | None = None
+    ) -> None:
         """
         Parse markdown and add slides to presentation.
 
@@ -330,16 +339,20 @@ class PPTXGenerator:
             prs: Presentation object
             markdown_content: Markdown content to parse
         """
+        section_images = section_images or {}
         current_slide_title = None
         current_slide_content = []
-        is_bullets = True
-
+        section_index = -1
         for kind, content_item in parse_markdown_lines(markdown_content):
             # H1 becomes section header
             if kind == "h1":
                 # Flush current slide if any
                 if current_slide_title and current_slide_content:
-                    add_content_slide(prs, current_slide_title, current_slide_content, is_bullets)
+                    self._add_bullet_slide_series(
+                        prs,
+                        current_slide_title,
+                        current_slide_content
+                    )
                     current_slide_content = []
 
                 # Add section header
@@ -348,39 +361,52 @@ class PPTXGenerator:
 
             # H2 becomes slide title
             elif kind == "h2":
+                section_index += 1
                 # Flush current slide if any
                 if current_slide_title and current_slide_content:
-                    add_content_slide(prs, current_slide_title, current_slide_content, is_bullets)
+                    self._add_bullet_slide_series(
+                        prs,
+                        current_slide_title,
+                        current_slide_content
+                    )
+
+                if section_index in section_images:
+                    img_info = section_images[section_index]
+                    img_path = Path(img_info.get("path", ""))
+                    if img_path.exists():
+                        image_type = img_info.get("image_type", "image").title()
+                        add_image_slide(prs, content_item, img_path, f"{image_type} for {content_item}")
 
                 # Start new slide
                 current_slide_title = content_item
                 current_slide_content = []
-                is_bullets = True
 
             # H3 becomes content item (if no H2 title yet, becomes title)
             elif kind == "h3":
                 if current_slide_title:
-                    current_slide_content.append(f"• {content_item}")
+                    current_slide_content.append(content_item)
                 else:
                     current_slide_title = content_item
                     current_slide_content = []
 
             # Bullets
             elif kind == "bullets":
-                is_bullets = True
-                current_slide_content.extend(content_item)
+                current_slide_content.extend(self._expand_bullets(content_item))
 
             # Paragraphs
             elif kind == "para":
                 if content_item.strip():
-                    is_bullets = False
-                    current_slide_content.append(content_item)
+                    current_slide_content.extend(self._expand_bullets([content_item]))
 
             # Images
             elif kind == "image":
                 # Flush current slide if any
                 if current_slide_title and current_slide_content:
-                    add_content_slide(prs, current_slide_title, current_slide_content, is_bullets)
+                    self._add_bullet_slide_series(
+                        prs,
+                        current_slide_title,
+                        current_slide_content
+                    )
                     current_slide_content = []
                     current_slide_title = None
 
@@ -396,7 +422,6 @@ class PPTXGenerator:
 
             # Code blocks, quotes - add as text content
             elif kind in ["code", "quote"]:
-                is_bullets = False
                 # Truncate long code blocks for slides
                 if len(content_item) > 200:
                     content_item = content_item[:200] + "..."
@@ -407,34 +432,20 @@ class PPTXGenerator:
                 if content_item:
                     current_slide_content.append(f"Table with {len(content_item)} rows")
 
-            # Mermaid diagrams - generate image using Gemini
+            # Mermaid diagrams - intentionally skipped
             elif kind == "mermaid":
-                # Flush current slide if any
-                if current_slide_title and current_slide_content:
-                    add_content_slide(prs, current_slide_title, current_slide_content, is_bullets)
-                    current_slide_content = []
-                    current_slide_title = None
+                continue
 
-                # Try to generate diagram image
-                mermaid_image = self._generate_mermaid_image(content_item)
-                if mermaid_image and mermaid_image.exists():
-                    add_image_slide(prs, "Diagram", mermaid_image, "Process Flow Diagram")
-                else:
-                    # Fallback to text placeholder
-                    if not current_slide_title:
-                        current_slide_title = "Diagram"
-                    current_slide_content.append("See accompanying PDF for diagram")
-
-            # Limit content per slide (max 7 items)
-            if len(current_slide_content) >= 7:
-                if current_slide_title:
-                    add_content_slide(prs, current_slide_title, current_slide_content, is_bullets)
-                    current_slide_title = None
-                    current_slide_content = []
+            elif kind == "visual_marker":
+                continue
 
         # Flush final slide
         if current_slide_title and current_slide_content:
-            add_content_slide(prs, current_slide_title, current_slide_content, is_bullets)
+            self._add_bullet_slide_series(
+                prs,
+                current_slide_title,
+                current_slide_content
+            )
 
     def _resolve_image_path(self, url: str) -> Path | None:
         """
@@ -447,3 +458,90 @@ class PPTXGenerator:
             Path to local image or None
         """
         return resolve_image_path(url)
+
+    def _extract_agenda(self, markdown_content: str) -> list[str]:
+        headings = []
+        for match in re.finditer(r"^##\s+(.+)$", markdown_content, re.MULTILINE):
+            heading = match.group(1).strip()
+            if heading:
+                headings.append(heading)
+        return headings[:6]
+
+    def _resolve_display_title(self, metadata_title: str, markdown_content: str) -> str:
+        raw_title = (metadata_title or "").strip()
+        markdown_title = self._extract_markdown_title(markdown_content)
+        cleaned_meta = self._clean_title(raw_title)
+
+        if markdown_title and (not raw_title or self._looks_like_placeholder(raw_title)):
+            return markdown_title
+
+        return cleaned_meta or markdown_title or "Presentation"
+
+    def _extract_markdown_title(self, markdown_content: str) -> str:
+        match = re.search(r"^#\s+(.+)$", markdown_content, re.MULTILINE)
+        return match.group(1).strip() if match else ""
+
+    def _looks_like_placeholder(self, title: str) -> bool:
+        if "/" in title or "\\" in title:
+            return True
+        if re.search(r"\.(pdf|docx|pptx|md|txt)$", title, re.IGNORECASE):
+            return True
+        if "_" in title and " " not in title:
+            return True
+        return False
+
+    def _clean_title(self, title: str) -> str:
+        if not title:
+            return ""
+        cleaned = title.strip()
+        if "/" in cleaned or "\\" in cleaned:
+            parts = [part for part in cleaned.split() if "/" not in part and "\\" not in part]
+            cleaned = " ".join(parts) if parts else Path(cleaned).stem
+        if re.search(r"\.(pdf|docx|pptx|md|txt)$", cleaned, re.IGNORECASE):
+            cleaned = Path(cleaned).stem
+        cleaned = cleaned.replace("_", " ").strip()
+        return re.sub(r"\s+", " ", cleaned)
+
+    def _add_bullet_slide_series(
+        self,
+        prs,
+        title: str,
+        bullets: list[str],
+        speaker_notes: str = ""
+    ) -> None:
+        chunks = list(self._chunk_items(bullets, self._max_bullets_per_slide))
+        for idx, chunk in enumerate(chunks):
+            slide_title = title if idx == 0 else f"{title} (cont.)"
+            add_content_slide(
+                prs,
+                slide_title,
+                chunk,
+                is_bullets=True,
+                speaker_notes=speaker_notes if idx == 0 else ""
+            )
+
+    def _chunk_items(self, items: list[str], chunk_size: int) -> list[list[str]]:
+        if not items:
+            return []
+        return [items[i:i + chunk_size] for i in range(0, len(items), chunk_size)]
+
+    def _expand_bullets(self, items: list[str]) -> list[str]:
+        expanded = []
+        for item in items:
+            clean = self._normalize_bullet(item)
+            if not clean:
+                continue
+            expanded.extend(self._split_sentences(clean))
+        return expanded
+
+    def _normalize_bullet(self, text: str) -> str:
+        return text.lstrip("•-* ").strip()
+
+    def _split_sentences(self, text: str) -> list[str]:
+        if len(text) < 120:
+            return [text]
+        parts = [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
+        if len(parts) > 1:
+            return parts
+        clauses = [part.strip() for part in re.split(r"[;:]\s+", text) if part.strip()]
+        return clauses if len(clauses) > 1 else [text]

@@ -553,6 +553,8 @@ def make_mermaid_flowable(
     Returns:
         List of flowables (Image + spacer or styled code block)
     """
+    logger.info("Mermaid rendering disabled, skipping diagram flowable")
+    return []
     # Try mmdc first
     rendered = render_mermaid(mermaid_text, image_cache, mmdc_path)
 

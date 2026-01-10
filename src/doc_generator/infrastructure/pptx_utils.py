@@ -13,21 +13,23 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
-# Corporate-ready color theme - Professional and polished
+# Sage & Terracotta palette for warm, editorial presentations
 THEME_COLORS = {
-    "ink": RGBColor(26, 26, 46),          # Deep navy for text
-    "muted": RGBColor(74, 85, 104),       # Sophisticated gray
-    "accent": RGBColor(37, 99, 235),      # Professional blue
-    "accent_dark": RGBColor(29, 78, 216), # Darker blue
-    "teal": RGBColor(13, 148, 136),       # Modern teal
-    "success": RGBColor(16, 185, 129),    # Green for positive
-    "warning": RGBColor(245, 158, 11),    # Amber for warnings
-    "background": RGBColor(255, 255, 255),
-    "light_bg": RGBColor(248, 250, 252),  # Clean white background
-    "dark_bg": RGBColor(30, 41, 59),      # Slate background for contrast
-    "gradient_start": RGBColor(37, 99, 235),  # Blue gradient start
-    "gradient_end": RGBColor(13, 148, 136),   # Teal gradient end
+    "ink": RGBColor(44, 44, 44),          # Charcoal
+    "muted": RGBColor(107, 112, 107),     # Soft gray
+    "accent": RGBColor(224, 122, 95),     # Terracotta
+    "accent_dark": RGBColor(194, 97, 73), # Deep terracotta
+    "teal": RGBColor(135, 169, 107),      # Sage
+    "success": RGBColor(135, 169, 107),   # Sage
+    "warning": RGBColor(223, 154, 86),    # Warm amber
+    "background": RGBColor(244, 241, 222),  # Cream
+    "light_bg": RGBColor(250, 248, 238),    # Lighter cream
+    "dark_bg": RGBColor(44, 44, 44),        # Charcoal
+    "gradient_start": RGBColor(224, 122, 95),
+    "gradient_end": RGBColor(135, 169, 107),
 }
+
+FONT_NAME = "Trebuchet MS"
 
 
 def create_presentation() -> Presentation:
@@ -59,11 +61,11 @@ def add_title_slide(prs: Presentation, title: str, subtitle: str = "") -> None:
     slide_layout = prs.slide_layouts[6]  # Blank layout for custom design
     slide = prs.slides.add_slide(slide_layout)
 
-    # Clean white background for corporate feel
+    # Warm cream background for editorial feel
     background = slide.background
     fill = background.fill
     fill.solid()
-    fill.fore_color.rgb = THEME_COLORS["background"]
+    fill.fore_color.rgb = THEME_COLORS["light_bg"]
 
     # Accent bar at top (thin for professional look)
     accent_bar = slide.shapes.add_shape(
@@ -94,6 +96,7 @@ def add_title_slide(prs: Presentation, title: str, subtitle: str = "") -> None:
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = title
+    p.font.name = FONT_NAME
     p.font.size = Pt(44)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -109,6 +112,7 @@ def add_title_slide(prs: Presentation, title: str, subtitle: str = "") -> None:
         tf.word_wrap = True
         p = tf.paragraphs[0]
         p.text = subtitle
+        p.font.name = FONT_NAME
         p.font.size = Pt(18)
         p.font.color.rgb = THEME_COLORS["muted"]
         p.alignment = PP_ALIGN.LEFT
@@ -148,6 +152,12 @@ def add_content_slide(
     slide_layout = prs.slide_layouts[6]  # Blank for custom styling
     slide = prs.slides.add_slide(slide_layout)
 
+    # Soft cream background
+    background = slide.background
+    fill = background.fill
+    fill.solid()
+    fill.fore_color.rgb = THEME_COLORS["light_bg"]
+
     # Add thin accent bar at top
     accent_bar = slide.shapes.add_shape(
         1,  # Rectangle
@@ -167,14 +177,15 @@ def add_content_slide(
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = title
-    p.font.size = Pt(32)
+    p.font.name = FONT_NAME
+    p.font.size = Pt(30)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
 
     # Underline for title
     title_line = slide.shapes.add_shape(
         1,  # Rectangle
-        Inches(0.5), Inches(1.1),
+        Inches(0.5), Inches(1.05),
         Inches(1.5), Inches(0.03)
     )
     title_line.fill.solid()
@@ -183,8 +194,8 @@ def add_content_slide(
 
     # Content area (corporate-style with professional spacing)
     content_box = slide.shapes.add_textbox(
-        Inches(0.5), Inches(1.3),
-        Inches(9), Inches(3.9)
+        Inches(0.5), Inches(1.2),
+        Inches(9), Inches(4.2)
     )
     tf = content_box.text_frame
     tf.word_wrap = True
@@ -200,14 +211,16 @@ def add_content_slide(
 
         if is_bullets:
             p.text = f"•  {clean_item}"
-            p.font.size = Pt(20)
+            p.font.name = FONT_NAME
+            p.font.size = Pt(18)
             p.font.color.rgb = THEME_COLORS["ink"]
-            p.space_after = Pt(14)
+            p.space_after = Pt(10)
         else:
             p.text = clean_item
-            p.font.size = Pt(18)
+            p.font.name = FONT_NAME
+            p.font.size = Pt(16)
             p.font.color.rgb = THEME_COLORS["muted"]
-            p.space_after = Pt(12)
+            p.space_after = Pt(8)
 
     # Add speaker notes if provided
     if speaker_notes:
@@ -264,6 +277,7 @@ def add_section_header_slide(prs: Presentation, section_title: str) -> None:
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = section_title
+    p.font.name = FONT_NAME
     p.font.size = Pt(42)
     p.font.color.rgb = THEME_COLORS["background"]
     p.font.bold = True
@@ -299,6 +313,12 @@ def add_image_slide(
     slide_layout = prs.slide_layouts[6]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
 
+    # Soft cream background
+    background = slide.background
+    fill = background.fill
+    fill.solid()
+    fill.fore_color.rgb = THEME_COLORS["light_bg"]
+
     # Add title
     left = Inches(0.5)
     top = Inches(0.3)
@@ -309,6 +329,7 @@ def add_image_slide(
     text_frame = title_box.text_frame
     p = text_frame.paragraphs[0]
     p.text = title
+    p.font.name = FONT_NAME
     p.font.size = Pt(28)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -337,6 +358,7 @@ def add_image_slide(
         text_frame = caption_box.text_frame
         p = text_frame.paragraphs[0]
         p.text = caption
+        p.font.name = FONT_NAME
         p.font.size = Pt(14)
         p.font.color.rgb = THEME_COLORS["muted"]
         p.font.italic = True
@@ -361,11 +383,11 @@ def add_executive_summary_slide(
     slide_layout = prs.slide_layouts[6]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
 
-    # Clean white background
+    # Warm cream background
     background = slide.background
     fill = background.fill
     fill.solid()
-    fill.fore_color.rgb = THEME_COLORS["background"]
+    fill.fore_color.rgb = THEME_COLORS["light_bg"]
 
     # Accent bar at top
     accent_bar = slide.shapes.add_shape(
@@ -384,6 +406,7 @@ def add_executive_summary_slide(
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = title
+    p.font.name = FONT_NAME
     p.font.size = Pt(28)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -419,6 +442,7 @@ def add_executive_summary_slide(
         tf = num_box.text_frame
         p = tf.paragraphs[0]
         p.text = f"{i + 1}"
+        p.font.name = FONT_NAME
         p.font.size = Pt(16)
         p.font.color.rgb = THEME_COLORS["background"]
         p.font.bold = True
@@ -434,6 +458,7 @@ def add_executive_summary_slide(
         p = tf.paragraphs[0]
         clean_point = point.lstrip("•-* ").strip()
         p.text = clean_point
+        p.font.name = FONT_NAME
         p.font.size = Pt(16)
         p.font.color.rgb = THEME_COLORS["ink"]
 
@@ -458,6 +483,12 @@ def add_chart_slide(
     slide_layout = prs.slide_layouts[6]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
 
+    # Soft cream background
+    background = slide.background
+    fill = background.fill
+    fill.solid()
+    fill.fore_color.rgb = THEME_COLORS["light_bg"]
+
     # Accent bar
     accent_bar = slide.shapes.add_shape(
         1, Inches(0), Inches(0),
@@ -475,6 +506,7 @@ def add_chart_slide(
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = title
+    p.font.name = FONT_NAME
     p.font.size = Pt(28)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -511,6 +543,7 @@ def add_chart_slide(
         tf = caption_box.text_frame
         p = tf.paragraphs[0]
         p.text = caption
+        p.font.name = FONT_NAME
         p.font.size = Pt(12)
         p.font.color.rgb = THEME_COLORS["muted"]
         p.font.italic = True
@@ -541,6 +574,12 @@ def add_two_column_slide(
     slide_layout = prs.slide_layouts[6]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
 
+    # Soft cream background
+    background = slide.background
+    fill = background.fill
+    fill.solid()
+    fill.fore_color.rgb = THEME_COLORS["light_bg"]
+
     # Accent bar
     accent_bar = slide.shapes.add_shape(
         1, Inches(0), Inches(0),
@@ -558,6 +597,7 @@ def add_two_column_slide(
     tf = title_box.text_frame
     p = tf.paragraphs[0]
     p.text = title
+    p.font.name = FONT_NAME
     p.font.size = Pt(28)
     p.font.color.rgb = THEME_COLORS["ink"]
     p.font.bold = True
@@ -571,6 +611,7 @@ def add_two_column_slide(
         tf = left_title_box.text_frame
         p = tf.paragraphs[0]
         p.text = left_title
+        p.font.name = FONT_NAME
         p.font.size = Pt(18)
         p.font.color.rgb = THEME_COLORS["accent"]
         p.font.bold = True
@@ -588,6 +629,7 @@ def add_two_column_slide(
         else:
             p = tf.add_paragraph()
         p.text = f"•  {item.lstrip('•-* ').strip()}"
+        p.font.name = FONT_NAME
         p.font.size = Pt(16)
         p.font.color.rgb = THEME_COLORS["ink"]
         p.space_after = Pt(8)
@@ -610,6 +652,7 @@ def add_two_column_slide(
         tf = right_title_box.text_frame
         p = tf.paragraphs[0]
         p.text = right_title
+        p.font.name = FONT_NAME
         p.font.size = Pt(18)
         p.font.color.rgb = THEME_COLORS["teal"]
         p.font.bold = True
@@ -627,6 +670,7 @@ def add_two_column_slide(
         else:
             p = tf.add_paragraph()
         p.text = f"•  {item.lstrip('•-* ').strip()}"
+        p.font.name = FONT_NAME
         p.font.size = Pt(16)
         p.font.color.rgb = THEME_COLORS["ink"]
         p.space_after = Pt(8)

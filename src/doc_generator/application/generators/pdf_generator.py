@@ -405,9 +405,11 @@ class PDFGenerator:
                 story.append(Spacer(1, 8))
 
             elif kind == "mermaid":
-                story.append(Spacer(1, 12))
-                story.extend(make_mermaid_flowable(content_item, self.styles, self.image_cache))
-                story.append(Spacer(1, 12))
+                mermaid_flow = make_mermaid_flowable(content_item, self.styles, self.image_cache)
+                if mermaid_flow:
+                    story.append(Spacer(1, 12))
+                    story.extend(mermaid_flow)
+                    story.append(Spacer(1, 12))
 
             elif kind == "code":
                 story.append(Spacer(1, 8))
