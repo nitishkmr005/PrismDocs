@@ -24,6 +24,7 @@ from ...infrastructure.pptx_utils import (
     save_presentation,
 )
 from ...infrastructure.svg_generator import generate_chart
+from ...infrastructure.llm_service import get_llm_service
 from ...utils.image_utils import resolve_image_path
 
 
@@ -187,12 +188,16 @@ class PPTXGenerator:
                     logger.debug("Added executive summary slide")
 
             section_images = structured_content.get("section_images", {})
-            self._add_slides_from_markdown(
-                prs,
-                markdown_content,
-                allow_diagrams,
-                section_images=section_images
-            )
+            slides, sections = self._generate_section_slides(markdown_content, section_images)
+            if slides and sections:
+                self._add_llm_section_slides(prs, slides, sections, section_images)
+            else:
+                self._add_slides_from_markdown(
+                    prs,
+                    markdown_content,
+                    allow_diagrams,
+                    section_images=section_images
+                )
 
             if allow_diagrams:
                 # Add chart slides if suggested
@@ -458,6 +463,93 @@ class PPTXGenerator:
             Path to local image or None
         """
         return resolve_image_path(url)
+
+    def _generate_section_slides(
+        self,
+        markdown_content: str,
+        section_images: dict
+    ) -> tuple[list[dict], list[dict]]:
+        llm = get_llm_service()
+        if not llm.is_available():
+            return [], []
+
+        sections = self._extract_sections(markdown_content, section_images)
+        if not sections:
+            return [], []
+
+        slides = llm.generate_slide_structure_from_sections(sections)
+        return slides, sections
+
+    def _extract_sections(self, markdown_content: str, section_images: dict) -> list[dict]:
+        sections = []
+        current_title = None
+        current_lines = []
+
+        for line in markdown_content.splitlines():
+            match = re.match(r"^##\s+(.+)$", line)
+            if match:
+                if current_title is not None:
+                    sections.append({
+                        "title": current_title,
+                        "content": "\n".join(current_lines).strip()
+                    })
+                current_title = match.group(1).strip()
+                current_lines = []
+            elif current_title is not None:
+                current_lines.append(line)
+
+        if current_title is not None:
+            sections.append({
+                "title": current_title,
+                "content": "\n".join(current_lines).strip()
+            })
+
+        for idx, section in enumerate(sections):
+            img_info = section_images.get(idx)
+            if img_info:
+                image_type = img_info.get("image_type", "image").title()
+                section["image_hint"] = f"{image_type} for {section['title']}"
+            else:
+                section["image_hint"] = ""
+
+        return sections
+
+    def _add_llm_section_slides(
+        self,
+        prs,
+        slides: list[dict],
+        sections: list[dict],
+        section_images: dict
+    ) -> None:
+        slide_map = {}
+        for slide in slides:
+            section_title = slide.get("section_title", slide.get("title", ""))
+            if section_title:
+                slide_map[self._normalize_title(section_title)] = slide
+
+        for idx, section in enumerate(sections):
+            section_title = section.get("title", "")
+            if not section_title:
+                continue
+            normalized = self._normalize_title(section_title)
+            slide = slide_map.get(normalized)
+            if not slide:
+                continue
+
+            img_info = section_images.get(idx)
+            if img_info:
+                img_path = Path(img_info.get("path", ""))
+                if img_path.exists():
+                    image_type = img_info.get("image_type", "image").title()
+                    add_image_slide(prs, section_title, img_path, f"{image_type} for {section_title}")
+
+            bullets = slide.get("bullets", [])
+            speaker_notes = slide.get("speaker_notes", "")
+            if bullets:
+                self._add_bullet_slide_series(prs, section_title, bullets, speaker_notes=speaker_notes)
+
+    def _normalize_title(self, title: str) -> str:
+        return re.sub(r"\s+", " ", title or "").strip().lower()
 
     def _extract_agenda(self, markdown_content: str) -> list[str]:
         headings = []

@@ -243,6 +243,88 @@ Respond in JSON format:
             logger.error(f"Failed to generate slide structure: {e}")
             return []
 
+    def generate_slide_structure_from_sections(
+        self,
+        sections: list[dict],
+        max_slides: Optional[int] = None
+    ) -> list[dict]:
+        """
+        Generate slide structure aligned to explicit sections.
+
+        Args:
+            sections: List of section dicts with title, content, image_hint (optional)
+            max_slides: Maximum number of slides (defaults to max_slides setting)
+
+        Returns:
+            List of slide dictionaries with title, bullets, speaker_notes, section_title
+        """
+        if not self.is_available() or not sections:
+            return []
+
+        max_slides = self.max_slides if max_slides is None else max_slides
+        section_blocks = []
+        for idx, section in enumerate(sections[:max_slides], 1):
+            title = section.get("title", f"Section {idx}")
+            content = section.get("content", "")
+            image_hint = section.get("image_hint", "")
+            snippet = content[:1200]
+            section_blocks.append(
+                f"Section {idx}: {title}\n"
+                f"Image hint: {image_hint or 'None'}\n"
+                f"Content:\n{snippet}\n"
+            )
+
+        prompt = f"""Create a presentation outline aligned to the sections below.
+
+Requirements:
+- One slide per section (maximum {max_slides})
+- Title must match the section title exactly
+- 3-4 bullet points per slide, 10 words max each
+- Bullets should align to the section content and image hint
+- Provide 1-2 sentence speaker notes per slide
+
+Sections:
+{chr(10).join(section_blocks)}
+
+Respond in JSON format:
+{{
+  "slides": [
+    {{
+      "section_title": "Exact Section Title",
+      "title": "Exact Section Title",
+      "bullets": ["Point 1", "Point 2"],
+      "speaker_notes": "Brief speaker notes"
+    }}
+  ]
+}}"""
+
+        try:
+            system_msg = "You are a presentation designer creating concise, slide-ready content. Always respond with valid JSON."
+            result = self._call_llm(system_msg, prompt, self.max_tokens_slides, self.temperature_slides, json_mode=True)
+            data = json.loads(result)
+
+            slides = []
+            if isinstance(data, dict):
+                slides = data.get("slides", [])
+            elif isinstance(data, list):
+                slides = data
+
+            valid_slides = []
+            for slide in slides:
+                if isinstance(slide, dict) and slide.get("title"):
+                    valid_slides.append({
+                        "section_title": slide.get("section_title", slide.get("title", "")),
+                        "title": slide.get("title", ""),
+                        "bullets": slide.get("bullets", slide.get("content", slide.get("points", []))),
+                        "speaker_notes": slide.get("speaker_notes", slide.get("notes", ""))
+                    })
+
+            logger.debug(f"Generated section slide structure: {len(valid_slides)} slides")
+            return valid_slides
+        except Exception as e:
+            logger.error(f"Failed to generate section slide structure: {e}")
+            return []
+
     def enhance_bullet_points(self, bullets: list[str]) -> list[str]:
         """
         Enhance bullet points for executive presentation.
