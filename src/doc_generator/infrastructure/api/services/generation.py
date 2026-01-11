@@ -1,24 +1,23 @@
 """Generation service for document creation with progress streaming."""
 
 import asyncio
-import tempfile
 from pathlib import Path
 from typing import AsyncIterator, Optional
 
 from loguru import logger
 
 from ..models.requests import (
-    GenerateRequest,
     FileSource,
-    UrlSource,
+    GenerateRequest,
     TextSource,
+    UrlSource,
 )
 from ..models.responses import (
-    GenerationStatus,
-    ProgressEvent,
     CompleteEvent,
     CompletionMetadata,
     ErrorEvent,
+    GenerationStatus,
+    ProgressEvent,
 )
 from .storage import StorageService
 
@@ -128,7 +127,10 @@ class GenerationService:
                 message="Finalizing...",
             )
 
-            download_url = self.storage.get_download_url(Path(output_path)) if output_path else "/api/download/placeholder.pdf"
+            if output_path:
+                download_url = self.storage.get_download_url(Path(output_path))
+            else:
+                download_url = "/api/download/placeholder.pdf"
 
             # Complete
             yield CompleteEvent(
