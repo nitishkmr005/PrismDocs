@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import health_router
+from .routes import health_router, upload_router
 
 app = FastAPI(
     title="Document Generator API",
@@ -22,3 +22,4 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health_router, prefix="/api")
+app.include_router(upload_router, prefix="/api")
