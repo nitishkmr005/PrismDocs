@@ -112,6 +112,7 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
         structured = {
             "title": metadata.get("title", "Document"),
             "visual_markers": [],
+            "outline": "",
         }
         
         if content_generator.is_available():
@@ -128,6 +129,7 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
             structured["markdown"] = generated.markdown
             structured["title"] = generated.title
             structured["sections"] = generated.sections
+            structured["outline"] = generated.outline
             
             # Convert visual markers to dict format for state
             structured["visual_markers"] = [
@@ -164,11 +166,6 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
                         structured["slides"] = slides
                         logger.debug(f"Generated {len(slides)} slide structures")
                 
-                # Suggest chart data from the content
-                chart_suggestions = llm.suggest_chart_data(generated.markdown)
-                if chart_suggestions:
-                    structured["charts"] = chart_suggestions
-                    logger.debug(f"Suggested {len(chart_suggestions)} charts")
         else:
             # Fallback: Just clean the content
             logger.info("LLM not available - using basic content cleaning")

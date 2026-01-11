@@ -1,30 +1,14 @@
 # Building a Document Generator: From Raw Inputs to Polished PDF and PPTX
 
-*How a LangGraph workflow turns messy inputs into publish-ready documents with visuals that match the content*
+*How a LangGraph workflow turns mixed sources into a single, publish-ready narrative with visuals that are grounded in the content*
 
 ---
 
 ## Why This Exists
 
-Teams accumulate content everywhere: PDFs, slide decks, docs, markdown, and web pages. Turning that sprawl into a consistent, professional document usually means hours of manual cleaning, rewriting, and layout work.
+Teams store knowledge in every possible format: PDFs, slide decks, docs, markdown, and web pages. Converting that sprawl into a coherent, professional document usually means hours of manual cleanup and layout work.
 
-This system automates that end-to-end flow. It ingests mixed sources, structures them into a coherent narrative, generates supporting visuals, and renders a final PDF or PPTX with consistent formatting. The goal is not just conversion; it is **editorial-quality synthesis with visual support**.
-
----
-
-## What the Pipeline Produces
-
-For every run, the generator creates:
-
-- **A clean, well-structured blog-style document** with sections, subsections, and clear flow.
-- **Section-aligned visuals** tailored to each section (architecture blocks, comparisons, flowcharts, study notes).
-- **A final output** in either PDF or PPTX with consistent themes, typography, and layout.
-
-The outputs are usable as:
-- Internal documentation
-- Presentations for stakeholders
-- Executive summaries
-- Training materials
+This system automates the full path. It ingests multiple sources, normalizes them into a single markdown stream, uses LLMs to structure the story, generates visuals that map to specific sections, and renders a final PDF or PPTX. The result is not a raw conversion; it is **editorial-quality synthesis with visuals that stay aligned to the content**.
 
 ---
 
@@ -33,54 +17,67 @@ The outputs are usable as:
 At a high level, the workflow looks like this:
 
 ```
-Detect format → Parse content → Transform content → Generate images → Generate output → Validate
+Detect format -> Parse content -> Transform content -> Generate images -> Validate images -> Generate output -> Validate
 ```
 
-Each step is a **LangGraph node** with a single responsibility. The workflow carries a shared state forward, allowing retries and flexible branching without losing context.
+Every step is a **LangGraph node** that mutates a shared state object. That makes retries safe, keeps metadata consistent, and allows the pipeline to stay deterministic across runs.
 
-### Architecture Diagram (Node Names)
+### LangGraph Node Map (Exact Names)
 
 ```
 detect_format
-        ↓
+        v
 parse_content
-        ↓
+        v
 transform_content
-        ↓
+        v
 generate_images
-        ↓
+        v
+validate_images
+        v
 generate_output
-        ↓
+        v
+validate_images
+        v
+generate_output
+        v
 validate_output
 ```
 
-These are the exact node names in the workflow graph, mapped one-to-one to the document lifecycle.
-
-[VISUAL:architecture:Workflow Graph:Show detect_format → parse_content → transform_content → generate_images → generate_output → validate_output]
+[VISUAL:architecture:Workflow Graph:Show detect_format -> parse_content -> transform_content -> generate_images -> validate_images -> generate_output -> validate_output]
 
 ---
 
 ## Step 1: Detect the Input Format
 
-The pipeline determines how to handle each source based on its format:
+The workflow begins by identifying how the source should be parsed. Input format is inferred from:
 
 - File extensions (`.pdf`, `.pptx`, `.docx`, `.md`, `.txt`)
-- URLs for web content
-- Inline text
+- URLs (for web content)
+- Inline text (treated as markdown)
 
-This classification ensures the right parser is used and prevents content loss early in the process.
+This keeps each source routed to the correct parser and avoids early data loss.
 
 ---
 
 ## Step 2: Parse and Normalize Content
 
-Parsing is where raw data becomes usable text. The system uses dedicated tools per format:
+Parsing converts raw inputs into a consistent markdown-like stream with preserved structure and metadata.
 
-- **Docling** for PDF, DOCX, PPTX, and images (OCR, layouts, tables)
-- **MarkItDown** for HTML and web pages
-- **Markdown parser** for `.md` and `.txt` (frontmatter-aware)
+### Parsing Methods (Source-Aware)
 
-The parser also attaches metadata (title, URL, source file) and computes a `content_hash` for caching. The output of this stage is normalized markdown-like text with as much structure preserved as possible.
+- **Docling (UnifiedParser)** for PDF, DOCX, PPTX, XLSX, and images. It performs OCR, table extraction, and layout analysis.
+- **MarkItDown (WebParser)** for URLs and HTML. It fetches the page and converts it to markdown.
+- **MarkdownParser** for `.md` and `.txt`. It supports YAML frontmatter and retains headings and formatting.
+
+Each parser returns:
+
+- Normalized markdown content
+- Metadata (title, source URL, page counts, etc.)
+
+A **content hash** is computed on the parsed text (`sha256`) and carried forward as `metadata.content_hash`. That hash becomes the key for downstream caching.
+
+For multi-source requests, every source is parsed separately and then merged into a single markdown file with per-source headings. That merged file becomes the one and only input to the LangGraph workflow.
 
 [VISUAL:architecture:Parsing Stack:Show inputs (PDF/DOCX/PPTX, URL, Markdown/Text) feeding Docling and MarkItDown into normalized markdown]
 
@@ -88,59 +85,84 @@ The parser also attaches metadata (title, URL, source file) and computes a `cont
 
 ## Step 3: Transform Content Into a Blog-Style Narrative
 
-This is the heart of the system. The LLM reorganizes and rewrites the raw content into a clean, readable blog with:
+This is the core content generation step. The LLM takes the merged markdown and rewrites it as a structured, readable blog-style document:
 
 - A generated title
-- A short introduction
+- A clean outline
 - Numbered sections with logical flow
 - Subsections where needed
 - A final key takeaways section
 
-**Important rule**: the transformed content must use **only information present in the source**. No invented facts, no external knowledge, no inferred details. The transformation improves readability, structure, and flow without changing meaning.
+**Important rule:** the LLM must use only information present in the sources. It improves structure and clarity but does not invent new facts.
 
-This step also inserts **visual markers** in places where an inline diagram would help a reader understand the content (these markers are preserved in the markdown and can be rendered into SVGs if the visualization node is enabled).
+### How Large Inputs Are Handled
 
-Example:
-```
-[VISUAL:architecture:System Overview:Show ingestion, transformation, and rendering stages]
-```
+When the input is large, the generator first creates a **global outline** from the full content. Then it processes the content in chunks (about 10k characters each), passing the outline to every chunk so headings stay consistent and section numbering stays stable.
 
-[VISUAL:flowchart:Content Structuring:Raw content → LLM structuring → numbered sections → visual markers]
+### LLM Outputs Produced Here
 
-Under the hood:
-- **LLMContentGenerator** handles the main rewrite, with chunked processing for long inputs.
-- The content model is provider-driven (Gemini by default, configurable to OpenAI/Claude).
-- **LLMService** optionally generates an executive summary, slide structure, and chart suggestions from the transformed markdown.
+The transformation stage produces more than just markdown:
+
+- **Blog content**: structured markdown with numbered sections
+- **Outline**: used for long inputs to keep structure consistent across chunks
+- **Visual markers**: optional `[VISUAL:...]` hints for diagrams
+- **Executive summary**: short, high-level summary of the content
+- **Slide structure** (PPTX only): slide titles and bullets optimized for presentation
+- **Chart suggestions**: candidate charts derived from the content
+
+If the LLM is unavailable, the pipeline falls back to cleaned markdown while still trying to generate executive summaries and slides if possible.
+
+[VISUAL:flowchart:Content Structuring:Raw content -> LLM structuring -> numbered sections -> visual markers]
 
 ---
 
 ## Step 4: Generate Section Images That Match the Content
 
-The system scans each `##` section and decides whether a visual would improve comprehension. If yes, it generates a prompt grounded in the **actual section content** and chooses a style.
+Images are generated **per section**, grounded in the exact text of that section.
 
-Supported styles (mapped to infographic-style images):
+### How Image Prompts Are Built
 
-- **Architecture diagrams** (systems, components, data flow)
-- **Flowcharts** (processes, decision logic)
-- **Comparison visuals** (trade-offs, feature differences)
-- **Concept maps** (relationships between ideas)
-- **Handwritten notes** (study-guide style explanations)
+For each `##` section, the pipeline:
 
-The prompts are **strictly content-bound**: no extra concepts beyond what appears in the section. Required labels are extracted from the section text (e.g., node names like `parse_content`, `generate_output`, and tools like Docling, ReportLab, python-pptx). This keeps visuals accurate and aligned with the narrative.
+1. Extracts visual concepts from the section text using an LLM (concepts, relationships, and recommended style).
+2. Chooses a style (architecture diagram, process flow, comparison chart, handwritten notes).
+3. Builds a content-aware prompt that includes **required labels** detected in the section (node names, tool names, and key terms).
+4. Uses Gemini to generate the image prompt when available; otherwise falls back to a deterministic template.
+5. Enforces that the **image title text exactly matches the section title** (used in both prompt and alignment checks).
 
-Images are generated via the Gemini image API with rate limiting, stored per document under `output/<file_id>/images`, and reused when the `content_hash` matches.
+Prompts are strict by design:
 
-[VISUAL:flowchart:Image Generation Loop:Section text → concept extraction → prompt → Gemini image → cached output]
+- Only use concepts from the section
+- Include required labels verbatim
+- Avoid metaphorical decorations
 
----
+### Image Generation + Alignment Loop
 
-## How Images Stay Aligned With Content
+Once a prompt is created, images are generated with Gemini and stored under:
 
-Alignment is deterministic:
+```
+output/<file_id>/images/<section-title>.png
+```
 
-- Images are generated per `##` section from that section's text.
-- The renderers walk the markdown in order and insert the section image immediately after each `##` banner (PDF) or as a section image slide (PPTX).
-- Because the prompt is content-bound and the placement is order-bound, images stay anchored to the narrative instead of floating to unrelated pages.
+If an image is regenerated for the same section, it is saved as:
+
+```
+output/<file_id>/images/<section-title>_2.png
+```
+
+After generation, a **Gemini alignment check** verifies that the image matches the section content **and** that the embedded title text matches the section title. If it does not align, the system:
+
+1. Revises the prompt using the alignment feedback
+2. Regenerates the image
+3. Re-validates the image
+
+This loop is implemented as a **LangGraph sub-cycle** between `generate_images` and `validate_images`. It retries only the misaligned sections and stops after three attempts per section. The separate LangGraph retry loop is reserved for output validation, not image generation.
+
+### Image Descriptions (New)
+
+Once a section image is generated, the system uses the LLM to write a short **blog-style description** of the image. This paragraph is saved alongside the image and inserted **directly below the image** in the PDF output, so visuals always have a narrative explanation.
+
+[VISUAL:flowchart:Image Generation Loop:Section text -> concept extraction -> prompt -> Gemini image -> validate_images -> prompt feedback -> regenerate (max 3)]
 
 ---
 
@@ -148,44 +170,107 @@ Alignment is deterministic:
 
 ### PDF Output
 
-PDFs are rendered with ReportLab for full layout control:
+PDF generation uses **ReportLab**, which gives full layout control:
 
-- Consistent typography and spacing
-- Section hierarchy and headings
-- Inline images and captions
+- Clean typography and hierarchy
+- Consistent spacing and margins
+- Inline section images and blog-style descriptions
 - Code blocks and tables
-- Clean margins and palettes
 
-Section images are inserted immediately after each `##` header banner, which keeps visuals in lockstep with the content sequence.
+Section images are inserted immediately after each `##` header, keeping them anchored to the narrative sequence. The output file itself is saved under the **file_id** folder (for example: `output/<file_id>/pdf/...`).
 
 ### PPTX Output
 
-PPTX generation uses python-pptx:
+PPTX generation uses **python-pptx**:
 
-- Title slide
-- One slide per major section
-- Visuals embedded on relevant slides
-- Consistent theme and layout
+- Title slide + section slides
+- Section images placed on dedicated image slides when available
+- Optional LLM slide structure used for more executive-quality layouts
 
-When LLM enhancements are present, the generator uses the LLM-proposed slide structure and attaches section images as dedicated image slides or as part of the section flow.
+Both formats are designed to be client-ready with minimal editing.
 
-Both formats are designed to be client-ready with minimal manual editing.
-
-[VISUAL:comparison:Output Rendering:ReportLab → PDF vs python-pptx → PPTX]
+[VISUAL:comparison:Output Rendering:ReportLab -> PDF vs python-pptx -> PPTX]
 
 ---
 
 ## Step 6: Validate and Retry When Needed
 
-The pipeline validates the output before finalizing:
+Validation checks the output file before the workflow finishes:
 
-- Output file exists
-- File size is non-zero
-- Basic readability checks
+- File exists
+- File size > 0
+- Extension matches the requested format
 
-If validation fails, the system retries output generation up to three times. This prevents partial or corrupted documents from being returned.
+If validation fails, **LangGraph loops back to `generate_output`** and retries up to three times. Parsing and content transformation are not re-run; only the output generation step is retried.
 
-[VISUAL:flowchart:Validation Gate:Generate output → validate_output → pass/fail retry (max 3)]
+[VISUAL:flowchart:Validation Gate:Generate output -> validate_output -> pass/fail retry (max 3)]
+
+---
+
+## Caching: Three Layers of Reuse
+
+This pipeline avoids repeated LLM and image work with three explicit caches:
+
+### 1) API Request Cache (FastAPI)
+
+`CacheService` stores results by hashing the entire request:
+
+- Output format
+- Sources (URLs, file_ids, or text)
+- Provider + model
+- Preferences (temperature, max tokens, slide count, etc.)
+
+If `cache.reuse` is enabled and the hash matches, the API returns a **cache_hit** event without running the workflow.
+
+### 2) Structured Content Cache (Workflow)
+
+After transformation, the structured markdown is saved to:
+
+```
+src/output/cache/<input_name>_content_cache.json
+```
+
+On future runs, the content is reused when the **content_hash** matches the current input.
+
+### 3) Image Cache + Manifest
+
+Generated images live under `output/<file_id>/images`. A `manifest.json` file stores:
+
+- The content hash used for those images
+- The list of section titles
+- Section title map + image types
+- Image descriptions (used for PDF captions)
+
+If the hash matches, the image generation node skips re-generation and reuses the existing images.
+
+---
+
+## How the FastAPI Flow Works End to End
+
+### 1) Upload Files
+
+`POST /api/upload` stores the file and returns a `file_id`.
+
+### 2) Generate Document (SSE)
+
+`POST /api/generate` does the following:
+
+1. **Checks API cache** (if `cache.reuse` is enabled)
+2. **Collects sources** (files, URLs, and text)
+3. **Parses each source** using the appropriate parser
+4. **Merges** the sources into a single markdown file
+5. **Runs the LangGraph workflow** in a thread pool (with `file_id` passed through to keep outputs under the correct folder)
+6. **Streams progress events** via SSE
+
+### 3) Download
+
+The final event includes a `download_url` and `file_path`. The output is fetched from:
+
+```
+GET /api/download/{file_path}
+```
+
+This API layout makes the generation flow easy to integrate into a frontend or async pipeline.
 
 ---
 
@@ -208,21 +293,16 @@ rendering.
 
 **Visual marker injected by the transformer:**
 ```
-[VISUAL:architecture:Generation Pipeline:Show ingest → normalize → transform → generate images → render output]
+[VISUAL:architecture:Generation Pipeline:Show ingest -> normalize -> transform -> generate images -> render output]
 ```
-
-**Final output (screenshot placeholders):**
-
-- PDF screenshot: _replace with a real PDF export image_
-- PPTX screenshot: _replace with a real slide export image_
 
 ---
 
 ## Performance & Cost Notes
 
-- **Typical runtimes**: 60–120 seconds for multi-source inputs, depending on document length and image count.
-- **Cache savings**: When content is unchanged, image generation is skipped, reducing runtime and API cost.
-- **Image generation limits**: Gemini image generation is rate-limited (default 20 images/min with request delay).
+- **Typical runtimes**: 60-120 seconds for multi-source inputs, depending on length and image count.
+- **Cache savings**: When content is unchanged, the system skips structured-content and image regeneration.
+- **Image limits**: Gemini image generation is rate-limited (default delay is enforced in the generator).
 - **Best practice**: Keep sections focused to reduce image count and keep slides concise.
 
 ---
@@ -230,45 +310,19 @@ rendering.
 ## Why This Workflow Works
 
 **1) Clean separation of responsibilities**
-Each node does one job, making the pipeline easier to test, debug, and evolve.
+Each LangGraph node does one job, which keeps the pipeline debuggable and extensible.
 
 **2) Content fidelity**
-The LLM improves structure and readability without inventing content. This preserves trust and accuracy.
+The LLM rewrites for clarity without introducing new facts. The output stays grounded in the sources.
 
 **3) Visuals that explain, not decorate**
-Images are generated to support understanding. They are always derived from the exact section content.
+Prompts are content-bound, labels are extracted from the text, and alignment checks enforce relevance.
 
 **4) Multi-format output without duplication**
-A single workflow produces both PDF and PPTX without maintaining separate pipelines.
+The same structured markdown feeds both PDF and PPTX generators.
 
-**5) Image alignment is deterministic**
-Images are keyed to section order and embedded immediately after each `##` header, so visuals stay anchored to the narrative.
-
----
-
-## A Quick Example
-
-Input sources:
-
-- A PDF research paper
-- A markdown design doc
-- A web article
-
-Output:
-
-- A single blog-style PDF with a clean narrative
-- Five section images (architecture, comparison, flowchart, concept map, handwritten notes)
-- A PPTX deck using the same structured content
-
-Total time: minutes, not hours.
-
----
-
-## Closing Thoughts
-
-This generator is more than a file converter. It is a **content transformation workflow** designed to turn messy inputs into structured, visual, presentation-ready documents. By combining parsing, LLM-based organization, and tightly scoped image generation, it produces outputs that feel authored rather than assembled.
-
-If your team produces or collects large volumes of content, this pipeline turns that sprawl into a consistent, professional narrative in a repeatable way.
+**5) Deterministic anchoring**
+Images are tied to section IDs and inserted immediately after their section headers.
 
 ---
 
@@ -313,4 +367,11 @@ The stream ends with a `complete` (or `cache_hit`) event that includes:
 ```bash
 curl -L -o output.pdf "http://localhost:8000/api/download/f_abc123/pdf/your-file.pdf"
 ```
-You can also use the `download_url` directly if you want the tokenized link.
+
+---
+
+## Closing Thoughts
+
+This generator is more than a file converter. It is a **content transformation workflow** designed to turn messy inputs into a structured, visual, presentation-ready document. By combining strict parsing, LLM-based organization, and content-grounded image generation, it produces outputs that feel authored rather than assembled.
+
+If your team produces or collects large volumes of content, this pipeline turns that sprawl into a consistent, professional narrative in a repeatable way.

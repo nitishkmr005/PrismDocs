@@ -289,8 +289,8 @@ class PDFGenerator:
         # Track which visualizations we've used (for any remaining at end)
         used_visualizations = set()
 
-        # Track section index for section images
-        section_index = -1  # Will be incremented on first ## header
+        # Track section id for section images (prefer explicit numbering)
+        next_section_id = 1
         skipped_cover_h1 = False
 
         # Parse and add markdown content with inline visualizations
@@ -307,14 +307,14 @@ class PDFGenerator:
                 story.append(Paragraph(inline_md(content_item), self.styles["Heading2Custom"]))
 
             elif kind == "h2":
-                section_index += 1
+                section_id, next_section_id = self._resolve_section_id(content_item, next_section_id)
                 story.append(Spacer(1, 16))
                 story.append(make_banner(content_item, self.styles))
                 story.append(Spacer(1, 12))
 
                 # Check for Gemini-generated section image
-                if section_index in section_images:
-                    img_info = section_images[section_index]
+                if section_id in section_images:
+                    img_info = section_images[section_id]
                     img_path = Path(img_info.get("path", ""))
                     if img_path.exists():
                         story.extend(make_image_flowable(
@@ -322,6 +322,9 @@ class PDFGenerator:
                             img_path,
                             self.styles
                         ))
+                        description = (img_info.get("description") or "").strip()
+                        if description:
+                            story.append(Paragraph(inline_md(description), self.styles["BodyCustom"]))
                         story.append(Spacer(1, 12))
                         logger.debug(f"Embedded section image for: {content_item}")
 
@@ -458,6 +461,15 @@ class PDFGenerator:
         # Build PDF
         element_count = len(story)
         doc.build(story)
+
+    def _resolve_section_id(self, title: str, next_id: int) -> tuple[int, int]:
+        """Resolve section ID from numbered headings, falling back to sequential IDs."""
+        match = re.match(r"^(\\d+)[\\.:\\)\\s]+\\s*(.+)$", title)
+        if match:
+            section_id = int(match.group(1))
+            next_id = max(next_id, section_id + 1)
+            return section_id, next_id
+        return next_id, next_id + 1
 
         logger.debug(f"PDF document built with {element_count} elements")
 

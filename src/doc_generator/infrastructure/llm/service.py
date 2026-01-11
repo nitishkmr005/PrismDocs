@@ -12,6 +12,7 @@ from typing import Optional
 from loguru import logger
 
 from ..settings import get_settings
+from ..observability.opik import log_llm_call
 
 try:
     from google import genai
@@ -184,6 +185,16 @@ class LLMService:
                     "output_tokens": output_tokens,
                 })
                 response_text = (response.text or "").strip()
+                log_llm_call(
+                    name=step,
+                    prompt=prompt,
+                    response=response_text,
+                    provider=self.provider,
+                    model=self.model,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    duration_ms=duration_ms,
+                )
                 return response_text
             if self.provider == "claude":
                 response = self.client.messages.create(
@@ -203,7 +214,18 @@ class LLMService:
                     "input_tokens": input_tokens,
                     "output_tokens": output_tokens,
                 })
-                return response.content[0].text
+                response_text = response.content[0].text
+                log_llm_call(
+                    name=step,
+                    prompt=f"{system_msg}\n\n{user_msg}".strip(),
+                    response=response_text,
+                    provider=self.provider,
+                    model=self.model,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    duration_ms=duration_ms,
+                )
+                return response_text
             else:  # openai
                 kwargs = {
                     "model": self.model,
@@ -231,7 +253,18 @@ class LLMService:
                     "input_tokens": input_tokens,
                     "output_tokens": output_tokens,
                 })
-                return response.choices[0].message.content.strip()
+                response_text = response.choices[0].message.content.strip()
+                log_llm_call(
+                    name=step,
+                    prompt=f"{system_msg}\n\n{user_msg}".strip(),
+                    response=response_text,
+                    provider=self.provider,
+                    model=self.model,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    duration_ms=duration_ms,
+                )
+                return response_text
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             return ""
@@ -593,69 +626,6 @@ Respond with ONLY the speaker notes text."""
         except Exception as e:
             logger.error(f"Failed to generate speaker notes: {e}")
             return ""
-
-    def suggest_chart_data(self, content: str) -> list[dict]:
-        """
-        Suggest charts/visualizations based on content.
-
-        Args:
-            content: Content to analyze
-
-        Returns:
-            List of chart suggestions with type, title, and data
-        """
-        if not self.is_available():
-            return []
-
-        prompt = f"""Analyze this content and suggest data visualizations.
-
-Content:
-{content[:4000]}
-
-For each visualization opportunity, provide:
-- chart_type: "bar", "pie", "line", or "comparison"
-- title: Chart title
-- data: List of {{label, value}} pairs (use realistic numbers if not explicit)
-
-Return JSON object with a "charts" array. If no visualizations make sense, return {{"charts": []}}.
-
-Example format:
-{{"charts": [{{"chart_type": "bar", "title": "Revenue by Quarter", "data": [{{"label": "Q1", "value": 100}}]}}]}}"""
-
-        try:
-            system_msg = "You are a data visualization expert."
-            result = self._call_llm(
-                system_msg,
-                prompt,
-                1000,
-                0.3,
-                json_mode=True,
-                step="chart_suggestions"
-            )
-            data = self._safe_json_load(result)
-            if data is None:
-                retry = self._call_llm(
-                    system_msg,
-                    prompt,
-                    1000,
-                    0.3,
-                    json_mode=True,
-                    step="chart_suggestions:retry"
-                )
-                data = self._safe_json_load(retry)
-            if data is None:
-                raise ValueError("Invalid JSON response")
-            if isinstance(data, dict):
-                charts = data.get("charts", data.get("data", []))
-                if not charts and len(data) == 1:
-                    charts = list(data.values())[0]
-                return charts if isinstance(charts, list) else []
-            if isinstance(data, list):
-                return data
-            return []
-        except Exception as e:
-            logger.error(f"Failed to suggest chart data: {e}")
-            return []
 
     def suggest_visualizations(self, content: str, max_visuals: int = 3) -> list[dict]:
         """

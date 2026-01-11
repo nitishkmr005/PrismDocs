@@ -15,6 +15,7 @@ from typing import Optional
 from loguru import logger
 
 from ..settings import get_settings
+from ..observability.opik import log_llm_call
 
 try:
     from google import genai
@@ -56,6 +57,7 @@ class GeneratedContent:
     visual_markers: list[VisualMarker]  # Extracted visual markers
     title: str
     sections: list[str]  # Section headings for TOC
+    outline: str = ""
 
 
 class LLMContentGenerator:
@@ -187,28 +189,46 @@ class LLMContentGenerator:
         
         content_length = len(raw_content)
         logger.info(f"Processing {content_length} characters of {content_type} content")
+
+        outline = self.generate_blog_outline(raw_content, content_type, topic)
         
         # For short content, process directly
         if content_length <= 12000:
-            return self._process_single_chunk(raw_content, content_type, topic, max_tokens)
+            return self._process_single_chunk(
+                raw_content,
+                content_type,
+                topic,
+                max_tokens,
+                outline=outline,
+            )
         
         # For long content, use chunked processing
         logger.info(f"Content too long ({content_length} chars), using chunked processing")
-        return self._process_chunked(raw_content, content_type, topic, max_tokens)
+        return self._process_chunked(
+            raw_content,
+            content_type,
+            topic,
+            max_tokens,
+            outline=outline,
+        )
     
     def _process_single_chunk(
         self,
         content: str,
         content_type: str,
         topic: str,
-        max_tokens: int
+        max_tokens: int,
+        outline: str = ""
     ) -> GeneratedContent:
         """Process a single chunk of content."""
-        prompt = self._build_generation_prompt(content, content_type, topic, is_chunk=False)
+        if outline:
+            prompt = self._build_blog_from_outline_prompt(content, content_type, topic, outline)
+        else:
+            prompt = self._build_generation_prompt(content, content_type, topic, is_chunk=False)
         
         try:
-            generated_text = self._call_llm(prompt, max_tokens)
-            return self._parse_generated_content(generated_text, topic)
+            generated_text = self._call_llm(prompt, max_tokens, step="content_generate")
+            return self._parse_generated_content(generated_text, topic, outline=outline)
         except Exception as e:
             logger.error(f"LLM content generation failed: {e}")
             return self._fallback_generation(content, topic)
@@ -218,7 +238,8 @@ class LLMContentGenerator:
         raw_content: str,
         content_type: str,
         topic: str,
-        max_tokens: int
+        max_tokens: int,
+        outline: str = ""
     ) -> GeneratedContent:
         """Process long content in chunks and merge results."""
         
@@ -227,7 +248,9 @@ class LLMContentGenerator:
         logger.info(f"Split content into {len(chunks)} chunks")
         
         # First, generate a title based on content overview
-        title = self.generate_title(raw_content, topic)
+        title = self._extract_title_from_outline(outline, topic) if outline else ""
+        if not title:
+            title = self.generate_title(raw_content, topic)
         logger.info(f"Generated title: {title}")
         
         # Process each chunk
@@ -245,11 +268,12 @@ class LLMContentGenerator:
                 total_chunks=len(chunks),
                 content_type=content_type,
                 topic=topic,
-                section_start=section_counter
+                section_start=section_counter,
+                outline=outline,
             )
             
             try:
-                generated_text = self._call_llm(prompt, max_tokens)
+                generated_text = self._call_llm(prompt, max_tokens, step="content_generate")
                 
                 # Parse visual markers from this chunk
                 chunk_markers = self._extract_visual_markers(generated_text, len(all_markers))
@@ -283,7 +307,8 @@ class LLMContentGenerator:
             markdown=merged_content,
             visual_markers=all_markers,
             title=title,
-            sections=final_sections
+            sections=final_sections,
+            outline=outline,
         )
     
     def _split_into_chunks(self, content: str, max_chunk_size: int = 10000) -> list[str]:
@@ -398,6 +423,20 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                 )
                 title = (response.text or "").strip()
                 self._record_call_details(start_time, response, step="content_title")
+                duration_ms = int((time.perf_counter() - start_time) * 1000)
+                usage = getattr(response, "usage_metadata", None)
+                input_tokens = getattr(usage, "prompt_token_count", None) if usage else None
+                output_tokens = getattr(usage, "candidates_token_count", None) if usage else None
+                log_llm_call(
+                    name="content_title",
+                    prompt=prompt_text,
+                    response=title,
+                    provider=self.content_provider,
+                    model=self.content_model,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    duration_ms=duration_ms,
+                )
             elif self.content_provider == "claude":
                 start_time = time.perf_counter()
                 response = self.content_client.messages.create(
@@ -408,6 +447,15 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                 )
                 title = response.content[0].text.strip()
                 self._record_call_details(start_time, response, step="content_title")
+                duration_ms = int((time.perf_counter() - start_time) * 1000)
+                log_llm_call(
+                    name="content_title",
+                    prompt=prompt,
+                    response=title,
+                    provider=self.content_provider,
+                    model=self.content_model,
+                    duration_ms=duration_ms,
+                )
             else:  # OpenAI
                 start_time = time.perf_counter()
                 response = self.content_client.chat.completions.create(
@@ -418,6 +466,20 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                 )
                 title = response.choices[0].message.content.strip()
                 self._record_call_details(start_time, response, step="content_title")
+                duration_ms = int((time.perf_counter() - start_time) * 1000)
+                usage = getattr(response, "usage", None)
+                input_tokens = getattr(usage, "prompt_tokens", None) if usage else None
+                output_tokens = getattr(usage, "completion_tokens", None) if usage else None
+                log_llm_call(
+                    name="content_title",
+                    prompt=prompt,
+                    response=title,
+                    provider=self.content_provider,
+                    model=self.content_model,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    duration_ms=duration_ms,
+                )
 
             # Clean up title (remove quotes if present)
             title = title.strip('"\'')
@@ -427,9 +489,29 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
             logger.error(f"Failed to generate title: {e}")
             return topic_hint.replace("-", " ").replace("_", " ").title() if topic_hint else "Document"
 
-    def _call_llm(self, prompt: str, max_tokens: int) -> str:
+    def generate_blog_outline(
+        self,
+        raw_content: str,
+        content_type: str,
+        topic: str,
+        max_tokens: int = 1200,
+    ) -> str:
+        """Generate a blog outline from raw content."""
+        if not self.is_available():
+            return ""
+
+        prompt = self._build_outline_prompt(raw_content, content_type, topic)
+
+        try:
+            outline = self._call_llm(prompt, max_tokens, step="content_outline")
+            return outline.strip()
+        except Exception as e:
+            logger.error(f"Failed to generate outline: {e}")
+            return ""
+
+    def _call_llm(self, prompt: str, max_tokens: int, step: str = "content_generate") -> str:
         """Make an LLM API call for content generation."""
-        self._record_usage(step="content_generate")
+        self._record_usage(step=step)
         if self.content_provider == "gemini":
             start_time = time.perf_counter()
             full_prompt = f"{self._get_system_prompt()}\n\n{prompt}"
@@ -437,8 +519,22 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                 model=self.content_model,
                 contents=full_prompt
             )
-            self._record_call_details(start_time, response, step="content_generate")
+            self._record_call_details(start_time, response, step=step)
             response_text = (response.text or "").strip()
+            duration_ms = int((time.perf_counter() - start_time) * 1000)
+            usage = getattr(response, "usage_metadata", None)
+            input_tokens = getattr(usage, "prompt_token_count", None) if usage else None
+            output_tokens = getattr(usage, "candidates_token_count", None) if usage else None
+            log_llm_call(
+                name=step,
+                prompt=full_prompt,
+                response=response_text,
+                provider=self.content_provider,
+                model=self.content_model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                duration_ms=duration_ms,
+            )
             return response_text
         if self.content_provider == "claude":
             start_time = time.perf_counter()
@@ -449,8 +545,18 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                 system=self._get_system_prompt(),
                 messages=[{"role": "user", "content": prompt}]
             )
-            self._record_call_details(start_time, response, step="content_generate")
-            return response.content[0].text
+            self._record_call_details(start_time, response, step=step)
+            response_text = response.content[0].text
+            duration_ms = int((time.perf_counter() - start_time) * 1000)
+            log_llm_call(
+                name=step,
+                prompt=f"{self._get_system_prompt()}\n\n{prompt}",
+                response=response_text,
+                provider=self.content_provider,
+                model=self.content_model,
+                duration_ms=duration_ms,
+            )
+            return response_text
         else:  # OpenAI
             start_time = time.perf_counter()
             response = self.content_client.chat.completions.create(
@@ -462,8 +568,23 @@ Return ONLY the title, nothing else. No quotes, no explanation."""
                     {"role": "user", "content": prompt}
                 ]
             )
-            self._record_call_details(start_time, response, step="content_generate")
-            return response.choices[0].message.content
+            self._record_call_details(start_time, response, step=step)
+            response_text = response.choices[0].message.content
+            duration_ms = int((time.perf_counter() - start_time) * 1000)
+            usage = getattr(response, "usage", None)
+            input_tokens = getattr(usage, "prompt_tokens", None) if usage else None
+            output_tokens = getattr(usage, "completion_tokens", None) if usage else None
+            log_llm_call(
+                name=step,
+                prompt=f"{self._get_system_prompt()}\n\n{prompt}",
+                response=response_text,
+                provider=self.content_provider,
+                model=self.content_model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                duration_ms=duration_ms,
+            )
+            return response_text
 
     def _record_usage(self, step: str) -> None:
         LLMContentGenerator._total_calls += 1
@@ -611,6 +732,108 @@ Output format:
 ---
 
 Generate the complete blog post. Start with # Title, then ## Introduction, then numbered sections:"""
+
+    def _build_outline_prompt(self, content: str, content_type: str, topic: str) -> str:
+        """Build the prompt for outline generation."""
+        type_instructions = {
+            "transcript": "This is a lecture transcript. Remove timestamps and preserve the educational structure.",
+            "document": "This is a document. Extract the logical section structure.",
+            "slides": "These are slide contents. Derive a narrative outline from the bullet points.",
+            "mixed": "This is mixed content from multiple sources. Combine into a cohesive outline."
+        }
+
+        instruction = type_instructions.get(content_type, type_instructions["document"])
+
+        return f"""Create a blog outline from the content below.
+
+**Content Type**: {content_type}
+**Topic**: {topic or "Detect from content"}
+**Special Instructions**: {instruction}
+
+Requirements:
+1. Use ONLY information present in the content. Do not add new topics or facts.
+2. Return markdown in this exact structure:
+   # Title
+   ## Outline
+   1. Section Title
+      1.1 Subsection Title
+      1.2 Subsection Title
+   2. Next Section Title
+3. Include an Introduction section and a Key Takeaways section in the outline.
+4. Use short, clear titles (3-8 words).
+
+Content:
+{content}
+
+Return ONLY the outline in markdown. No commentary."""
+
+    def _build_blog_from_outline_prompt(
+        self,
+        content: str,
+        content_type: str,
+        topic: str,
+        outline: str,
+    ) -> str:
+        """Build the prompt for blog generation using an outline."""
+        type_instructions = {
+            "transcript": "This is a lecture transcript. Remove all timestamps and conversational elements while preserving ALL educational content.",
+            "document": "This is a document. Restructure it into a clear blog format with numbered sections.",
+            "slides": "These are slide contents. Expand the bullet points into comprehensive explanations.",
+            "mixed": "This is mixed content from multiple sources. Combine and structure into a cohesive blog post."
+        }
+
+        instruction = type_instructions.get(content_type, type_instructions["document"])
+
+        return f"""Use the outline below to write the full blog post.
+
+**Content Type**: {content_type}
+**Topic**: {topic or "Detect from content"}
+**Special Instructions**: {instruction}
+
+## Outline
+{outline}
+
+## Requirements
+
+1. **Structure**:
+   - Follow the outline structure and section titles exactly.
+   - Use numbered sections: ## 1. Section Name, ## 2. Next Section
+   - Use numbered subsections: ### 1.1 Subsection Name
+   - Start with an introduction paragraph
+
+2. **Content Quality**:
+   - Write complete, detailed paragraphs (not bullet points)
+   - Explain ALL technical concepts thoroughly
+   - Include examples and comparisons only if present in the source
+   - Cover EVERY topic mentioned in the source - do not skip anything
+
+3. **Source Fidelity**:
+   - Use ONLY information present in the raw content
+   - Do not add new facts, examples, metrics, or external context
+   - Do not infer missing details; omit if not provided
+
+4. **Visual Markers**: Where a diagram would help, insert:
+   [VISUAL:type:Title:Brief description]
+   ONLY use these types: architecture, flowchart, comparison, concept_map, mind_map
+
+5. **Mermaid Diagrams**: For simple concepts, include inline mermaid:
+   ```mermaid
+   graph LR
+       A[Input] --> B[Process] --> C[Output]
+   ```
+
+6. **Formatting**:
+   - Use **bold** for key terms
+   - Use `code` for technical terms
+   - End with ## Key Takeaways section
+
+## Raw Content:
+
+{content}
+
+---
+
+Generate the complete blog post. Start with # Title, then ## Introduction, then numbered sections:"""
     
     def _build_chunk_prompt(
         self,
@@ -619,16 +842,19 @@ Generate the complete blog post. Start with # Title, then ## Introduction, then 
         total_chunks: int,
         content_type: str,
         topic: str,
-        section_start: int
+        section_start: int,
+        outline: str = ""
     ) -> str:
         """Build prompt for processing a content chunk."""
         
         position = "beginning" if chunk_index == 0 else "middle" if chunk_index < total_chunks - 1 else "end"
         
+        outline_block = f"\nOutline:\n{outline}\n" if outline else ""
         context = f"""You are processing part {chunk_index + 1} of {total_chunks} of a {content_type}.
 This is the {position} of the document.
 Topic: {topic}
-Start section numbering from: {section_start}"""
+Start section numbering from: {section_start}
+Use the outline to keep section titles consistent; only write sections supported by this chunk.{outline_block}"""
         
         if chunk_index == 0:
             # First chunk - include title and introduction
@@ -762,7 +988,7 @@ Generate the blog post middle sections:"""
         cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
         return cleaned.strip()
     
-    def _parse_generated_content(self, text: str, topic: str) -> GeneratedContent:
+    def _parse_generated_content(self, text: str, topic: str, outline: str = "") -> GeneratedContent:
         """Parse generated text to extract markdown and visual markers."""
         
         # Extract visual markers
@@ -781,7 +1007,8 @@ Generate the blog post middle sections:"""
             markdown=text,
             visual_markers=visual_markers,
             title=title,
-            sections=sections
+            sections=sections,
+            outline=outline,
         )
     
     def _fallback_generation(self, raw_content: str, topic: str) -> GeneratedContent:
@@ -798,8 +1025,18 @@ Generate the blog post middle sections:"""
             markdown=cleaned,
             visual_markers=[],
             title=title,
-            sections=[]
+            sections=[],
+            outline="",
         )
+
+    def _extract_title_from_outline(self, outline: str, fallback: str) -> str:
+        """Extract title from outline heading if present."""
+        if not outline:
+            return fallback
+        match = re.search(r'^#\s+(.+)$', outline, re.MULTILINE)
+        if match:
+            return match.group(1).strip()
+        return fallback
     
     def generate_visual_data(self, marker: VisualMarker, context: str = "") -> dict:
         """

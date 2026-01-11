@@ -238,6 +238,9 @@ CONTENT_AWARE_IMAGE_PROMPT = """Create a {style} that visualizes:
 **Required Labels (verbatim):**
 {required_labels}
 
+**Title Requirement:**
+The image title text must exactly match: {title}
+
 ## Style Requirements for {style}:
 {style_requirements}
 

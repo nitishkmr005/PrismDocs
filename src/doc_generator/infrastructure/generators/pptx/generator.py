@@ -23,7 +23,6 @@ from .utils import (
     create_presentation,
     save_presentation,
 )
-from ...image.svg import generate_chart
 from ...llm.service import get_llm_service
 from ....utils.image_utils import resolve_image_path
 
@@ -82,7 +81,7 @@ class PPTXGenerator:
 
         Args:
             content: Structured content dictionary with 'title', 'markdown',
-                     and optional 'slides', 'executive_summary', 'charts' keys
+                     and optional 'slides', 'executive_summary' keys
             metadata: Document metadata
             output_dir: Output directory
 
@@ -119,7 +118,7 @@ class PPTXGenerator:
 
             # Check for LLM enhancements
             has_llm_enhancements = any(
-                key in content for key in ["slides", "executive_summary", "charts", "visualizations"]
+                key in content for key in ["slides", "executive_summary", "visualizations"]
             )
 
             if has_llm_enhancements:
@@ -200,10 +199,6 @@ class PPTXGenerator:
                 )
 
             if allow_diagrams:
-                # Add chart slides if suggested
-                charts = structured_content.get("charts", [])
-                self._add_chart_slides(prs, charts, output_path.parent)
-
                 # Add visualization slides if generated
                 visualizations = structured_content.get("visualizations", [])
                 self._add_visualization_slides(prs, visualizations)
@@ -240,32 +235,6 @@ class PPTXGenerator:
                 )
 
         logger.debug(f"Added {len(slides)} LLM-generated slides")
-
-    def _add_chart_slides(self, prs, charts: list[dict], output_dir: Path) -> None:
-        """
-        Generate and add chart slides.
-
-        Args:
-            prs: Presentation object
-            charts: List of chart suggestions from LLM
-            output_dir: Directory for temporary chart files
-        """
-        for i, chart in enumerate(charts[:3]):  # Max 3 charts
-            chart_type = chart.get("chart_type", "bar")
-            title = chart.get("title", f"Chart {i+1}")
-            data = chart.get("data", [])
-
-            if not data:
-                continue
-
-            # Generate SVG
-            svg_path = output_dir / f"chart_{i}.svg"
-            try:
-                generate_chart(chart_type, data, title, svg_path)
-                add_chart_slide(prs, title, svg_path)
-                logger.debug(f"Added chart slide: {title}")
-            except Exception as e:
-                logger.warning(f"Failed to generate chart: {e}")
 
     def _add_visualization_slides(self, prs, visualizations: list[dict]) -> None:
         """
@@ -347,7 +316,7 @@ class PPTXGenerator:
         section_images = section_images or {}
         current_slide_title = None
         current_slide_content = []
-        section_index = -1
+        next_section_id = 1
         for kind, content_item in parse_markdown_lines(markdown_content):
             # H1 becomes section header
             if kind == "h1":
@@ -366,7 +335,7 @@ class PPTXGenerator:
 
             # H2 becomes slide title
             elif kind == "h2":
-                section_index += 1
+                section_id, next_section_id = self._resolve_section_id(content_item, next_section_id)
                 # Flush current slide if any
                 if current_slide_title and current_slide_content:
                     self._add_bullet_slide_series(
@@ -375,8 +344,8 @@ class PPTXGenerator:
                         current_slide_content
                     )
 
-                if section_index in section_images:
-                    img_info = section_images[section_index]
+                if section_id in section_images:
+                    img_info = section_images[section_id]
                     img_path = Path(img_info.get("path", ""))
                     if img_path.exists():
                         image_type = img_info.get("image_type", "image").title()
@@ -484,6 +453,8 @@ class PPTXGenerator:
         sections = []
         current_title = None
         current_lines = []
+        next_section_id = 1
+        current_section_id = None
 
         for line in markdown_content.splitlines():
             match = re.match(r"^##\s+(.+)$", line)
@@ -491,9 +462,11 @@ class PPTXGenerator:
                 if current_title is not None:
                     sections.append({
                         "title": current_title,
+                        "section_id": current_section_id,
                         "content": "\n".join(current_lines).strip()
                     })
                 current_title = match.group(1).strip()
+                current_section_id, next_section_id = self._resolve_section_id(current_title, next_section_id)
                 current_lines = []
             elif current_title is not None:
                 current_lines.append(line)
@@ -501,11 +474,13 @@ class PPTXGenerator:
         if current_title is not None:
             sections.append({
                 "title": current_title,
+                "section_id": current_section_id,
                 "content": "\n".join(current_lines).strip()
             })
 
-        for idx, section in enumerate(sections):
-            img_info = section_images.get(idx)
+        for section in sections:
+            section_id = section.get("section_id")
+            img_info = section_images.get(section_id)
             if img_info:
                 image_type = img_info.get("image_type", "image").title()
                 section["image_hint"] = f"{image_type} for {section['title']}"
@@ -527,7 +502,7 @@ class PPTXGenerator:
             if section_title:
                 slide_map[self._normalize_title(section_title)] = slide
 
-        for idx, section in enumerate(sections):
+        for section in sections:
             section_title = section.get("title", "")
             if not section_title:
                 continue
@@ -536,7 +511,7 @@ class PPTXGenerator:
             if not slide:
                 continue
 
-            img_info = section_images.get(idx)
+            img_info = section_images.get(section.get("section_id"))
             if img_info:
                 img_path = Path(img_info.get("path", ""))
                 if img_path.exists():
@@ -550,6 +525,15 @@ class PPTXGenerator:
 
     def _normalize_title(self, title: str) -> str:
         return re.sub(r"\s+", " ", title or "").strip().lower()
+
+    def _resolve_section_id(self, title: str, next_id: int) -> tuple[int, int]:
+        """Resolve section ID from numbered headings, falling back to sequential IDs."""
+        match = re.match(r"^(\\d+)[\\.:\\)\\s]+\\s*(.+)$", title)
+        if match:
+            section_id = int(match.group(1))
+            next_id = max(next_id, section_id + 1)
+            return section_id, next_id
+        return next_id, next_id + 1
 
     def _extract_agenda(self, markdown_content: str) -> list[str]:
         headings = []

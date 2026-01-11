@@ -53,17 +53,19 @@ def should_retry(state: WorkflowState) -> str:
     return "end"
 
 
+
+
 def build_workflow() -> StateGraph:
     """
     Build the LangGraph workflow for document generation.
 
     Workflow:
-    1. detect_format → Detect input format from extension/URL
-    2. parse_content → Extract content using appropriate parser
-    3. transform_content → Structure content for output (creates merged .md)
-    4. generate_images → Generate Gemini images for sections (uses merged content)
-    5. generate_output → Generate PDF or PPTX
-    6. validate_output → Validate generated file
+    1. detect_format -> Detect input format from extension/URL
+    2. parse_content -> Extract content using appropriate parser
+    3. transform_content -> Structure content for output (creates merged .md)
+    4. generate_images -> Generate and align images per section (uses merged content)
+    5. generate_output -> Generate PDF or PPTX
+    6. validate_output -> Validate generated file
     7. Conditional retry on validation errors (max 3 attempts)
 
     Returns:
@@ -138,7 +140,7 @@ def run_workflow(
         "llm_service": llm_service,
     }
 
-    logger.info(f"Starting workflow: {input_path} → {output_format}")
+    logger.info(f"Starting workflow: {input_path} -> {output_format}")
 
     # Execute workflow
     result = workflow.invoke(initial_state)

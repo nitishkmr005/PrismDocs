@@ -48,7 +48,7 @@ def generate_output_node(state: WorkflowState) -> WorkflowState:
 
             # Create topic-specific output directory
             # Get folder name from metadata or derive from input path
-            folder_name = state["metadata"].get("custom_filename")
+            folder_name = state["metadata"].get("custom_filename") or state["metadata"].get("file_id")
             if not folder_name:
                 input_path = state.get("input_path", "")
                 if input_path:

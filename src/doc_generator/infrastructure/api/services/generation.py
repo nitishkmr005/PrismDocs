@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import AsyncIterator, Optional
@@ -9,6 +10,8 @@ from typing import AsyncIterator, Optional
 from loguru import logger
 
 from ....application.graph_workflow import run_workflow
+from ....application.parsers import get_parser
+from ....domain.content_types import ContentFormat
 from ....infrastructure.llm import LLMService
 from ....infrastructure.logging_config import log_phase, log_separator, log_stats, log_success
 from ..schemas.requests import (
@@ -71,7 +74,7 @@ class GenerationService:
                 message="[1/5] Starting to parse sources...",
             )
 
-            input_path = await self._collect_sources(request)
+            input_path, file_id = await self._collect_sources(request)
             source_count = len(request.sources)
             
             log_success(f"Parsed {source_count} source(s) → {input_path.name}")
@@ -127,6 +130,8 @@ class GenerationService:
                     metadata={
                         "provider": request.provider.value,
                         "model": request.model,
+                        "file_id": file_id,
+                        "image_alignment_retries": request.preferences.image_alignment_retries,
                     },
                 ),
             )
@@ -254,11 +259,10 @@ class GenerationService:
             os.environ[env_var] = api_key
             logger.debug(f"Configured {env_var} for provider {provider}")
 
-    async def _collect_sources(self, request: GenerateRequest) -> Path:
+    async def _collect_sources(self, request: GenerateRequest) -> tuple[Path, str | None]:
         """Collect content from all sources and return input path.
 
-        For file sources, returns the path to the first file.
-        For text/URL sources, creates a temporary file with the content.
+        Converts every source to markdown, then merges into a single input file.
 
         Args:
             request: Generation request
@@ -266,40 +270,86 @@ class GenerationService:
         Returns:
             Path to input file for workflow
         """
-        # Sources is now a flat list
         all_sources = request.sources
+        parsed_blocks = []
+        file_id: str | None = None
 
-        # For file sources, use the first file's path directly
         for source in all_sources:
             if isinstance(source, FileSource):
-                try:
-                    file_path = self.storage.get_upload_path(source.file_id)
-                    logger.info(f"Using uploaded file: {file_path}")
-                    return file_path
-                except FileNotFoundError:
-                    # Try to find by pattern in uploads directory
-                    pattern = f"{source.file_id}*"
-                    matches = list(self.storage.upload_dir.glob(pattern))
-                    if matches:
-                        logger.info(f"Found file by pattern: {matches[0]}")
-                        return matches[0]
-                    logger.warning(f"File not found: {source.file_id}")
-                    continue
-
-        # For text sources, create a temporary markdown file
-        contents = []
-        for source in all_sources:
-            if isinstance(source, TextSource):
-                contents.append(source.content)
+                file_path = self._resolve_upload_path(source.file_id)
+                if not file_id:
+                    file_id = source.file_id
+                parser = get_parser(self._detect_format(file_path))
+                content, metadata = parser.parse(file_path)
+                title = metadata.get("title") or Path(file_path).name
+                parsed_blocks.append({
+                    "title": title,
+                    "content": content,
+                    "source": str(file_path),
+                })
             elif isinstance(source, UrlSource):
-                # TODO: Fetch URL content using web parser
-                contents.append(f"# Content from URL\n\nSource: {source.url}\n\n[URL content to be fetched]")
+                parser = get_parser(ContentFormat.URL.value)
+                content, metadata = parser.parse(source.url)
+                title = metadata.get("title") or source.url
+                parsed_blocks.append({
+                    "title": title,
+                    "content": content,
+                    "source": source.url,
+                })
+            elif isinstance(source, TextSource):
+                parsed_blocks.append({
+                    "title": "Copied Text",
+                    "content": source.content,
+                    "source": "text",
+                })
 
-        if contents:
-            combined = "\n\n---\n\n".join(contents)
-            temp_path = self.storage.upload_dir / "temp_input.md"
-            temp_path.write_text(combined, encoding="utf-8")
-            logger.info(f"Created temp input file: {temp_path}")
-            return temp_path
+        if not parsed_blocks:
+            raise ValueError("No valid sources provided")
 
-        raise ValueError("No valid sources provided")
+        combined = self._merge_markdown_sources(parsed_blocks)
+        temp_path = self.storage.upload_dir / f"temp_input_{uuid.uuid4().hex}.md"
+        temp_path.write_text(combined, encoding="utf-8")
+        logger.info(f"Created temp input file: {temp_path}")
+        return temp_path, file_id
+
+    def _resolve_upload_path(self, file_id: str) -> Path:
+        """Resolve file_id to a path in storage."""
+        try:
+            file_path = self.storage.get_upload_path(file_id)
+            logger.info(f"Using uploaded file: {file_path}")
+            return file_path
+        except FileNotFoundError:
+            pattern = f"{file_id}*"
+            matches = list(self.storage.upload_dir.glob(pattern))
+            if matches:
+                logger.info(f"Found file by pattern: {matches[0]}")
+                return matches[0]
+            logger.warning(f"File not found: {file_id}")
+            raise
+
+    def _detect_format(self, file_path: Path) -> str:
+        """Detect content format from file extension."""
+        suffix = file_path.suffix.lower()
+        format_map = {
+            ".pdf": ContentFormat.PDF.value,
+            ".md": ContentFormat.MARKDOWN.value,
+            ".markdown": ContentFormat.MARKDOWN.value,
+            ".txt": ContentFormat.TEXT.value,
+            ".docx": ContentFormat.DOCX.value,
+            ".pptx": ContentFormat.PPTX.value,
+            ".html": ContentFormat.HTML.value,
+        }
+        return format_map.get(suffix, ContentFormat.TEXT.value)
+
+    def _merge_markdown_sources(self, parsed_blocks: list[dict]) -> str:
+        """Merge parsed markdown sources into a single document."""
+        sections = []
+        for block in parsed_blocks:
+            title = block.get("title", "Source")
+            source = block.get("source", "")
+            content = block.get("content", "")
+            header = f"## Source: {title}"
+            if source and source != "text":
+                header += f"\n\nSource: {source}"
+            sections.append(f"{header}\n\n{content}")
+        return "\n\n---\n\n".join(sections)
