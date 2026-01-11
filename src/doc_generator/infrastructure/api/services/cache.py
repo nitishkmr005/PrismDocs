@@ -9,7 +9,7 @@ from typing import Optional
 
 from loguru import logger
 
-from ..models.requests import GenerateRequest
+from ..schemas.requests import GenerateRequest
 
 
 class CacheService:

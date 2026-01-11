@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends
 from sse_starlette.sse import EventSourceResponse
 
 from ..dependencies import APIKeys, extract_api_keys, get_api_key_for_provider
-from ..models.requests import GenerateRequest
-from ..models.responses import CacheHitEvent, CompleteEvent
+from ..schemas.requests import GenerateRequest
+from ..schemas.responses import CacheHitEvent, CompleteEvent
 from ..services.cache import CacheService
 from ..services.generation import GenerationService
 

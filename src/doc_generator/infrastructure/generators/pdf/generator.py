@@ -13,8 +13,8 @@ from loguru import logger
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
-from ...domain.exceptions import GenerationError
-from ...infrastructure.pdf_utils import (
+from ....domain.exceptions import GenerationError
+from .utils import (
     create_custom_styles,
     extract_headings,
     inline_md,
@@ -30,8 +30,8 @@ from ...infrastructure.pdf_utils import (
     rasterize_svg,
     reset_figure_counter,
 )
-from ...infrastructure.settings import get_settings
-from ...utils.image_utils import resolve_image_path
+from ...settings import get_settings
+from ....utils.image_utils import resolve_image_path
 
 
 class PDFGenerator:
@@ -52,7 +52,8 @@ class PDFGenerator:
             image_cache: Directory for cached images (optional)
         """
         self.settings = get_settings()
-        self.image_cache = image_cache or Path(self.settings.pdf.image_cache_dir)
+        # Use provided cache or default to output/temp for rasterized images
+        self.image_cache = image_cache or Path(self.settings.generator.temp_dir)
         self.styles = create_custom_styles()
 
     def generate(self, content: dict, metadata: dict, output_dir: Path) -> Path:

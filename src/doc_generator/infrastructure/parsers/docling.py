@@ -17,7 +17,7 @@ except ImportError:
     DOCLING_AVAILABLE = False
     logger.warning("Docling not available - advanced document parsing disabled")
 
-from ..domain.exceptions import ParseError
+from ...domain.exceptions import ParseError
 
 
 def convert_document_to_markdown(file_path: Path) -> Tuple[str, dict]:

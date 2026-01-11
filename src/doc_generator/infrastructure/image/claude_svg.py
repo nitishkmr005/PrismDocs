@@ -17,7 +17,7 @@ from typing import Optional
 from anthropic import Anthropic
 from loguru import logger
 
-from .settings import get_settings
+from ..settings import get_settings
 
 
 class ClaudeSVGGenerator:

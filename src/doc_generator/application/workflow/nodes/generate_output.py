@@ -8,10 +8,10 @@ from pathlib import Path
 
 from loguru import logger
 
-from ...domain.exceptions import GenerationError
-from ...domain.models import WorkflowState
-from ...infrastructure.generators import get_generator
-from ...infrastructure.settings import get_settings
+from ....domain.exceptions import GenerationError
+from ....domain.models import WorkflowState
+from ....infrastructure.generators import get_generator
+from ....infrastructure.settings import get_settings
 
 
 def generate_output_node(state: WorkflowState) -> WorkflowState:

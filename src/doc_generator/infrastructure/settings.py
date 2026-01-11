@@ -49,7 +49,7 @@ class PdfSettings(BaseSettings):
     page_size: str = "letter"
     margin: PdfMarginSettings = Field(default_factory=PdfMarginSettings)
     palette: PdfPaletteSettings = Field(default_factory=PdfPaletteSettings)
-    image_cache_dir: str = "src/output/pdf_images"
+    # Note: image_cache_dir is deprecated - images are now stored per file_id
 
 
 class PptxThemeSettings(BaseSettings):

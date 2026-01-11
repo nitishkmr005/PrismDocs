@@ -13,8 +13,8 @@ from typing import Optional
 
 from loguru import logger
 
-from ..domain.content_types import ImageType
-from .settings import get_settings
+from ...domain.content_types import ImageType
+from ..settings import get_settings
 
 try:
     from google import genai

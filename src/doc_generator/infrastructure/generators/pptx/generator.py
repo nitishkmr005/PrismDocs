@@ -11,9 +11,9 @@ from pathlib import Path
 
 from loguru import logger
 
-from ...domain.exceptions import GenerationError
-from ...infrastructure.pdf_utils import parse_markdown_lines
-from ...infrastructure.pptx_utils import (
+from ....domain.exceptions import GenerationError
+from ...pdf_utils import parse_markdown_lines
+from .utils import (
     add_chart_slide,
     add_content_slide,
     add_executive_summary_slide,
@@ -23,9 +23,9 @@ from ...infrastructure.pptx_utils import (
     create_presentation,
     save_presentation,
 )
-from ...infrastructure.svg_generator import generate_chart
-from ...infrastructure.llm_service import get_llm_service
-from ...utils.image_utils import resolve_image_path
+from ...image.svg import generate_chart
+from ...llm.service import get_llm_service
+from ....utils.image_utils import resolve_image_path
 
 
 class PPTXGenerator:
@@ -54,7 +54,7 @@ class PPTXGenerator:
             return None
 
         try:
-            from ...infrastructure.gemini_image_generator import get_gemini_generator
+            from ...image.gemini import get_gemini_generator
         except ImportError:
             logger.warning("Gemini generator not available")
             return None

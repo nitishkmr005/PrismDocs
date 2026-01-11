@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import Header, HTTPException
 
-from .models.requests import Provider
+from .schemas.requests import Provider
 
 
 @dataclass

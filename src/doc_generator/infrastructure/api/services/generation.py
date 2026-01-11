@@ -9,14 +9,15 @@ from typing import AsyncIterator, Optional
 from loguru import logger
 
 from ....application.graph_workflow import run_workflow
-from ....infrastructure.llm_service import LLMService
-from ..models.requests import (
+from ....infrastructure.llm import LLMService
+from ....infrastructure.logging_config import log_phase, log_separator, log_stats, log_success
+from ..schemas.requests import (
     FileSource,
     GenerateRequest,
     TextSource,
     UrlSource,
 )
-from ..models.responses import (
+from ..schemas.responses import (
     CompleteEvent,
     CompletionMetadata,
     ErrorEvent,
@@ -31,17 +32,13 @@ class GenerationService:
 
     def __init__(
         self,
-        output_dir: Path = Path("src/output/generated"),
         storage_service: Optional[StorageService] = None,
     ):
         """Initialize generation service.
 
         Args:
-            output_dir: Directory for generated outputs
             storage_service: Storage service for file operations
         """
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
         self.storage = storage_service or StorageService()
         self._executor = ThreadPoolExecutor(max_workers=2)
 
@@ -59,9 +56,15 @@ class GenerationService:
         Yields:
             Progress events, then completion or error event
         """
+        import time
+        start_time = time.time()
+        
         try:
+            # Log start
+            log_separator(f"Document Generation: {request.output_format.value.upper()}", "═", 60)
+            
             # Phase 1: Parse sources
-            logger.info("[1/5] Parsing sources...")
+            log_phase(1, 5, "Parsing Sources")
             yield ProgressEvent(
                 status=GenerationStatus.PARSING,
                 progress=5,
@@ -71,19 +74,19 @@ class GenerationService:
             input_path = await self._collect_sources(request)
             source_count = len(request.sources)
             
-            logger.info(f"[1/5] Parsed {source_count} sources, input: {input_path}")
+            log_success(f"Parsed {source_count} source(s) → {input_path.name}")
             yield ProgressEvent(
                 status=GenerationStatus.PARSING,
                 progress=20,
                 message=f"[1/5] Parsed {source_count} sources",
             )
 
-            # Phase 2: Transform content  
-            logger.info("[2/5] Transforming content...")
+            # Phase 2: Configure LLM
+            log_phase(2, 5, "Configuring LLM")
             yield ProgressEvent(
                 status=GenerationStatus.TRANSFORMING,
                 progress=30,
-                message="[2/5] Structuring content...",
+                message="[2/5] Configuring LLM...",
             )
 
             # Set API key for the provider
@@ -95,15 +98,15 @@ class GenerationService:
                 model=request.model,
             )
 
-            logger.info(f"[2/5] LLM configured: {request.provider.value}/{request.model}")
+            log_success(f"LLM configured: {request.provider.value}/{request.model}")
             yield ProgressEvent(
                 status=GenerationStatus.TRANSFORMING,
                 progress=40,
-                message="[2/5] Content transformation started",
+                message="[2/5] LLM configured",
             )
 
             # Phase 3: Run the actual workflow
-            logger.info("[3/5] Running document generation workflow...")
+            log_phase(3, 5, "Running Generation Workflow")
             yield ProgressEvent(
                 status=GenerationStatus.GENERATING_IMAGES,
                 progress=50,
@@ -125,7 +128,8 @@ class GenerationService:
                 ),
             )
 
-            logger.info(f"[3/5] Workflow complete: {result.get('output_path', 'N/A')}")
+            output_path = result.get("output_path", "")
+            log_success(f"Workflow complete → {Path(output_path).name if output_path else 'N/A'}")
             yield ProgressEvent(
                 status=GenerationStatus.GENERATING_IMAGES,
                 progress=70,
@@ -135,24 +139,22 @@ class GenerationService:
             # Phase 4: Check for errors
             errors = result.get("errors", [])
             if errors:
-                logger.error(f"[4/5] Workflow errors: {errors}")
+                logger.error(f"Workflow errors: {errors}")
                 yield ErrorEvent(
                     error="; ".join(errors),
                     code="WORKFLOW_ERROR",
                 )
                 return
 
-            # Phase 4: Generate output path
-            logger.info("[4/5] Generating output...")
+            # Phase 4: Generate output
+            log_phase(4, 5, f"Building {request.output_format.value.upper()}")
             yield ProgressEvent(
                 status=GenerationStatus.GENERATING_OUTPUT,
                 progress=80,
                 message=f"[4/5] Building {request.output_format.value.upper()}...",
             )
 
-            output_path = result.get("output_path", "")
-
-            logger.info(f"[4/5] Output generated: {output_path}")
+            log_success(f"Output generated: {Path(output_path).name if output_path else 'N/A'}")
             yield ProgressEvent(
                 status=GenerationStatus.GENERATING_OUTPUT,
                 progress=90,
@@ -160,7 +162,7 @@ class GenerationService:
             )
 
             # Phase 5: Finalize
-            logger.info("[5/5] Finalizing...")
+            log_phase(5, 5, "Finalizing")
             yield ProgressEvent(
                 status=GenerationStatus.UPLOADING,
                 progress=95,
@@ -170,7 +172,7 @@ class GenerationService:
             if output_path and Path(output_path).exists():
                 download_url = self.storage.get_download_url(Path(output_path))
             else:
-                logger.warning(f"[5/5] Output path not found: {output_path}")
+                logger.warning(f"Output path not found: {output_path}")
                 download_url = f"/api/download/{Path(output_path).name if output_path else 'error.pdf'}"
 
             # Extract metadata from result
@@ -181,16 +183,26 @@ class GenerationService:
             pages = 0
             slides = 0
             if request.output_format.value == "pdf":
-                # Estimate pages from sections
                 sections = structured_content.get("sections", [])
                 pages = max(1, len(sections))
             else:
                 slides = len(structured_content.get("sections", []))
 
-            images_generated = len(structured_content.get("images", []))
+            images_generated = len(structured_content.get("section_images", {}))
             title = structured_content.get("title", metadata.get("title", "Generated Document"))
 
-            logger.info(f"[5/5] Complete: {title} ({pages} pages, {images_generated} images)")
+            # Calculate duration
+            duration = time.time() - start_time
+            duration_str = f"{duration:.1f}s" if duration < 60 else f"{int(duration//60)}m {duration%60:.1f}s"
+
+            # Log final stats
+            log_stats({
+                "Title": title[:30] + "..." if len(title) > 30 else title,
+                "Format": request.output_format.value.upper(),
+                "Pages": pages if pages else slides,
+                "Images": images_generated,
+                "Duration": duration_str,
+            }, "✅ Generation Complete")
 
             # Complete
             yield CompleteEvent(

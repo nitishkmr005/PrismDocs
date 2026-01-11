@@ -11,7 +11,7 @@ from typing import Optional
 
 from loguru import logger
 
-from .settings import get_settings
+from ..settings import get_settings
 
 try:
     from google import genai

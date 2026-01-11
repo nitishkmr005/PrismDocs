@@ -9,7 +9,8 @@ from loguru import logger
 
 from ..domain.models import WorkflowState
 from ..infrastructure.image import GeminiImageGenerator
-from ..infrastructure.llm import LLMContentGenerator, LLMService
+from ..infrastructure.llm import LLMContentGenerator
+from ..infrastructure.llm import LLMService
 from .nodes import (
     detect_format_node,
     generate_images_node,

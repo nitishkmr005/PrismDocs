@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, File, UploadFile
 
-from ..models.responses import UploadResponse
+from ..schemas.responses import UploadResponse
 from ..services.storage import StorageService
 
 router = APIRouter(tags=["upload"])

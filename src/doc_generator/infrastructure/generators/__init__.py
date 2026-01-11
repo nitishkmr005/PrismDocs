@@ -1,13 +1,9 @@
-"""
-Generators for different output formats.
-
-Provides factory function to get appropriate generator for output format.
-"""
+"""Output generators for PDF and PPTX."""
 
 from ...domain.content_types import OutputFormat
 from ...domain.exceptions import UnsupportedFormatError
-from .pdf_generator import PDFGenerator
-from .pptx_generator import PPTXGenerator
+from .pdf import PDFGenerator
+from .pptx import PPTXGenerator
 
 
 def get_generator(output_format: str):

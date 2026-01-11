@@ -16,7 +16,7 @@ except ImportError:
     MARKITDOWN_AVAILABLE = False
     logger.warning("MarkItDown not available - some conversion features disabled")
 
-from ..domain.exceptions import ParseError
+from ...domain.exceptions import ParseError
 
 
 def convert_to_markdown(file_path: Path) -> str:

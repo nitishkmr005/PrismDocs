@@ -8,7 +8,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from ..domain.exceptions import FileNotFoundError as DocGenFileNotFoundError
+from ...domain.exceptions import FileNotFoundError as DocGenFileNotFoundError
 
 
 def ensure_directory(directory: Path) -> None:
