@@ -2,5 +2,6 @@
 
 from .storage import StorageService
 from .cache import CacheService
+from .generation import GenerationService
 
-__all__ = ["StorageService", "CacheService"]
+__all__ = ["StorageService", "CacheService", "GenerationService"]
