@@ -2,7 +2,7 @@
 Prompt templates for image generation and evaluation.
 """
 
-from ..content_types import ImageType
+from ...content_types import ImageType
 
 
 def build_gemini_image_prompt(image_type: ImageType, prompt: str, size_hint: str) -> str:
