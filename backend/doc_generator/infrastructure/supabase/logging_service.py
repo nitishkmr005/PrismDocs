@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from loguru import logger
 
-from .client import get_supabase_client, is_supabase_configured
+from .client import get_supabase_service_client
 
 
 class SupabaseLoggingService:
@@ -46,8 +46,12 @@ class SupabaseLoggingService:
 
     @staticmethod
     def is_available() -> bool:
-        """Check if Supabase logging is available."""
-        return is_supabase_configured()
+        """Check if Supabase logging is available (requires service role key)."""
+        import os
+
+        url = os.getenv("SUPABASE_URL")
+        service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        return bool(url and service_key)
 
     def log_llm_call(
         self,
@@ -79,7 +83,7 @@ class SupabaseLoggingService:
         Returns:
             True if logging succeeded, False otherwise
         """
-        client = get_supabase_client()
+        client = get_supabase_service_client()
         if client is None:
             return False
 
@@ -133,7 +137,7 @@ class SupabaseLoggingService:
         Returns:
             True if logging succeeded, False otherwise
         """
-        client = get_supabase_client()
+        client = get_supabase_service_client()
         if client is None:
             return False
 
