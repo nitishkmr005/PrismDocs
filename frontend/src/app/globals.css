@@ -123,3 +123,221 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================
+   Authentication Component Styles
+   ============================================ */
+
+/* Auth Form Container */
+.auth-form {
+  @apply w-full max-w-md mx-auto p-8 space-y-6;
+}
+
+.auth-form-header {
+  @apply text-center space-y-2;
+}
+
+.auth-form-title {
+  @apply text-2xl font-bold tracking-tight;
+}
+
+.auth-form-subtitle {
+  @apply text-sm text-muted-foreground;
+}
+
+/* Auth Alerts */
+.auth-alert {
+  @apply flex items-center gap-2 p-3 rounded-lg text-sm;
+}
+
+.auth-alert-error {
+  @apply bg-destructive/10 text-destructive border border-destructive/20;
+}
+
+.auth-alert-success {
+  @apply bg-green-500/10 text-green-600 border border-green-500/20;
+}
+
+.dark .auth-alert-success {
+  @apply text-green-400;
+}
+
+.auth-alert-icon {
+  @apply h-4 w-4 flex-shrink-0;
+}
+
+/* Auth Form Fields */
+.auth-form-fields {
+  @apply space-y-4;
+}
+
+.auth-field {
+  @apply space-y-2;
+}
+
+.auth-input-wrapper {
+  @apply relative;
+}
+
+.auth-input-icon {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none;
+}
+
+.auth-input {
+  @apply pl-10;
+}
+
+.auth-submit-button {
+  @apply w-full mt-2;
+}
+
+.auth-button-loader {
+  @apply mr-2 h-4 w-4 animate-spin;
+}
+
+/* Auth Divider */
+.auth-divider {
+  @apply relative flex items-center gap-4;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  @apply flex-1 h-px bg-border content-[''];
+}
+
+.auth-divider span {
+  @apply text-xs text-muted-foreground uppercase tracking-wider;
+}
+
+/* OAuth Buttons */
+.auth-oauth-buttons {
+  @apply grid grid-cols-2 gap-3;
+}
+
+.auth-oauth-button {
+  @apply flex items-center justify-center gap-2;
+}
+
+.auth-oauth-icon {
+  @apply h-4 w-4;
+}
+
+/* Auth Footer */
+.auth-footer {
+  @apply flex flex-col items-center gap-2 text-sm text-muted-foreground;
+}
+
+.auth-footer-text {
+  @apply text-center;
+}
+
+.auth-link {
+  @apply text-primary hover:underline underline-offset-4 font-medium transition-colors;
+}
+
+/* Auth Modal */
+.auth-modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.auth-modal {
+  @apply relative w-full max-w-md bg-card rounded-2xl shadow-2xl border border-border;
+  animation: slideUp 0.3s ease-out;
+}
+
+.auth-modal-close {
+  @apply absolute right-4 top-4 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* User Menu */
+.user-menu {
+  @apply flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors;
+}
+
+.user-menu-skeleton {
+  @apply flex items-center gap-3 p-2;
+}
+
+.user-menu-skeleton-avatar {
+  @apply w-8 h-8 rounded-full bg-muted animate-pulse;
+}
+
+.user-menu-skeleton-name {
+  @apply h-4 w-20 rounded bg-muted animate-pulse;
+}
+
+.user-menu-info {
+  @apply flex items-center gap-3;
+}
+
+.user-menu-avatar {
+  @apply w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden;
+}
+
+.user-menu-avatar-image {
+  @apply w-full h-full object-cover;
+}
+
+.user-menu-avatar-initials {
+  @apply text-xs font-semibold text-primary-foreground;
+}
+
+.user-menu-details {
+  @apply flex flex-col;
+}
+
+.user-menu-name {
+  @apply text-sm font-medium leading-tight;
+}
+
+.user-menu-email {
+  @apply text-xs text-muted-foreground leading-tight;
+}
+
+.user-menu-signout {
+  @apply p-2 hover:bg-destructive/10 hover:text-destructive;
+}
+
+.user-menu-signout-icon {
+  @apply h-4 w-4;
+}
+
+/* Protected Route Message */
+.auth-required-message {
+  @apply flex flex-col items-center justify-center min-h-[400px] text-center space-y-4 p-8;
+}
+
+.auth-required-icon {
+  @apply h-16 w-16 text-muted-foreground/50;
+}
+
+.auth-required-title {
+  @apply text-xl font-semibold;
+}
+
+.auth-required-description {
+  @apply text-muted-foreground max-w-md;
+}
