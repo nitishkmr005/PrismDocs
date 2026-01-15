@@ -14,8 +14,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Copy and make startup script executable
-COPY start.sh /app/start.sh
+# Ensure startup script is executable
 RUN chmod +x /app/start.sh
 
 # Create necessary directories
