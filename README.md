@@ -37,10 +37,10 @@ LangGraph-based document generator for converting multiple input formats (PDF, M
 - Comprehensive error handling and logging
 - Docker containerization for portability
 
-✅ **Pure Python**:
-- No Node.js dependencies
-- Runs on Python 3.11+
-- Fully containerized with Docker
+✅ **Python-First Core**:
+- Document generation runs on Python 3.11+
+- FastAPI backend is fully containerized with Docker
+- Optional Next.js frontend lives in `frontend/`
 
 ## Architecture
 
@@ -58,7 +58,7 @@ detect_format → parse_content → transform_content → generate_output → va
 
 ## Process Flow
 
-For a comprehensive visual guide to the entire document generation process, see **[docs/PROCESS_FLOW.md](docs/PROCESS_FLOW.md)**.
+For a comprehensive visual guide to the entire document generation process, see **[PROCESS_FLOW.md](PROCESS_FLOW.md)**.
 
 This includes detailed diagrams for:
 - 🔄 Complete architecture overview
@@ -111,18 +111,23 @@ This includes detailed diagrams for:
    OPENAI_API_KEY=your_openai_api_key_here
    ```
    
-   See `ENV_SETUP.md` for detailed configuration options.
+   See `docs/README.md` for detailed configuration options.
 
 ### Docker (Recommended for Production)
 
-1. **Build Docker image**:
+1. **Build backend API image** (for deployments like Render):
    ```bash
-   make docker-build
+   docker build -t doc-generator-backend:latest -f backend/Dockerfile backend
    ```
 
-   Or manually:
+2. **Build frontend UI image**:
    ```bash
-   docker build -t doc-generator:latest .
+   docker build -t doc-generator-frontend:latest -f frontend/Dockerfile frontend
+   ```
+
+3. **Or run both with Docker Compose**:
+   ```bash
+   docker-compose up --build
    ```
 
 ## Configuration
@@ -153,7 +158,7 @@ Create a `.env` file with your API key to enable LLM-enhanced features:
 
 ### Settings File
 
-Edit `config/settings.yaml` to customize:
+Edit `backend/config/settings.yaml` to customize:
 - Page layouts and margins
 - Color themes
 - LLM parameters
@@ -169,25 +174,25 @@ Edit `config/settings.yaml` to customize:
 make run-llm-architectures
 
 # Or use the shell script directly
-bash run.sh src/data/input/llm-architectures --verbose
+bash run.sh backend/data/input/llm-architectures --verbose
 ```
 
 **Single File Processing**:
 ```bash
 # Using make (single output format)
-make run-docgen INPUT=src/data/input/article.md OUTPUT=pdf
+make run-docgen INPUT=backend/data/input/article.md OUTPUT=pdf
 
 # Using run.sh (generates both PDF and PPTX)
-bash run.sh src/data/input/article.md --verbose
+bash run.sh backend/data/input/article.md --verbose
 
 # Using Python directly
-python scripts/run_generator.py src/data/input/article.md --output pdf
+python scripts/run_generator.py backend/data/input/article.md --output pdf
 ```
 
 **Folder Processing**:
 ```bash
 # Process all files in a folder
-python scripts/generate_from_folder.py src/data/input/llm-architectures --verbose
+python scripts/generate_from_folder.py backend/data/input/llm-architectures --verbose
 
 # The script will:
 # 1. Parse all supported files (PDF, MD, TXT, DOCX, PPTX)
@@ -201,7 +206,7 @@ python scripts/generate_from_folder.py src/data/input/llm-architectures --verbos
 python scripts/run_generator.py https://example.com/article --output pptx
 
 # PDF to PPTX (extract and convert)
-python scripts/run_generator.py src/data/input/document.pdf --output pptx
+python scripts/run_generator.py backend/data/input/document.pdf --output pptx
 
 # With verbose logging
 python scripts/run_generator.py input.md --output pdf --verbose
@@ -212,37 +217,30 @@ python scripts/run_generator.py input.md --output pdf --log-file output.log
 
 ### Docker Usage
 
-**Direct Docker run**:
+**Backend API container**:
 ```bash
-# Markdown to PDF
+docker build -t doc-generator-backend:latest -f backend/Dockerfile backend
 docker run --rm \
-  -v $(pwd)/src/data:/app/src/data \
-  -v $(pwd)/src/data/output:/app/src/data/output \
-  doc-generator:latest src/data/input/article.md --output pdf
-
-# Web article to PPTX (no input mount needed)
-docker run --rm \
-  -v $(pwd)/src/data/output:/app/src/data/output \
-  doc-generator:latest https://example.com/article --output pptx
+  -p 8000:8000 \
+  -e PORT=8000 \
+  -v $(pwd)/backend/data:/app/data \
+  doc-generator-backend:latest
 ```
 
-**Using Makefile**:
+**Frontend UI container**:
 ```bash
-make docker-run INPUT=src/data/input/article.md OUTPUT=pdf
+docker build -t doc-generator-frontend:latest -f frontend/Dockerfile frontend
+docker run --rm \
+  -p 3000:3000 \
+  -e NEXT_PUBLIC_API_URL=http://localhost:8000 \
+  doc-generator-frontend:latest
 ```
 
-**Using Docker Compose**:
+**Using Docker Compose** (backend + frontend):
 
-1. Edit `docker-compose.yaml` to set the command:
-   ```yaml
-   command: ["src/data/input/sample.md", "--output", "pdf"]
-   ```
-
-2. Run:
+1. Run:
    ```bash
-   make docker-compose-up
-   # or
-   docker-compose up
+   docker-compose up --build
    ```
 
 ### Python API
@@ -252,7 +250,7 @@ from doc_generator.application.graph_workflow import run_workflow
 
 # Run workflow
 result = run_workflow(
-    input_path="src/data/input/article.md",
+    input_path="backend/data/input/article.md",
     output_format="pdf"
 )
 
@@ -265,7 +263,7 @@ else:
 
 ### FastAPI API
 
-Run the API (see `src/doc_generator/infrastructure/api/main.py` for app wiring), then use:
+Run the API (see `backend/doc_generator/infrastructure/api/main.py` for app wiring), then use:
 
 **1) Upload a file**
 ```bash
@@ -318,26 +316,38 @@ You can also use the `download_url` directly if you want the tokenized link.
 ### Building for Production
 
 ```bash
-# Build image
-docker build -t doc-generator:latest .
+# Build backend API image
+docker build -t doc-generator-backend:latest -f backend/Dockerfile backend
+docker tag doc-generator-backend:latest your-registry/doc-generator-backend:v1.0.0
+docker push your-registry/doc-generator-backend:v1.0.0
+```
 
-# Tag for registry
-docker tag doc-generator:latest your-registry/doc-generator:v1.0.0
-
-# Push to registry
-docker push your-registry/doc-generator:v1.0.0
+Frontend UI image:
+```bash
+docker build -t doc-generator-frontend:latest -f frontend/Dockerfile frontend
+docker tag doc-generator-frontend:latest your-registry/doc-generator-frontend:v1.0.0
+docker push your-registry/doc-generator-frontend:v1.0.0
 ```
 
 ### Running in Production
 
 ```bash
-# Run with volume mounts
+# Run backend API container
 docker run -d \
-  --name doc-generator \
-  -v /path/to/data:/app/src/data \
-  -v /path/to/output:/app/src/data/output \
-  -e LOG_LEVEL=INFO \
-  doc-generator:latest src/data/input/article.md --output pdf
+  --name doc-generator-backend \
+  -p 8000:8000 \
+  -e PORT=8000 \
+  -v /path/to/data:/app/data \
+  doc-generator-backend:latest
+```
+
+Frontend UI container:
+```bash
+docker run -d \
+  --name doc-generator-frontend \
+  -p 3000:3000 \
+  -e NEXT_PUBLIC_API_URL=http://your-backend-host:8000 \
+  doc-generator-frontend:latest
 ```
 
 ## Development
@@ -359,7 +369,7 @@ uv pip install -e ".[dev]"
 make test-docgen
 
 # Or manually
-pytest tests/ -v --cov=src/doc_generator --cov-report=term-missing
+pytest tests/ -v --cov=backend/doc_generator --cov-report=term-missing
 ```
 
 ### Linting and Type Checking
@@ -369,8 +379,8 @@ pytest tests/ -v --cov=src/doc_generator --cov-report=term-missing
 make lint-docgen
 
 # Or manually
-ruff check src/doc_generator
-mypy src/doc_generator
+ruff check backend/doc_generator
+mypy backend/doc_generator
 ```
 
 ### Cleaning Generated Files
@@ -383,71 +393,67 @@ make clean-docgen
 ## Project Structure
 
 ```
-src/doc_generator/
-├── domain/                           # Core business logic (zero dependencies)
-│   ├── models.py                     # Pydantic models (WorkflowState, Config)
-│   ├── content_types.py              # Enums (ContentFormat, OutputFormat)
-│   ├── exceptions.py                 # Custom exceptions
-│   └── interfaces.py                 # Protocols (ContentParser, OutputGenerator)
-│
-├── application/                      # Use case orchestration
-│   ├── graph_workflow.py             # LangGraph state machine
-│   ├── parsers/                      # Input parsers
-│   │   ├── unified_parser.py         # Docling-based parser (PDF, DOCX, PPTX)
-│   │   ├── markdown_parser.py        # Markdown with frontmatter support
-│   │   └── web_parser.py             # MarkItDown-based web parser
-│   ├── generators/
-│   │   ├── pdf_generator.py          # ReportLab PDF generation
-│   │   └── pptx_generator.py         # python-pptx PPTX generation
-│   └── nodes/                        # LangGraph nodes
-│       ├── detect_format.py          # Format detection
-│       ├── parse_content.py          # Content parsing
-│       ├── transform_content.py      # Content transformation
-│       ├── generate_output.py        # Document generation
-│       └── validate_output.py        # Output validation
-│
-├── infrastructure/                   # External integrations
-│   ├── docling_adapter.py            # Docling wrapper
-│   ├── markitdown_adapter.py         # MarkItDown wrapper
-│   ├── file_system.py                # File I/O operations
-│   ├── pdf_utils.py                  # ReportLab utilities
-│   ├── pptx_utils.py                 # python-pptx utilities
-│   └── logging_config.py             # Loguru configuration
-│
-└── utils/                            # Shared utilities
+backend/
+├── Dockerfile                        # FastAPI backend image
+├── config/
+│   └── settings.yaml                 # Backend configuration
+├── data/
+│   ├── input/                        # Input files and folders
+│   ├── output/                       # Generated PDFs/PPTXs
+│   └── cache/                        # Cached content and images
+├── doc_generator/                    # Core document generator package
+│   ├── application/
+│   ├── domain/
+│   ├── infrastructure/
+│   └── utils/
+├── render.yaml                       # Render deployment config
+├── requirements-docker.txt
+└── requirements-local.txt
 
-scripts/
-└── run_generator.py                  # CLI entry point
+frontend/
+├── Dockerfile                        # Next.js frontend image
+├── src/
+├── public/
+└── package.json
 
-tests/                                # Test suite
-├── test_parsers.py
-├── test_generators.py
-└── test_workflow.py
+scripts/                              # Local CLI helpers
+├── run_generator.py
+├── generate_from_folder.py
+├── batch_process_topics.py
+├── validate_pdf.py
+└── quick_pdf_with_images.py
 
-config/
-└── settings.yaml                     # Configuration
+tests/
+└── api/                              # API-focused tests
+    ├── test_*.py
+    └── __init__.py
 
-Dockerfile                            # Docker image definition
-docker-compose.yaml                   # Docker Compose configuration
-pyproject.toml                        # Python dependencies
-Makefile                              # Automation tasks
+docs/                                # Architecture + guides
+dev/                                 # Dev assets and experiments
+PROCESS_FLOW.md                      # Visual workflow diagrams
+Quickstart.md                        # Quick start guide
+docker-compose.yml                   # Backend + frontend compose
+run.sh                               # Local run helper
+Makefile                             # Automation tasks
+pyproject.toml                       # Python dependencies
+uv.lock                              # Locked Python deps
+vercel.json                          # Frontend deployment config
 ```
 
 ## Testing
 
 ### Unit Tests
 
-Test individual components:
+Run the API-focused test suite:
 ```bash
-pytest tests/test_parsers.py -v
-pytest tests/test_generators.py -v
+pytest tests/api -v
 ```
 
 ### Integration Tests
 
-Test end-to-end workflows:
+Run all tests with coverage:
 ```bash
-pytest tests/test_workflow.py -v
+pytest tests/ -v --cov=backend/doc_generator --cov-report=term-missing
 ```
 
 ### Manual Testing
@@ -457,17 +463,17 @@ pytest tests/test_workflow.py -v
 make run-docgen INPUT=README.md OUTPUT=pdf
 
 # Check output
-ls -lh src/output/*.pdf
+ls -lh backend/data/output/*.pdf
 ```
 
 ## Advanced Configuration
 
-Configuration is managed through `config/settings.yaml` and `.env` file:
+Configuration is managed through `backend/config/settings.yaml` and `.env` file:
 
 ```yaml
 generator:
-  input_dir: "src/data"
-  output_dir: "src/output"
+  input_dir: "data/input"
+  output_dir: "data/output"
   default_output_format: "pdf"
   max_retries: 3
 
@@ -507,13 +513,16 @@ uv pip install "markitdown[all]==0.0.1a2"
 **Docker build fails**:
 ```bash
 # Rebuild without cache
-docker build --no-cache -t doc-generator:latest .
+docker build --no-cache -t doc-generator-backend:latest -f backend/Dockerfile backend
+docker build --no-cache -t doc-generator-frontend:latest -f frontend/Dockerfile frontend
+# or
+docker-compose build --no-cache
 ```
 
 **Permission denied on output directory**:
 ```bash
 # Fix permissions
-chmod 755 src/output
+chmod 755 backend/data/output
 ```
 
 ## Contributing
