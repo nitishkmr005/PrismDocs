@@ -42,7 +42,7 @@ export interface Preferences {
   max_tokens: number;
   max_slides: number;
   max_summary_points: number;
-  image_alignment_retries: number;
+  enable_image_generation: boolean;
 }
 
 export interface CacheOptions {
@@ -66,7 +66,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   max_tokens: 8000,
   max_slides: 10,
   max_summary_points: 5,
-  image_alignment_retries: 2,
+  enable_image_generation: true,
 };
 
 export const DEFAULT_CACHE_OPTIONS: CacheOptions = {

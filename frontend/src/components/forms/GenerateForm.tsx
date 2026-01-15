@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   OutputFormat,
   Provider,
@@ -31,8 +32,10 @@ interface GenerateFormProps {
       provider: Provider;
       audience: Audience;
       imageStyle: ImageStyle;
+      enableImageGeneration: boolean;
     },
-    apiKey: string
+    contentApiKey: string,
+    imageApiKey?: string
   ) => void;
   isGenerating?: boolean;
 }
@@ -48,7 +51,9 @@ export function GenerateForm({ onSubmit, isGenerating = false }: GenerateFormPro
   const [provider, setProvider] = useState<Provider>("gemini");
   const [audience, setAudience] = useState<Audience>("technical");
   const [imageStyle, setImageStyle] = useState<ImageStyle>("auto");
-  const [apiKey, setApiKey] = useState("");
+  const [enableImageGeneration, setEnableImageGeneration] = useState(true);
+  const [contentApiKey, setContentApiKey] = useState("");
+  const [imageApiKey, setImageApiKey] = useState("");
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +80,12 @@ export function GenerateForm({ onSubmit, isGenerating = false }: GenerateFormPro
     (e: React.FormEvent) => {
       e.preventDefault();
 
-      if (!apiKey.trim()) {
+      if (!contentApiKey.trim()) {
+        return;
+      }
+
+      // If image generation is enabled, image API key is required
+      if (enableImageGeneration && !imageApiKey.trim()) {
         return;
       }
 
@@ -97,10 +107,17 @@ export function GenerateForm({ onSubmit, isGenerating = false }: GenerateFormPro
         return;
       }
 
-      onSubmit(sources, { outputFormat, provider, audience, imageStyle }, apiKey);
+      onSubmit(
+        sources,
+        { outputFormat, provider, audience, imageStyle, enableImageGeneration },
+        contentApiKey,
+        enableImageGeneration ? imageApiKey : undefined
+      );
     },
     [
-      apiKey,
+      contentApiKey,
+      imageApiKey,
+      enableImageGeneration,
       uploadedFiles,
       urls,
       textContent,
@@ -113,6 +130,7 @@ export function GenerateForm({ onSubmit, isGenerating = false }: GenerateFormPro
   );
 
   const hasSources = uploadedFiles.length > 0 || urls.length > 0 || textContent.trim().length > 0;
+  const hasRequiredApiKeys = contentApiKey.trim() && (!enableImageGeneration || imageApiKey.trim());
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -284,25 +302,62 @@ export function GenerateForm({ onSubmit, isGenerating = false }: GenerateFormPro
               </SelectContent>
             </Select>
           </div>
+
+          <div className="flex items-center space-x-2 sm:col-span-2">
+            <Checkbox
+              id="enable-images"
+              checked={enableImageGeneration}
+              onCheckedChange={(checked: boolean) => setEnableImageGeneration(checked)}
+            />
+            <Label
+              htmlFor="enable-images"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              Enable image generation
+            </Label>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>API Key</CardTitle>
+          <CardTitle>API Keys</CardTitle>
           <CardDescription>
-            Enter your API key for the selected provider. Your key is only sent directly to
-            the backend and is never stored.
+            Enter API keys for content and image generation. Keys are sent directly to the backend and never stored.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Input
-            type="password"
-            placeholder={`Enter your ${provider === "gemini" ? "Gemini" : provider === "openai" ? "OpenAI" : "Anthropic"} API key`}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            autoComplete="off"
-          />
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="content-api-key">Content Generation API Key *</Label>
+            <p className="text-sm text-muted-foreground">
+              Supports: {provider === "gemini" ? "Gemini" : provider === "openai" ? "OpenAI" : "Claude"}
+            </p>
+            <Input
+              id="content-api-key"
+              type="password"
+              placeholder={`Enter your ${provider === "gemini" ? "Gemini" : provider === "openai" ? "OpenAI" : "Claude"} API key`}
+              value={contentApiKey}
+              onChange={(e) => setContentApiKey(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+
+          {enableImageGeneration && (
+            <div className="space-y-2">
+              <Label htmlFor="image-api-key">Image Generation API Key *</Label>
+              <p className="text-sm text-muted-foreground">
+                Requires: Gemini API key (image generation only supports Gemini)
+              </p>
+              <Input
+                id="image-api-key"
+                type="password"
+                placeholder="Enter your Gemini API key for image generation"
+                value={imageApiKey}
+                onChange={(e) => setImageApiKey(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -310,7 +365,7 @@ export function GenerateForm({ onSubmit, isGenerating = false }: GenerateFormPro
         type="submit"
         size="lg"
         className="w-full"
-        disabled={isGenerating || !hasSources || !apiKey.trim()}
+        disabled={isGenerating || !hasSources || !hasRequiredApiKeys}
       >
         {isGenerating ? "Generating..." : "Generate Document"}
       </Button>

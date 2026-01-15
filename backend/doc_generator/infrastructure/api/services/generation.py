@@ -13,7 +13,12 @@ from ....application.graph_workflow import run_workflow
 from ....application.parsers import get_parser
 from ....domain.content_types import ContentFormat
 from ....infrastructure.llm import LLMService
-from ....infrastructure.logging_config import log_phase, log_separator, log_stats, log_success
+from ....infrastructure.logging_config import (
+    log_phase,
+    log_separator,
+    log_stats,
+    log_success,
+)
 from ....infrastructure.settings import get_settings
 from ..schemas.requests import (
     FileSource,
@@ -63,12 +68,15 @@ class GenerationService:
         Invoked by: scripts/generate_from_folder.py, src/doc_generator/application/nodes/generate_output.py, src/doc_generator/application/workflow/nodes/generate_output.py, src/doc_generator/infrastructure/api/routes/generate.py, tests/api/test_generation_service.py
         """
         import time
+
         start_time = time.time()
-        
+
         try:
             # Log start
-            log_separator(f"Document Generation: {request.output_format.value.upper()}", "═", 60)
-            
+            log_separator(
+                f"Document Generation: {request.output_format.value.upper()}", "═", 60
+            )
+
             # Phase 1: Parse sources
             log_phase(1, 5, "Parsing Sources")
             yield ProgressEvent(
@@ -79,7 +87,7 @@ class GenerationService:
 
             input_path, file_id = await self._collect_sources(request)
             source_count = len(request.sources)
-            
+
             log_success(f"Parsed {source_count} source(s) → {input_path.name}")
             yield ProgressEvent(
                 status=GenerationStatus.PARSING,
@@ -145,7 +153,9 @@ class GenerationService:
                 node_name: str,
                 display_name: str,
             ) -> None:
-                status = workflow_status_map.get(node_name, GenerationStatus.TRANSFORMING)
+                status = workflow_status_map.get(
+                    node_name, GenerationStatus.TRANSFORMING
+                )
                 progress = workflow_progress_base + int(
                     (step_number / max(total_steps, 1)) * workflow_progress_span
                 )
@@ -167,7 +177,7 @@ class GenerationService:
                         "image_style": request.preferences.image_style.value,
                         "max_tokens": request.preferences.max_tokens,
                         "file_id": file_id,
-                        "image_alignment_retries": request.preferences.image_alignment_retries,
+                        "enable_image_generation": request.preferences.enable_image_generation,
                     },
                     progress_callback=workflow_progress,
                 ),
@@ -185,7 +195,9 @@ class GenerationService:
             result = await workflow_future
 
             output_path = result.get("output_path", "")
-            log_success(f"Workflow complete → {Path(output_path).name if output_path else 'N/A'}")
+            log_success(
+                f"Workflow complete → {Path(output_path).name if output_path else 'N/A'}"
+            )
 
             # Phase 4: Check for errors
             errors = result.get("errors", [])
@@ -215,7 +227,9 @@ class GenerationService:
             if output_path:
                 output_path_obj = Path(output_path)
                 try:
-                    file_path = str(output_path_obj.relative_to(self.storage.base_output_dir))
+                    file_path = str(
+                        output_path_obj.relative_to(self.storage.base_output_dir)
+                    )
                 except ValueError:
                     file_path = output_path_obj.name
             else:
@@ -235,20 +249,29 @@ class GenerationService:
                 slides = len(structured_content.get("sections", []))
 
             images_generated = len(structured_content.get("section_images", {}))
-            title = structured_content.get("title", metadata.get("title", "Generated Document"))
+            title = structured_content.get(
+                "title", metadata.get("title", "Generated Document")
+            )
 
             # Calculate duration
             duration = time.time() - start_time
-            duration_str = f"{duration:.1f}s" if duration < 60 else f"{int(duration//60)}m {duration%60:.1f}s"
+            duration_str = (
+                f"{duration:.1f}s"
+                if duration < 60
+                else f"{int(duration//60)}m {duration%60:.1f}s"
+            )
 
             # Log final stats
-            log_stats({
-                "Title": title[:30] + "..." if len(title) > 30 else title,
-                "Format": request.output_format.value.upper(),
-                "Pages": pages if pages else slides,
-                "Images": images_generated,
-                "Duration": duration_str,
-            }, "✅ Generation Complete")
+            log_stats(
+                {
+                    "Title": title[:30] + "..." if len(title) > 30 else title,
+                    "Format": request.output_format.value.upper(),
+                    "Pages": pages if pages else slides,
+                    "Images": images_generated,
+                    "Duration": duration_str,
+                },
+                "✅ Generation Complete",
+            )
 
             # Complete
             yield CompleteEvent(
@@ -289,7 +312,9 @@ class GenerationService:
             os.environ[env_var] = api_key
             logger.debug(f"Configured {env_var} for provider {provider}")
 
-    async def _collect_sources(self, request: GenerateRequest) -> tuple[Path, str | None]:
+    async def _collect_sources(
+        self, request: GenerateRequest
+    ) -> tuple[Path, str | None]:
         """Collect content from all sources and return input path.
 
         Converts every source to markdown, then merges into a single input file.
@@ -313,26 +338,32 @@ class GenerationService:
                 parser = get_parser(self._detect_format(file_path))
                 content, metadata = parser.parse(file_path)
                 title = metadata.get("title") or Path(file_path).name
-                parsed_blocks.append({
-                    "title": title,
-                    "content": content,
-                    "source": str(file_path),
-                })
+                parsed_blocks.append(
+                    {
+                        "title": title,
+                        "content": content,
+                        "source": str(file_path),
+                    }
+                )
             elif isinstance(source, UrlSource):
                 parser = get_parser(ContentFormat.URL.value)
                 content, metadata = parser.parse(source.url)
                 title = metadata.get("title") or source.url
-                parsed_blocks.append({
-                    "title": title,
-                    "content": content,
-                    "source": source.url,
-                })
+                parsed_blocks.append(
+                    {
+                        "title": title,
+                        "content": content,
+                        "source": source.url,
+                    }
+                )
             elif isinstance(source, TextSource):
-                parsed_blocks.append({
-                    "title": "Copied Text",
-                    "content": source.content,
-                    "source": "text",
-                })
+                parsed_blocks.append(
+                    {
+                        "title": "Copied Text",
+                        "content": source.content,
+                        "source": "text",
+                    }
+                )
 
         if not parsed_blocks:
             raise ValueError("No valid sources provided")

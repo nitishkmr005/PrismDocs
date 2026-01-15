@@ -66,7 +66,10 @@ class Preferences(BaseModel):
     max_tokens: int = Field(default=8000, ge=100, le=32000)
     max_slides: int = Field(default=10, ge=1, le=50)
     max_summary_points: int = Field(default=5, ge=1, le=20)
-    image_alignment_retries: int = Field(default=2, ge=1, le=5)
+    enable_image_generation: bool = Field(
+        default=True,
+        description="Enable or disable image generation for document sections",
+    )
 
 
 class CacheOptions(BaseModel):
@@ -75,7 +78,7 @@ class CacheOptions(BaseModel):
 
 class GenerateRequest(BaseModel):
     """Request model for document generation.
-    
+
     Example:
         {
             "output_format": "pdf",
@@ -87,6 +90,7 @@ class GenerateRequest(BaseModel):
             "provider": "gemini"
         }
     """
+
     output_format: OutputFormat
     sources: list[SourceItem] = Field(
         description="List of sources (file, url, or text)",
@@ -118,7 +122,6 @@ class GenerateRequest(BaseModel):
                         "max_tokens": 8000,
                         "max_slides": 10,
                         "max_summary_points": 5,
-                        "image_alignment_retries": 2,
                     },
                     "cache": {"reuse": True},
                 }
