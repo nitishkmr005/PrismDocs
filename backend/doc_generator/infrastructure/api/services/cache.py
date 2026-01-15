@@ -60,7 +60,6 @@ class CacheService:
                 "max_tokens": request.preferences.max_tokens,
                 "max_slides": request.preferences.max_slides,
                 "max_summary_points": request.preferences.max_summary_points,
-                "image_alignment_retries": request.preferences.image_alignment_retries,
             },
         }
 

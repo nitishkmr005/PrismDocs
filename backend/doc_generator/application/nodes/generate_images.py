@@ -34,10 +34,12 @@ from ...utils.markdown_sections import extract_sections
 try:
     from google import genai
     from google.genai import types
+
     GENAI_AVAILABLE = True
 except ImportError:
     GENAI_AVAILABLE = False
     types = None
+
 
 def _slugify(text: str, max_len: int = 80) -> str:
     """
@@ -80,7 +82,9 @@ def _init_image_components(metadata: dict, settings):
     Invoked by: src/doc_generator/application/nodes/generate_images.py
     """
     detector = ImageTypeDetector()
-    provider = metadata.get("image_provider") or settings.image_generation.default_provider
+    provider = (
+        metadata.get("image_provider") or settings.image_generation.default_provider
+    )
     gemini_gen = None
     if provider == "gemini":
         gemini_gen = GeminiImageGenerator(model=metadata.get("image_model"))
@@ -89,7 +93,9 @@ def _init_image_components(metadata: dict, settings):
     return detector, gemini_gen
 
 
-def _apply_requested_style(decision: ImageDecision, requested_style: str | None) -> None:
+def _apply_requested_style(
+    decision: ImageDecision, requested_style: str | None
+) -> None:
     """
     Apply an explicit image style override from metadata.
     Invoked by: src/doc_generator/application/nodes/generate_images.py
@@ -109,11 +115,20 @@ def _should_skip_image_type(decision: ImageDecision, settings) -> bool:
     Check feature flags to decide if this image type should be skipped.
     Invoked by: src/doc_generator/application/nodes/generate_images.py
     """
-    if decision.image_type == ImageType.INFOGRAPHIC and not settings.image_generation.enable_infographics:
+    if (
+        decision.image_type == ImageType.INFOGRAPHIC
+        and not settings.image_generation.enable_infographics
+    ):
         return True
-    if decision.image_type == ImageType.DECORATIVE and not settings.image_generation.enable_decorative_headers:
+    if (
+        decision.image_type == ImageType.DECORATIVE
+        and not settings.image_generation.enable_decorative_headers
+    ):
         return True
-    if decision.image_type == ImageType.MERMAID and not settings.image_generation.enable_diagrams:
+    if (
+        decision.image_type == ImageType.MERMAID
+        and not settings.image_generation.enable_diagrams
+    ):
         return True
     return False
 
@@ -150,7 +165,7 @@ def _generate_raster_image(
         prompt=prompt_used,
         image_type=decision.image_type,
         section_title=section_title,
-        output_path=output_path
+        output_path=output_path,
     )
     if not image_path or not image_path.exists():
         logger.warning(f"Image generation failed for '{section_title}'")
@@ -172,6 +187,7 @@ def _maybe_load_cached_images(
         return None
     # Cache reuse only applies when the content hash matches.
     from ...utils.content_cache import load_existing_images
+
     content_hash = metadata.get("content_hash")
     section_images = load_existing_images(images_dir, expected_hash=content_hash)
     return section_images or None
@@ -259,13 +275,15 @@ def _process_section_image(
     # Prefer cached prompt to keep outputs stable when reusing images.
     prompt_used = existing_images.get(section_id, {}).get("prompt") or decision.prompt
     # Single-pass image generation (no validation loop).
-    image_path, prompt_used, alignment_result, attempts, reused_delta = _generate_raster_image(
-        images_dir=images_dir,
-        section_id=section_id,
-        section_title=section_title,
-        decision=decision,
-        prompt_used=prompt_used,
-        gemini_gen=gemini_gen,
+    image_path, prompt_used, alignment_result, attempts, reused_delta = (
+        _generate_raster_image(
+            images_dir=images_dir,
+            section_id=section_id,
+            section_title=section_title,
+            decision=decision,
+            prompt_used=prompt_used,
+            gemini_gen=gemini_gen,
+        )
     )
     if image_path is None:
         return section_id, None, 0, reused_delta
@@ -283,6 +301,7 @@ def _process_section_image(
     )
     return section_id, entry, 0, reused_delta
 
+
 class GeminiPromptGenerator:
     """Generate image prompts using Gemini LLM based on section content."""
 
@@ -294,7 +313,9 @@ class GeminiPromptGenerator:
         self.settings = get_settings()
         self.client = create_gemini_client(self.api_key)
         if self.api_key and self.client is None:
-            logger.warning("google-genai not installed - image prompt generation disabled")
+            logger.warning(
+                "google-genai not installed - image prompt generation disabled"
+            )
 
     def is_available(self) -> bool:
         """
@@ -325,8 +346,16 @@ class GeminiPromptGenerator:
         )
         duration_ms = int((time.perf_counter() - start_time) * 1000)
         usage_metadata = getattr(response, "usage_metadata", None)
-        input_tokens = getattr(usage_metadata, "prompt_token_count", None) if usage_metadata else None
-        output_tokens = getattr(usage_metadata, "candidates_token_count", None) if usage_metadata else None
+        input_tokens = (
+            getattr(usage_metadata, "prompt_token_count", None)
+            if usage_metadata
+            else None
+        )
+        output_tokens = (
+            getattr(usage_metadata, "candidates_token_count", None)
+            if usage_metadata
+            else None
+        )
         response_text = (response.text or "").strip()
         log_llm_call(
             name="image_prompt",
@@ -388,24 +417,27 @@ class ImageTypeDetector:
                 image_type=ImageType.NONE,
                 prompt="",
                 section_title=section_title,
-                confidence=0.0
+                confidence=0.0,
             )
 
-        prompt = prompt_generator.generate_prompt(section_title=section_title, content=content)
+        prompt = prompt_generator.generate_prompt(
+            section_title=section_title, content=content
+        )
         if not prompt:
             return ImageDecision(
                 image_type=ImageType.NONE,
                 prompt="",
                 section_title=section_title,
-                confidence=0.9
+                confidence=0.9,
             )
 
         return ImageDecision(
             image_type=ImageType.INFOGRAPHIC,
             prompt=prompt,
             section_title=section_title,
-            confidence=0.7
+            confidence=0.7,
         )
+
 
 def generate_images_node(state: WorkflowState) -> WorkflowState:
     """
@@ -436,9 +468,9 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         log_subsection,
         log_cache_hit,
     )
-    
+
     log_node_start("generate_images", step_number=5)
-    
+
     try:
         structured_content = state.get("structured_content", {})
         markdown = structured_content.get("markdown", "")
@@ -449,6 +481,24 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
 
         settings = get_settings()
         metadata = state.get("metadata", {})
+
+        # Check if image generation is disabled by user preference
+        enable_generation = metadata.get("enable_image_generation", True)
+        if not enable_generation:
+            logger.info("Image generation disabled by user preference")
+            log_node_end(
+                "generate_images", success=True, details="Skipped (user disabled)"
+            )
+            return state
+
+        # Check settings-level master toggle
+        if not settings.image_generation.enable_all:
+            logger.info("Image generation disabled in settings")
+            log_node_end(
+                "generate_images", success=True, details="Skipped (settings disabled)"
+            )
+            return state
+
         images_dir = resolve_images_dir(state, settings)
         log_metric("Images Directory", str(images_dir))
 
@@ -459,8 +509,11 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
             state["structured_content"] = structured_content
             log_cache_hit("image")
             log_metric("Cached Images", len(cached_images))
-            log_node_end("generate_images", success=True, 
-                        details=f"Loaded {len(cached_images)} cached images")
+            log_node_end(
+                "generate_images",
+                success=True,
+                details=f"Loaded {len(cached_images)} cached images",
+            )
             return state
         if _should_skip_generation(metadata, settings):
             log_progress("Image cache mismatch, regenerating images")
@@ -477,7 +530,7 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         # Initialize LLM helpers and image generator once per run.
         log_subsection("Initializing Image Generator")
         detector, gemini_gen = _init_image_components(metadata, settings)
-        
+
         if gemini_gen:
             log_metric("Image Provider", "Gemini Imagen")
         else:
@@ -494,7 +547,7 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         for idx, section in enumerate(sections, 1):
             section_title = section["title"]
             log_progress(f"[{idx}/{len(sections)}] {section_title}")
-            
+
             # Encapsulated per-section logic to keep this loop readable.
             section_id, entry, skipped_delta, reused_delta = _process_section_image(
                 section=section,
@@ -522,7 +575,7 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         log_metric("Images Generated", generated_count)
         log_metric("Images Reused", reused_count)
         log_metric("Sections Skipped", skipped_count)
-        
+
         details = f"{generated_count} generated, {reused_count} reused, {skipped_count} skipped"
         log_node_end("generate_images", success=True, details=details)
 

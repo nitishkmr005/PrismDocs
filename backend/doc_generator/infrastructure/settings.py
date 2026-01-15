@@ -219,6 +219,9 @@ class LlmSettings(BaseSettings):
 class ImageGenerationSettings(BaseSettings):
     """Image generation settings for Gemini and auto-detection."""
 
+    # Master toggle for all image generation
+    enable_all: bool = True
+
     # Provider selection: "auto", "gemini", "mermaid"
     default_provider: str = "auto"
 

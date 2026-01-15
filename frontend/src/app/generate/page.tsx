@@ -32,8 +32,10 @@ export default function GeneratePage() {
         provider: Provider;
         audience: Audience;
         imageStyle: ImageStyle;
+        enableImageGeneration: boolean;
       },
-      apiKey: string
+      contentApiKey: string,
+      imageApiKey?: string
     ) => {
       generate(
         {
@@ -47,10 +49,10 @@ export default function GeneratePage() {
             max_tokens: 8000,
             max_slides: 10,
             max_summary_points: 5,
-            image_alignment_retries: 2,
+            enable_image_generation: options.enableImageGeneration,
           },
         },
-        apiKey
+        contentApiKey
       );
     },
     [generate]

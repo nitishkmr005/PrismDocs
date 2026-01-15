@@ -20,6 +20,8 @@ Your writing style:
 - Educational with detailed explanations
 - Well-organized with numbered sections (1., 1.1, etc.)
 - Use examples/comparisons only when they appear in the source
+- Use tables to organize comparative or structured information
+- Use code blocks for technical examples, commands, or configurations
 
 Your expertise:
 - Removing timestamps, filler words, and conversational artifacts
@@ -27,6 +29,8 @@ Your expertise:
 - Expanding brief points using only the source information
 - Identifying where diagrams would clarify concepts
 - Creating comprehensive coverage of all topics mentioned
+- Structuring data in tables when appropriate
+- Formatting technical content in code blocks
 
 Output format:
 - Respond with valid JSON only (no extra text)
@@ -34,7 +38,9 @@ Output format:
 - Preserve ALL technical content - do not skip topics"""
 
 
-def build_generation_prompt(content: str, content_type: str, topic: str, is_chunk: bool = False) -> str:
+def build_generation_prompt(
+    content: str, content_type: str, topic: str, is_chunk: bool = False
+) -> str:
     """
     Prompt for single-pass content generation.
     """
@@ -42,7 +48,7 @@ def build_generation_prompt(content: str, content_type: str, topic: str, is_chun
         "transcript": "This is a lecture transcript. Remove all timestamps and conversational elements while preserving ALL educational content.",
         "document": "This is a document. Restructure it into a clear blog format with numbered sections.",
         "slides": "These are slide contents. Expand the bullet points into comprehensive explanations.",
-        "mixed": "This is mixed content from multiple sources. Combine and structure into a cohesive blog post."
+        "mixed": "This is mixed content from multiple sources. Combine and structure into a cohesive blog post.",
     }
     instruction = type_instructions.get(content_type, type_instructions["document"])
 
@@ -94,19 +100,49 @@ def build_generation_prompt(content: str, content_type: str, topic: str, is_chun
    - Use `code` for technical terms
    - End with ## Key Takeaways section
 
+7. **Tables**: When comparing features, listing specifications, or showing structured data:
+   | Feature | Description | Notes |
+   |---------|-------------|-------|
+   | Item 1  | Details     | Info  |
+   
+   Use tables for:
+   - Comparisons (e.g., framework A vs B; pros vs cons)
+   - Feature lists with properties
+   - Technical specifications
+   - Performance metrics
+   - Configuration options
+   
+8. **Code Blocks**: Format code, commands, or configurations:
+   ```python
+   def example():
+       return "Use appropriate language identifiers"
+   ```
+   
+   ```bash
+   # Commands
+   npm install package-name
+   ```
+   
+   Use code blocks for:
+   - Code examples
+   - Command-line instructions
+   - Configuration files (JSON, YAML, etc.)
+   - API endpoints and requests
+   - Technical snippets
+
 ## Output JSON Schema
-Return JSON in this shape (string values may include markdown like **bold**, `code`, and mermaid blocks):
+Return JSON in this shape (string values may include markdown like **bold**, `code`, tables, code blocks, and mermaid blocks):
 {{
   "title": "Title of the blog post",
   "introduction": "Introduction paragraph(s). Do not include a heading.",
   "sections": [
     {{
       "heading": "1. Section Name",
-      "content": "Paragraphs for this section. May include inline [VISUAL:...] markers and mermaid blocks.",
+      "content": "Paragraphs for this section. May include tables, code blocks, inline [VISUAL:...] markers and mermaid blocks.",
       "subsections": [
         {{
           "heading": "1.1 Subsection Name",
-          "content": "Paragraphs for this subsection."
+          "content": "Paragraphs for this subsection. May include tables and code blocks."
         }}
       ]
     }}
@@ -131,7 +167,7 @@ def build_outline_prompt(content: str, content_type: str, topic: str) -> str:
         "transcript": "This is a lecture transcript. Remove timestamps and preserve the educational structure.",
         "document": "This is a document. Extract the logical section structure.",
         "slides": "These are slide contents. Derive a narrative outline from the bullet points.",
-        "mixed": "This is mixed content from multiple sources. Combine into a cohesive outline."
+        "mixed": "This is mixed content from multiple sources. Combine into a cohesive outline.",
     }
     instruction = type_instructions.get(content_type, type_instructions["document"])
 
@@ -172,7 +208,7 @@ def build_blog_from_outline_prompt(
         "transcript": "This is a lecture transcript. Remove all timestamps and conversational elements while preserving ALL educational content.",
         "document": "This is a document. Restructure it into a clear blog format with numbered sections.",
         "slides": "These are slide contents. Expand the bullet points into comprehensive explanations.",
-        "mixed": "This is mixed content from multiple sources. Combine and structure into a cohesive blog post."
+        "mixed": "This is mixed content from multiple sources. Combine and structure into a cohesive blog post.",
     }
     instruction = type_instructions.get(content_type, type_instructions["document"])
 
@@ -219,8 +255,23 @@ def build_blog_from_outline_prompt(
    - Use `code` for technical terms
    - End with ## Key Takeaways section
 
+7. **Tables**: When comparing features, listing specifications, or showing structured data:
+   | Feature | Description | Notes |
+   |---------|-------------|-------|
+   | Item 1  | Details     | Info  |
+   
+   Use tables for comparisons, feature lists, specifications, and performance metrics.
+   
+8. **Code Blocks**: Format code, commands, or configurations with appropriate language identifiers:
+   ```python
+   def example():
+       return "code"
+   ```
+   
+   Use code blocks for code examples, commands, configurations, API endpoints, and technical snippets.
+
 ## Output JSON Schema
-Return JSON in this shape (string values may include markdown like **bold**, `code`, and mermaid blocks):
+Return JSON in this shape (string values may include markdown like **bold**, `code`, tables, code blocks, and mermaid blocks):
 {{
   "title": "Title of the blog post",
   "introduction": "Introduction paragraph(s). Do not include a heading.",
@@ -260,7 +311,11 @@ def build_chunk_prompt(
     """
     Prompt for processing a content chunk.
     """
-    position = "beginning" if chunk_index == 0 else "middle" if chunk_index < total_chunks - 1 else "end"
+    position = (
+        "beginning"
+        if chunk_index == 0
+        else "middle" if chunk_index < total_chunks - 1 else "end"
+    )
     outline_block = f"\nOutline:\n{outline}\n" if outline else ""
     context = (
         f"You are processing part {chunk_index + 1} of {total_chunks} of a {content_type}.\n"
@@ -279,6 +334,8 @@ Transform this content into the BEGINNING of a comprehensive blog post.
 Requirements:
 - Use numbered sections starting from ## {section_start}. Section Name
 - Write detailed paragraphs, not bullet points
+- Include tables for comparisons and structured data
+- Use code blocks for technical content with proper language identifiers
 - Include [VISUAL:type:title:description] markers where diagrams would help
   (ONLY use types: architecture, flowchart, comparison, concept_map, mind_map)
 - Cover ALL topics in this chunk - do not skip anything
@@ -320,6 +377,8 @@ Requirements:
 - Continue section numbering from {section_start}
 - Use numbered sections: ## {section_start}. Section Name
 - Write detailed paragraphs
+- Include tables for comparisons and structured data
+- Use code blocks for technical content with proper language identifiers
 - Include visual markers where helpful
 - End with ## Key Takeaways section summarizing main points
 - Cover ALL topics in this chunk
@@ -355,6 +414,8 @@ Requirements:
 - Continue section numbering from {section_start}
 - Use numbered sections: ## {section_start}. Section Name
 - Write detailed paragraphs
+- Include tables for comparisons and structured data
+- Use code blocks for technical content with proper language identifiers
 - Include visual markers where helpful
 - Cover ALL topics in this chunk - do not skip anything
 - Use ONLY information in this chunk; do not add new details
