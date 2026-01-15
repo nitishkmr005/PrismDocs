@@ -1,5 +1,6 @@
 #!/bin/bash
 # Startup script for Render deployment
+# Optimized for fast startup - skips slow import tests
 
 # Ensure output is not buffered
 export PYTHONUNBUFFERED=1
@@ -11,59 +12,21 @@ echo "==> Starting DocGen API on port $PORT..."
 echo "==> PYTHONPATH: $PYTHONPATH"
 echo "==> Working directory: $(pwd)"
 echo "==> Python version: $(python --version)"
-echo "==> PORT environment variable: $PORT"
 
 # Ensure data directories exist
 echo "==> Ensuring data directories exist..."
-mkdir -p data/cache data/output data/temp data/logging
-chmod -R 755 data/
+mkdir -p data/cache data/output data/temp data/logging 2>/dev/null || true
 
-echo "==> Verifying config file..."
-if [ -f "/app/config/settings.yaml" ]; then
-    echo "==> Config file found at /app/config/settings.yaml"
-else
-    echo "ERROR: Config file not found!"
+# Verify config file exists
+if [ ! -f "/app/config/settings.yaml" ]; then
+    echo "ERROR: Config file not found at /app/config/settings.yaml"
     exit 1
 fi
+echo "==> Config file found"
 
-echo "==> Testing Python imports..."
-
-# Test doc_generator module
-python -c "import doc_generator; print('==> doc_generator module OK')"
-if [ $? -ne 0 ]; then
-    echo "ERROR: Failed to import doc_generator module"
-    exit 1
-fi
-
-# Test FastAPI app import with detailed error output
-echo "==> Testing FastAPI app import (this may take a moment)..."
-python << 'EOF'
-import sys
-import traceback
-
-# Ensure immediate output
-sys.stdout.flush()
-
-try:
-    print("    Loading FastAPI app...", flush=True)
-    from doc_generator.infrastructure.api.main import app
-    print("==> FastAPI app imported OK", flush=True)
-except Exception as e:
-    print(f"ERROR importing FastAPI app: {e}", flush=True)
-    traceback.print_exc()
-    sys.exit(1)
-EOF
-
-if [ $? -ne 0 ]; then
-    echo "ERROR: FastAPI import failed"
-    exit 1
-fi
-
-echo "==> All imports successful!"
-echo "==> Starting uvicorn now on port $PORT..."
-echo "==> Command: uvicorn doc_generator.infrastructure.api.main:app --host 0.0.0.0 --port $PORT"
-
-# Start uvicorn - exec replaces shell process with uvicorn
+# Start uvicorn immediately - no slow import tests
+# Heavy ML dependencies (torch, docling, etc.) are loaded when first request comes in
+echo "==> Starting uvicorn on 0.0.0.0:$PORT..."
 exec python -m uvicorn doc_generator.infrastructure.api.main:app \
     --host 0.0.0.0 \
     --port "$PORT" \
