@@ -67,6 +67,47 @@ def _get_client() -> Any | None:
     return _client
 
 
+def _log_to_supabase(
+    *,
+    name: str,
+    prompt: str,
+    response: str,
+    provider: str | None,
+    model: str | None,
+    input_tokens: int | None,
+    output_tokens: int | None,
+    duration_ms: int | None,
+    metadata: dict[str, Any] | None,
+) -> None:
+    """
+    Log LLM call to Supabase if configured.
+
+    This is a thin wrapper that imports and uses the Supabase logging service.
+    """
+    try:
+        from ..supabase.logging_service import SupabaseLoggingService
+
+        if not SupabaseLoggingService.is_available():
+            return
+
+        service = SupabaseLoggingService()
+        service.log_llm_call(
+            name=name,
+            prompt=prompt,
+            response=response,
+            provider=provider,
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            duration_ms=duration_ms,
+            metadata=metadata,
+        )
+    except ImportError:
+        pass  # Supabase not available
+    except Exception as exc:
+        logger.debug(f"Failed to log to Supabase: {exc}")
+
+
 def log_llm_call(
     name: str,
     prompt: str,
@@ -80,9 +121,16 @@ def log_llm_call(
     metadata: dict[str, Any] | None = None,
 ) -> None:
     """
-    Log a single LLM call to Opik, if configured.
+    Log a single LLM call to Opik, Supabase, and local file.
+
+    This function logs to multiple destinations:
+    1. Local JSON file (always)
+    2. Supabase database (if configured)
+    3. Opik (if configured)
+
     Invoked by: src/doc_generator/application/nodes/generate_images.py, src/doc_generator/application/workflow/nodes/generate_images.py, src/doc_generator/infrastructure/image/claude_svg.py, src/doc_generator/infrastructure/image/gemini.py, src/doc_generator/infrastructure/llm/content_generator.py, src/doc_generator/infrastructure/llm/service.py, src/doc_generator/infrastructure/observability/opik.py
     """
+    # Write to local file (always)
     _write_llm_call_log(
         name=name,
         provider=provider,
@@ -93,6 +141,21 @@ def log_llm_call(
         output_tokens=output_tokens,
         duration_ms=duration_ms,
     )
+
+    # Log to Supabase if configured
+    _log_to_supabase(
+        name=name,
+        prompt=prompt,
+        response=response,
+        provider=provider,
+        model=model,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        duration_ms=duration_ms,
+        metadata=metadata,
+    )
+
+    # Log to Opik if configured
     client = _get_client()
     if client is None:
         return
