@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { generateDocument, GenerateOptions } from "@/lib/api/generate";
-import { API_CONFIG } from "@/config/api";
+import { getApiUrl } from "@/config/api";
 import {
   GenerateRequest,
   DEFAULT_PREFERENCES,
@@ -65,7 +65,8 @@ export function useGeneration(): UseGenerationResult {
       return url;
     }
     if (url.startsWith("/")) {
-      return `${API_CONFIG.baseUrl}${url}`;
+      // Use getApiUrl with empty string to get base URL, then append the path
+      return getApiUrl(url);
     }
     return url;
   }, []);
