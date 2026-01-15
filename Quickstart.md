@@ -10,7 +10,7 @@
 
 ```bash
 # Using make
-make setup
+make setup-docgen
 
 # Or manually
 uv pip install -e ".[dev]"
@@ -41,20 +41,20 @@ make process-folder FOLDER=llm-architectures
 ```
 
 This will:
-- ✅ Process all files in `src/data/llm-architectures/`
+- ✅ Process all files in `backend/data/input/llm-architectures/`
 - ✅ Generate both PDF and PPTX
 - ✅ Use OpenAI for content transformation
 - ✅ Use Gemini for image generation
 
 **Alternative - Single file:**
 ```bash
-bash run.sh src/data/sample/test-blog-article.md
+bash run.sh backend/data/input/sample/test-blog-article.md
 ```
 
 ### **4. Check the Output**
 
 ```bash
-ls -lh src/output/
+ls -lh backend/data/output/
 
 # You should see:
 # - llm-architectures.pdf
@@ -74,7 +74,7 @@ All automation ready! Just type `make <command>`.
 # 1. Process a folder (generates images)
 make process-folder FOLDER=llm-architectures
 
-# 2. Process all folders in src/data/
+# 2. Process all folders in backend/data/input/
 make batch-topics
 
 # 3. List available folders
@@ -88,28 +88,28 @@ make help
 
 | Command | What It Does | Output |
 |---------|--------------|--------|
-| `make setup` | Install dependencies | - |
-| `make run` | Run main application | PDF/PPTX |
+| `make setup-docgen` | Install dependencies | - |
+| `make run-docgen` | Run main application | PDF/PPTX |
 | `make process-folder FOLDER=<name>` | Process folder | PDF + PPTX |
 | `make batch-topics` | Process all folders | Multiple PDFs + PPTXs |
 | `make list-topics` | List available folders | List |
-| `make test` | Run tests | Test results |
-| `make lint` | Format + lint code | - |
-| `make clean` | Clean outputs | - |
+| `make test-docgen` | Run tests | Test results |
+| `make lint-docgen` | Format + lint code | - |
+| `make clean-docgen` | Clean outputs | - |
 | `make help` | Show all commands | Command list |
 
 ### Common Scenarios
 
 **First Time Setup:**
 ```bash
-make setup                            # Install dependencies
+make setup-docgen                     # Install dependencies
 make process-folder FOLDER=llm-architectures  # Generate everything
 ```
 
 **Add New Topic:**
 ```bash
-mkdir src/data/new-topic
-cp files... src/data/new-topic/
+mkdir backend/data/input/new-topic
+cp files... backend/data/input/new-topic/
 make process-folder FOLDER=new-topic
 ```
 
@@ -120,9 +120,9 @@ make batch-topics                     # Process all folders
 
 **Maintenance:**
 ```bash
-make clean          # Clean all generated files
-make test           # Run tests
-make lint           # Format and lint
+make clean-docgen   # Clean all generated files
+make test-docgen    # Run tests
+make lint-docgen    # Format and lint
 ```
 
 ---
@@ -135,7 +135,7 @@ Process entire folders as topics - combine multiple files into one PDF/PPTX per 
 
 ```
 INPUT (folder):
-src/data/llm-architectures/
+backend/data/input/llm-architectures/
 ├── slides.pdf        (File 1)
 └── transcript.txt    (File 2)
 
@@ -147,7 +147,7 @@ PROCESSING:
 5. Create outputs
 
 OUTPUT:
-src/output/
+backend/data/output/
 ├── llm-architectures.pdf   (Combined from both files)
 ├── llm-architectures.pptx  (Combined from both files)
 └── images/                 (Generated images)
@@ -164,22 +164,22 @@ make process-folder FOLDER=llm-architectures
 1. ✅ Processes all files in the folder
 2. ✅ Merges them intelligently with LLM
 3. ✅ Generates images automatically
-4. ✅ Creates **ONE** PDF: `src/output/llm-architectures.pdf`
-5. ✅ Creates **ONE** PPTX: `src/output/llm-architectures.pptx`
+4. ✅ Creates **ONE** PDF: `backend/data/output/llm-architectures.pdf`
+5. ✅ Creates **ONE** PPTX: `backend/data/output/llm-architectures.pptx`
 
 ### Adding More Topics
 
 **1. Create New Topic Folder:**
 ```bash
-mkdir src/data/machine-learning
+mkdir backend/data/input/machine-learning
 ```
 
 **2. Add Files:**
 ```bash
 # Add any supported files
-cp intro.pdf src/data/machine-learning/
-cp advanced.md src/data/machine-learning/
-cp notes.txt src/data/machine-learning/
+cp intro.pdf backend/data/input/machine-learning/
+cp advanced.md backend/data/input/machine-learning/
+cp notes.txt backend/data/input/machine-learning/
 ```
 
 **3. Process:**
@@ -189,14 +189,14 @@ make process-folder FOLDER=machine-learning
 
 **4. Get Combined Output:**
 ```
-src/output/
+backend/data/output/
 ├── machine-learning.pdf   (All files combined)
 └── machine-learning.pptx  (All files combined)
 ```
 
 ### Batch Process All Topics
 
-Process **all folders** in `src/data/` at once:
+Process **all folders** in `backend/data/input/` at once:
 
 ```bash
 make batch-topics
@@ -204,7 +204,7 @@ make batch-topics
 
 **Example with 3 topics:**
 ```
-src/data/
+backend/data/input/
 ├── llm-architectures/     → llm-architectures.pdf + .pptx
 ├── machine-learning/      → machine-learning.pdf + .pptx
 └── python-basics/         → python-basics.pdf + .pptx
@@ -234,21 +234,25 @@ Your folder can contain any mix of:
 ## 🐳 Docker Deployment
 
 ```bash
-# Build Docker image
-make docker-build
+# Run backend + frontend together
+docker-compose up --build
+```
 
-# Run with Docker
-make docker-run INPUT=src/data/sample.md OUTPUT=pdf
-
-# Check output
-ls -lh src/output/
+Backend API image (for deployments like Render):
+```bash
+docker build -t doc-generator-backend:latest -f backend/Dockerfile backend
+docker run --rm \
+  -p 8000:8000 \
+  -e PORT=8000 \
+  -v $(pwd)/backend/data:/app/data \
+  doc-generator-backend:latest
 ```
 
 ---
 
 ## ✨ Key Features
 
-1. ✅ **100% Pure Python** - No Node.js dependencies
+1. ✅ **Python-First Backend** - Core generation runs in FastAPI
 2. ✅ **OpenAI Integration** - GPT-4o for content transformation
 3. ✅ **Gemini Images** - High-quality image generation
 4. ✅ **Advanced Parsing** - Docling (OCR, tables) + MarkItDown
@@ -264,13 +268,19 @@ ls -lh src/output/
 ## 🎯 Project Structure
 
 ```
-src/data/                    # Input files and folders
-src/output/                  # Generated PDFs and PPTXs
-  ├── images/               # Generated images
-  └── pdf_images/           # Cached PDF images
-config/settings.yaml         # Configuration
-.env                        # API keys (not committed)
-Makefile                    # All automation commands
+backend/
+├── config/settings.yaml         # Backend configuration
+├── data/
+│   ├── input/                    # Input files and folders
+│   └── output/                   # Generated PDFs and PPTXs
+└── doc_generator/                # Core generator package
+frontend/
+├── src/                          # Next.js UI
+└── public/
+scripts/                          # CLI helpers
+tests/api/                        # API tests
+docker-compose.yml                # Backend + frontend
+Makefile                          # Automation commands
 ```
 
 ---
@@ -279,13 +289,11 @@ Makefile                    # All automation commands
 
 - **Quickstart.md** (this file): Quick start guide
 - **README.md**: Complete documentation
-- **docs/PROCESS_FLOW.md**: Visual process flow diagrams (see how everything works!)
+- **PROCESS_FLOW.md**: Visual process flow diagrams (see how everything works!)
 - **docs/README.md**: Documentation index
-- **docs/guides/**: Extended guides
-  - `MAKEFILE_COMMANDS.md` - Complete command reference
-  - `FOLDER_BASED_PROCESSING.md` - Detailed folder processing guide
-  - `ENV_SETUP.md` - Environment configuration
-  - `IMPLEMENTATION_SUMMARY.md` - Technical implementation details
+- **docs/claude-code/**: Architecture and setup notes
+- **docs/project/**: Project references and assets
+- **docs/plans/**: Planning docs
 
 ---
 
@@ -293,7 +301,7 @@ Makefile                    # All automation commands
 
 ### Settings File
 
-Edit `config/settings.yaml` to customize:
+Edit `backend/config/settings.yaml` to customize:
 
 ```yaml
 # LLM settings
@@ -332,7 +340,7 @@ make process-folder FOLDER=llm-architectures
 make batch-topics
 
 # Or a single file
-bash run.sh src/data/sample/test-blog-article.md
+bash run.sh backend/data/input/sample/test-blog-article.md
 ```
 
 ---
@@ -354,7 +362,7 @@ GEMINI_API_KEY=...
 **2. Module Not Found**
 ```bash
 # Reinstall dependencies
-make setup
+make setup-docgen
 ```
 
 **3. Permission Errors**
@@ -366,7 +374,7 @@ chmod +x run.sh
 **4. No Output Generated**
 ```bash
 # Check logs for errors
-make run INPUT=your-file.pdf OUTPUT=pdf
+make run-docgen INPUT=your-file.pdf OUTPUT=pdf
 
 # Enable verbose logging
 export DOC_GENERATOR_LOGGING__LEVEL="DEBUG"
@@ -382,7 +390,7 @@ make help
 make list-topics
 
 # Test your setup
-make test
+make test-docgen
 ```
 
 ---
@@ -390,17 +398,17 @@ make test
 ## 💡 Pro Tips
 
 1. **Use folder processing** for multiple related files
-2. **Keep images** in `src/output/images/` between runs
+2. **Keep images** in `backend/data/output/images/` between runs
 3. **Check `make help`** for all available commands
-4. **Use `make lint`** before committing code
-5. **Run `make test`** to verify everything works
+4. **Use `make lint-docgen`** before committing code
+5. **Run `make test-docgen`** to verify everything works
 
 ---
 
 ## 📞 Support
 
 For issues or questions:
-1. Check the documentation in `docs/guides/`
+1. Check the documentation in `docs/README.md`
 2. Review the `README.md` for detailed information
 3. Check logs in the output for error messages
 4. Use `make help` for command reference
@@ -409,7 +417,7 @@ For issues or questions:
 
 ## Summary
 
-✅ **Install:** `make setup`  
+✅ **Install:** `make setup-docgen`  
 ✅ **Configure:** Add API keys to `.env`  
 ✅ **Process folder:** `make process-folder FOLDER=<name>`  
 ✅ **Process all:** `make batch-topics`  
