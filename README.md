@@ -1,8 +1,157 @@
-# DocGen
+<div align="center">
 
-**Production-grade document generation toolkit built on LangGraph, Docling, and modern LLMs**
+<!-- Colorful Banner -->
+<svg width="800" height="120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="120" fill="url(#gradient1)" rx="10"/>
+  <text x="400" y="55" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="white" text-anchor="middle">
+    DocGen
+  </text>
+  <text x="400" y="85" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" opacity="0.9">
+    AI-Powered Document Generation | Multi-Format | Production-Ready
+  </text>
+</svg>
 
-Transform multi-format inputs (PDF, Markdown, URLs, DOCX) into polished outputs (PDF, PPTX, Markdown, FAQ docs, podcasts) with AI-powered synthesis and image generation. Built with clean architecture, type-safety, and extensibility in mind.
+</div>
+
+<h3 align="center">
+Transform any content into professional documents with AI
+</h3>
+
+<p align="center">
+<strong>From Research Papers to Pitch Decks • From Web Articles to Study Guides</strong><br/>
+Built on LangGraph, Docling, and modern LLMs • Clean Architecture • Type-Safe • Extensible
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-use-cases-by-role">Use Cases</a> •
+  <a href="#-api-usage">API</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-roadmap">Roadmap</a>
+</p>
+
+---
+
+## 📋 Table of Contents
+
+- [✨ Use Cases by Role](#-use-cases-by-role)
+- [🎯 What DocGen Does](#-what-docgen-does)
+- [🏗️ Architecture](#️-architecture)
+- [🚀 Quick Start](#-quick-start)
+- [📡 API Usage](#-api-usage)
+- [🗺️ Roadmap](#️-roadmap)
+- [🛠️ Development](#️-development)
+- [🙏 Acknowledgments](#-acknowledgments)
+
+---
+
+## ✨ Use Cases by Role
+
+**DocGen adapts to your workflow, no matter your role.**
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 👨‍💼 **For Executives & Business Leaders**
+> *"Create consistent, on-brand presentations in minutes"*
+
+**What You Can Do:**
+- 📊 Transform meeting notes → Pitch decks
+- 🎨 Brand-consistent presentations
+- 📄 Executive summaries from long reports
+- 📈 Data reports → Visual dashboards
+
+**Key Features:** Style enforcement, PPTX templates, multi-source synthesis
+
+</td>
+<td width="50%" valign="top">
+
+### 🎓 **For Students & Researchers**
+> *"Turn research papers into study materials automatically"*
+
+**What You Can Do:**
+- 📚 PDF papers → Study guides + flashcards
+- 🔬 arXiv formatting for submissions
+- 📝 Literature reviews from multiple sources
+- ❓ Auto-generate FAQ docs from lectures
+
+**Key Features:** Multi-format parsing, intelligent summarization, citation handling
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 💼 **For Job Seekers & Career Professionals**
+> *"Generate professional resumes and interview prep in one click"*
+
+**What You Can Do:**
+- 📋 Professional resume generation
+- 💬 Interview Q&A preparation docs
+- 🎯 Tailored cover letters
+- 📊 Portfolio presentations
+
+**Key Features:** Professional templates, Q&A formatting, PDF/PPTX output
+
+</td>
+<td width="50%" valign="top">
+
+### 🎨 **For Content Creators & Marketers**
+> *"Scale your content production with AI"*
+
+**What You Can Do:**
+- 🎙️ Blog posts → Podcast scripts
+- 🖼️ YouTube thumbnails generation
+- 📱 Social media content packages
+- 📊 Marketing decks from reports
+
+**Key Features:** Image generation, audio synthesis, multi-format export
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 👨‍💻 **For Developers & Technical Writers**
+> *"Documentation that writes itself"*
+
+**What You Can Do:**
+- 📖 Code → Technical documentation
+- 🔀 API documentation generation
+- 📊 Architecture diagrams (Mermaid)
+- 📝 Markdown with syntax highlighting
+
+**Key Features:** Code block support, diagram generation, version control friendly
+
+</td>
+<td width="50%" valign="top">
+
+### 🏢 **For Teams & Enterprises**
+> *"Scalable document generation infrastructure"*
+
+**What You Can Do:**
+- 🔄 Automated report generation
+- 🏭 High-volume processing
+- 🔐 Self-hosted deployment
+- 🔌 API-first integration
+
+**Key Features:** Docker support, REST API, caching, retry logic, observability
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🎯 What DocGen Does
 
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
@@ -75,25 +224,96 @@ Ingest and normalize content from diverse sources with intelligent extraction:
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 DocGen follows **Hybrid Clean Architecture** for maintainability, testability, and extensibility.
 
+<div align="center">
+
+### System Architecture
+
+<svg width="900" height="500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="900" height="500" fill="#f8f9fa" rx="10"/>
+
+  <!-- Input Layer -->
+  <rect x="50" y="100" width="150" height="300" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="5"/>
+  <text x="125" y="130" font-family="Arial" font-size="16" font-weight="bold" fill="#1e40af" text-anchor="middle">Input Sources</text>
+
+  <text x="125" y="165" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">📄 PDF</text>
+  <text x="125" y="195" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">📝 Markdown</text>
+  <text x="125" y="225" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">🌐 Web URLs</text>
+  <text x="125" y="255" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">📊 DOCX/XLSX</text>
+  <text x="125" y="285" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">🖼️ Images</text>
+  <text x="125" y="315" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">📋 Plain Text</text>
+
+  <!-- Processing Layer -->
+  <rect x="275" y="50" width="350" height="400" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="5"/>
+  <text x="450" y="80" font-family="Arial" font-size="16" font-weight="bold" fill="#92400e" text-anchor="middle">LangGraph Workflow</text>
+
+  <!-- Workflow Steps -->
+  <rect x="320" y="110" width="260" height="50" fill="#fbbf24" stroke="#d97706" stroke-width="2" rx="5"/>
+  <text x="450" y="140" font-family="Arial" font-size="14" font-weight="bold" fill="#000" text-anchor="middle">1. Detect Format</text>
+
+  <rect x="320" y="180" width="260" height="50" fill="#fbbf24" stroke="#d97706" stroke-width="2" rx="5"/>
+  <text x="450" y="210" font-family="Arial" font-size="14" font-weight="bold" fill="#000" text-anchor="middle">2. Parse Content (Docling)</text>
+
+  <rect x="320" y="250" width="260" height="50" fill="#fbbf24" stroke="#d97706" stroke-width="2" rx="5"/>
+  <text x="450" y="280" font-family="Arial" font-size="14" font-weight="bold" fill="#000" text-anchor="middle">3. Transform (LLM + Images)</text>
+
+  <rect x="320" y="320" width="260" height="50" fill="#fbbf24" stroke="#d97706" stroke-width="2" rx="5"/>
+  <text x="450" y="350" font-family="Arial" font-size="14" font-weight="bold" fill="#000" text-anchor="middle">4. Generate Output</text>
+
+  <rect x="320" y="390" width="260" height="40" fill="#fbbf24" stroke="#d97706" stroke-width="2" rx="5"/>
+  <text x="450" y="415" font-family="Arial" font-size="14" font-weight="bold" fill="#000" text-anchor="middle">5. Validate</text>
+
+  <!-- Output Layer -->
+  <rect x="700" y="100" width="150" height="300" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="5"/>
+  <text x="775" y="130" font-family="Arial" font-size="16" font-weight="bold" fill="#166534" text-anchor="middle">Outputs</text>
+
+  <text x="775" y="175" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">📕 PDF</text>
+  <text x="775" y="215" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">📊 PPTX</text>
+  <text x="775" y="255" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">📝 Markdown</text>
+  <text x="775" y="295" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">❓ FAQ Docs</text>
+  <text x="775" y="335" font-family="Arial" font-size="13" fill="#374151" text-anchor="middle">🎙️ Podcasts*</text>
+
+  <!-- Arrows -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6b7280" />
+    </marker>
+  </defs>
+
+  <line x1="200" y1="250" x2="275" y2="250" stroke="#6b7280" stroke-width="3" marker-end="url(#arrowhead)"/>
+  <line x1="625" y1="250" x2="700" y2="250" stroke="#6b7280" stroke-width="3" marker-end="url(#arrowhead)"/>
+
+  <!-- Retry Loop -->
+  <path d="M 580 320 Q 650 290 580 260" stroke="#ef4444" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="620" y="280" font-family="Arial" font-size="11" fill="#ef4444">Retry (max 3x)</text>
+
+  <!-- Tech Stack Labels -->
+  <text x="450" y="30" font-family="Arial" font-size="12" fill="#6b7280" text-anchor="middle" font-style="italic">Claude • Gemini • OpenAI • Docling • ReportLab</text>
+</svg>
+
+</div>
+
+### Clean Architecture Layers
+
 ```
 backend/doc_generator/
-├── domain/              # Pure business logic (zero dependencies)
+├── domain/              # 🎯 Pure business logic (zero dependencies)
 │   ├── models.py        # Core entities: Document, Content, Output
 │   ├── enums.py         # InputFormat, OutputFormat, ProcessingStatus
 │   ├── exceptions.py    # Custom exceptions with error codes
 │   └── interfaces.py    # Abstract interfaces for parsers/generators
 │
-├── application/         # Use case orchestration
+├── application/         # 🔄 Use case orchestration
 │   ├── parsers/         # Format-specific parsing implementations
 │   ├── generators/      # Output format generators
 │   ├── graph_workflow.py # LangGraph state machine
 │   └── nodes/           # Workflow nodes (parse, transform, generate)
 │
-└── infrastructure/      # External integrations
+└── infrastructure/      # 🔌 External integrations
     ├── docling/         # Docling integration for parsing
     ├── markitdown/      # MarkItDown for web content
     ├── llm/             # LLM providers (Claude, Gemini, OpenAI)
@@ -104,11 +324,17 @@ backend/doc_generator/
 
 ### LangGraph Workflow
 
-```python
-# State machine with automatic retry logic
-START → detect_format → parse_content → transform_content → generate_output → validate_output → END
-                                             ↑                                        ↓
-                                             └────────── (retry on error, max 3x) ───┘
+The workflow uses a state machine with **automatic retry logic** (up to 3 attempts):
+
+```mermaid
+graph LR
+    A[START] --> B[detect_format]
+    B --> C[parse_content]
+    C --> D[transform_content]
+    D --> E[generate_output]
+    E --> F[validate_output]
+    F --> G[END]
+    E -.retry on error.-> D
 ```
 
 **Node Responsibilities:**
@@ -125,7 +351,7 @@ START → detect_format → parse_content → transform_content → generate_out
 
 ---
 
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 - Python 3.11+
@@ -223,7 +449,7 @@ DATABASE_URL=postgresql://user:pass@localhost/docgen
 
 ---
 
-## API Usage
+## 📡 API Usage
 
 DocGen exposes a FastAPI backend for programmatic document generation.
 
@@ -323,56 +549,185 @@ curl http://localhost:8000/api/health
 
 ---
 
-## Roadmap
+## 🗺️ Roadmap
 
-DocGen is under active development with ambitious plans for new capabilities.
+DocGen is under active development with ambitious plans for new capabilities. Our vision is to become the **go-to toolkit for AI-powered document generation** across all industries and use cases.
 
-### Planned Features
+<div align="center">
 
-**🎨 Enhanced Generation**
-- [ ] Podcast MP3 generation with multi-voice support
-- [ ] Mind maps with visual hierarchy and relationships
-- [ ] FAQ cards with structured Q&A formatting
-- [ ] Advanced code blocks with syntax highlighting and Mermaid diagrams
-- [ ] SVG diagram generation for technical content
-- [ ] Configurable image generation toggle (on/off per request)
+### Development Timeline
 
-**🔧 UI/UX Improvements**
-- [ ] API key management in UI (text + image generation keys)
-- [ ] Real-time generation preview panel
-- [ ] Cache/output/logs cleanup utilities
-- [ ] Template marketplace with pre-built document types
+<svg width="900" height="700" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="900" height="700" fill="#ffffff" rx="10"/>
 
-**📄 Document Templates**
-- [ ] Wedding cards and invitations
-- [ ] Professional resumes with multiple styles
-- [ ] arXiv-style research papers
-- [ ] Study materials for students
-- [ ] Interview Q&A preparation docs
-- [ ] YouTube thumbnails with custom styles
-- [ ] Excel → visual dashboards and charts
+  <!-- Timeline vertical line -->
+  <line x1="100" y1="50" x2="100" y2="650" stroke="#94a3b8" stroke-width="3"/>
 
-**🚀 Platform & Deployment**
-- [ ] Python package on PyPI (`pip install docgen`)
-- [ ] Authentication and user management
-- [ ] Vercel frontend deployment optimization
-- [ ] Image editing and style transfer
-- [ ] Standalone image generation service
+  <!-- Phase 1: Enhanced Generation -->
+  <circle cx="100" cy="100" r="15" fill="#3b82f6"/>
+  <rect x="150" y="60" width="700" height="140" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="5"/>
+  <text x="170" y="85" font-family="Arial" font-size="18" font-weight="bold" fill="#1e40af">Phase 1: Enhanced Generation 🎨</text>
+  <text x="170" y="110" font-family="Arial" font-size="13" fill="#374151">Priority: High | Timeline: Q1 2026</text>
 
-### Use Cases by Role
+  <text x="170" y="135" font-family="Arial" font-size="12" fill="#1e293b">✅ Podcast MP3 generation with multi-voice support</text>
+  <text x="170" y="155" font-family="Arial" font-size="12" fill="#1e293b">⏳ Mind maps with visual hierarchy and relationships</text>
+  <text x="170" y="175" font-family="Arial" font-size="12" fill="#1e293b">⏳ Advanced code blocks with syntax highlighting + Mermaid</text>
 
-| Role | Use Case | Features |
-|------|----------|----------|
-| **Students** | Study materials, flashcards, summary PDFs | Multi-source synthesis, FAQ generation |
-| **Job Seekers** | Resume generation, interview prep docs | Professional templates, Q&A formatting |
-| **Executives** | Consistent brand presentations, pitch decks | Style enforcement, PPTX templates |
-| **Content Creators** | YouTube thumbnails, podcast generation | Image generation, audio synthesis |
-| **Researchers** | Paper formatting, literature reviews | arXiv templates, citation handling |
-| **Developers** | Technical documentation, API docs | Code blocks, Mermaid diagrams, markdown |
+  <!-- Phase 2: UI/UX Improvements -->
+  <circle cx="100" cy="280" r="15" fill="#8b5cf6"/>
+  <rect x="150" y="240" width="700" height="140" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2" rx="5"/>
+  <text x="170" y="265" font-family="Arial" font-size="18" font-weight="bold" fill="#6b21a8">Phase 2: UI/UX Excellence 🔧</text>
+  <text x="170" y="290" font-family="Arial" font-size="13" fill="#374151">Priority: High | Timeline: Q1-Q2 2026</text>
+
+  <text x="170" y="315" font-family="Arial" font-size="12" fill="#1e293b">⏳ API key management in UI (secure vault)</text>
+  <text x="170" y="335" font-family="Arial" font-size="12" fill="#1e293b">⏳ Real-time generation preview panel</text>
+  <text x="170" y="355" font-family="Arial" font-size="12" fill="#1e293b">📋 Template marketplace with pre-built document types</text>
+
+  <!-- Phase 3: Document Templates -->
+  <circle cx="100" cy="460" r="15" fill="#ec4899"/>
+  <rect x="150" y="420" width="700" height="140" fill="#fce7f3" stroke="#ec4899" stroke-width="2" rx="5"/>
+  <text x="170" y="445" font-family="Arial" font-size="18" font-weight="bold" fill="#9f1239">Phase 3: Template Library 📄</text>
+  <text x="170" y="470" font-family="Arial" font-size="13" fill="#374151">Priority: Medium | Timeline: Q2 2026</text>
+
+  <text x="170" y="495" font-family="Arial" font-size="12" fill="#1e293b">📋 Professional resumes with 5+ industry-specific styles</text>
+  <text x="170" y="515" font-family="Arial" font-size="12" fill="#1e293b">📋 arXiv-style research paper formatting</text>
+  <text x="170" y="535" font-family="Arial" font-size="12" fill="#1e293b">📋 Wedding cards, YouTube thumbnails, interview prep docs</text>
+
+  <!-- Phase 4: Platform & Scale -->
+  <circle cx="100" cy="640" r="15" fill="#22c55e"/>
+  <rect x="150" y="600" width="700" height="80" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="5"/>
+  <text x="170" y="625" font-family="Arial" font-size="18" font-weight="bold" fill="#166534">Phase 4: Enterprise Ready 🚀</text>
+  <text x="170" y="650" font-family="Arial" font-size="13" fill="#374151">Priority: High | Timeline: Q3 2026</text>
+
+  <text x="170" y="675" font-family="Arial" font-size="12" fill="#1e293b">📦 Python package on PyPI • 🔐 Auth & user management • ☁️ Cloud optimization</text>
+
+  <!-- Legend -->
+  <text x="50" y="30" font-family="Arial" font-size="14" font-weight="bold" fill="#475569">Status:</text>
+  <text x="120" y="30" font-family="Arial" font-size="13" fill="#22c55e">✅ Complete</text>
+  <text x="220" y="30" font-family="Arial" font-size="13" fill="#f59e0b">⏳ In Progress</text>
+  <text x="340" y="30" font-family="Arial" font-size="13" fill="#64748b">📋 Planned</text>
+</svg>
+
+</div>
 
 ---
 
-## Development
+### 🎯 Feature Categories
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🎨 **Enhanced Generation**
+
+<details open>
+<summary><b>Content & Media</b></summary>
+
+- ⏳ **Podcast MP3 generation** - Multi-voice support with ElevenLabs/Azure TTS
+- 📋 **Mind maps** - Visual hierarchy with D3.js/Mermaid
+- 📋 **FAQ cards** - Structured Q&A with auto-formatting
+- 📋 **SVG diagram generation** - Technical diagrams from text
+- ✅ **Image generation toggle** - Per-request control
+
+</details>
+
+<details open>
+<summary><b>Developer Tools</b></summary>
+
+- ⏳ **Advanced code blocks** - Syntax highlighting + line numbers
+- ⏳ **Mermaid diagrams** - Flowcharts, sequence diagrams, ER diagrams
+- 📋 **API documentation** - OpenAPI/Swagger to markdown
+- 📋 **Architecture diagrams** - Auto-generate from code
+
+</details>
+
+</td>
+<td width="50%" valign="top">
+
+### 🔧 **UI/UX Improvements**
+
+<details open>
+<summary><b>User Experience</b></summary>
+
+- ⏳ **API key vault** - Secure multi-provider key management
+- ⏳ **Real-time preview** - See documents as they generate
+- 📋 **Batch processing** - Process multiple files at once
+- 📋 **Cache management** - One-click cleanup utilities
+- 📋 **Generation history** - Track past generations
+
+</details>
+
+<details open>
+<summary><b>Marketplace</b></summary>
+
+- 📋 **Template library** - 50+ pre-built templates
+- 📋 **Community templates** - Share and discover
+- 📋 **Style customization** - Brand colors, fonts, layouts
+- 📋 **Template versioning** - Track changes, rollback
+
+</details>
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 📄 **Document Templates**
+
+<details open>
+<summary><b>Professional</b></summary>
+
+- 📋 **Resumes** - Tech, Marketing, Finance, Academic, Creative
+- 📋 **Research papers** - arXiv, IEEE, ACM, Nature formats
+- 📋 **Pitch decks** - Startup, Sales, Investor presentations
+- 📋 **Reports** - Annual, Quarterly, Project status
+
+</details>
+
+<details open>
+<summary><b>Creative & Personal</b></summary>
+
+- 📋 **Wedding cards** - Invitations, save-the-dates, programs
+- 📋 **YouTube thumbnails** - 10+ design styles
+- 📋 **Social media** - Instagram posts, Twitter threads
+- 📋 **Study materials** - Flashcards, summaries, notes
+
+</details>
+
+</td>
+<td width="50%" valign="top">
+
+### 🚀 **Platform & Scale**
+
+<details open>
+<summary><b>Distribution</b></summary>
+
+- 📋 **PyPI package** - `pip install docgen` with CLI
+- 📋 **Docker Hub** - Pre-built images for all platforms
+- 📋 **npm package** - JavaScript/TypeScript SDK
+- 📋 **GitHub Action** - CI/CD integration
+
+</details>
+
+<details open>
+<summary><b>Enterprise Features</b></summary>
+
+- 📋 **Authentication** - OAuth2, SSO, API keys
+- 📋 **User management** - Teams, roles, permissions
+- 📋 **Rate limiting** - Per-user, per-tier quotas
+- 📋 **Usage analytics** - Cost tracking, insights
+- 📋 **White-labeling** - Custom branding, domains
+
+</details>
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🛠️ Development
 
 ### Setup Development Environment
 
@@ -513,7 +868,7 @@ chmod 755 backend/data/output
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 DocGen is built on the shoulders of giants:
 
