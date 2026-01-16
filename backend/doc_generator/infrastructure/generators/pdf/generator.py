@@ -12,6 +12,7 @@ from loguru import logger
 from reportlab.lib.pagesizes import A4, legal, letter
 from reportlab.lib.units import inch
 from reportlab.platypus import (
+    KeepTogether,
     PageBreak,
     Paragraph,
     SimpleDocTemplate,
@@ -318,6 +319,9 @@ class PDFGenerator:
         skipped_cover_h1 = False
         section_image_lookup = self._build_section_image_lookup(section_images)
 
+        # Track last section title to prevent duplicate consecutive banners
+        last_section_title_normalized = ""
+
         # Parse and add markdown content with inline media
         for kind, content_item in parse_markdown_lines(markdown_content):
             if kind == "spacer":
@@ -336,6 +340,17 @@ class PDFGenerator:
                 )
 
             elif kind == "h2":
+                # Normalize the section title to detect duplicates
+                # Remove leading numbers like "6." from "6. Key Takeaways"
+                current_normalized = self._normalize_section_title(content_item)
+
+                # Skip duplicate consecutive sections (e.g., "Key Takeaways" followed by "Key Takeaways")
+                if current_normalized == last_section_title_normalized:
+                    logger.debug(f"Skipping duplicate section banner: {content_item}")
+                    continue
+
+                last_section_title_normalized = current_normalized
+
                 section_id, next_section_id = self._resolve_section_id(
                     content_item, next_section_id
                 )
@@ -599,6 +614,23 @@ class PDFGenerator:
         Invoked by: src/doc_generator/infrastructure/generators/pdf/generator.py, src/doc_generator/infrastructure/generators/pptx/generator.py
         """
         return re.sub(r"\s+", " ", title or "").strip().lower()
+
+    def _normalize_section_title(self, title: str) -> str:
+        """
+        Normalize section title for duplicate detection.
+
+        Removes leading number patterns (e.g., "6.", "1)", "2:") and normalizes
+        whitespace and case for comparison.
+
+        Examples:
+            "6. Key Takeaways" -> "key takeaways"
+            "Key Takeaways" -> "key takeaways"
+            "1. Introduction" -> "introduction"
+        """
+        # Remove leading number patterns like "1.", "1)", "1:", "1 "
+        cleaned = re.sub(r"^\d+[\.:\)\s]+\s*", "", (title or "").strip())
+        # Normalize whitespace and case
+        return re.sub(r"\s+", " ", cleaned).strip().lower()
 
     def _filter_cover_heading(
         self, headings: list[tuple[int, str]], cover_title: str

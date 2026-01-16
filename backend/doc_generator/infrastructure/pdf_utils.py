@@ -33,18 +33,18 @@ from ..utils.markdown_utils import strip_frontmatter  # noqa: F401
 
 # Corporate-ready color palette - Modern, professional styling
 PALETTE = {
-    "ink": colors.HexColor("#1a1a2e"),         # Deep navy for text
-    "muted": colors.HexColor("#4a5568"),       # Sophisticated gray
-    "paper": colors.HexColor("#fafafa"),       # Clean white background
-    "panel": colors.HexColor("#f7fafc"),       # Light panel
-    "accent": colors.HexColor("#2563eb"),      # Professional blue
-    "accent_light": colors.HexColor("#3b82f6"), # Lighter blue for highlights
-    "teal": colors.HexColor("#0d9488"),        # Modern teal
-    "line": colors.HexColor("#e2e8f0"),        # Subtle dividers
-    "code": colors.HexColor("#f1f5f9"),        # Code background
-    "table": colors.HexColor("#f8fafc"),       # Table background
-    "success": colors.HexColor("#10b981"),     # Green for positive
-    "warning": colors.HexColor("#f59e0b"),     # Amber for warnings
+    "ink": colors.HexColor("#1a1a2e"),  # Deep navy for text
+    "muted": colors.HexColor("#4a5568"),  # Sophisticated gray
+    "paper": colors.HexColor("#fafafa"),  # Clean white background
+    "panel": colors.HexColor("#f7fafc"),  # Light panel
+    "accent": colors.HexColor("#2563eb"),  # Professional blue
+    "accent_light": colors.HexColor("#3b82f6"),  # Lighter blue for highlights
+    "teal": colors.HexColor("#0d9488"),  # Modern teal
+    "line": colors.HexColor("#e2e8f0"),  # Subtle dividers
+    "code": colors.HexColor("#f1f5f9"),  # Code background
+    "table": colors.HexColor("#f8fafc"),  # Table background
+    "success": colors.HexColor("#10b981"),  # Green for positive
+    "warning": colors.HexColor("#f59e0b"),  # Amber for warnings
     "mermaid_bg": colors.HexColor("#eef2ff"),  # Light blue for diagrams
 }
 
@@ -68,17 +68,17 @@ def inline_md(text: str) -> str:
     """
     # First, handle markdown links [text](url) -> clickable links
     # Use a placeholder to avoid conflicts with other formatting
-    link_pattern = r'\[([^\]]+)\]\(([^\)]+)\)'
+    link_pattern = r"\[([^\]]+)\]\(([^\)]+)\)"
     links = []
-    
+
     def replace_link(match):
         text_part = match.group(1)
         url = match.group(2)
         links.append((text_part, url))
         return f"__LINK_{len(links)-1}__"
-    
+
     text = re.sub(link_pattern, replace_link, text)
-    
+
     # Handle code blocks
     parts = re.split(r"(`[^`]+`)", text)
     rendered: list[str] = []
@@ -91,16 +91,16 @@ def inline_md(text: str) -> str:
         safe = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", safe)
         safe = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", safe)
         rendered.append(safe)
-    
+
     result = "".join(rendered)
-    
+
     # Restore links with proper ReportLab link tags
     for i, (link_text, url) in enumerate(links):
         placeholder = f"__LINK_{i}__"
         # ReportLab supports <link> tags for clickable URLs
         link_html = f'<link href="{html.escape(url)}" color="blue"><u>{html.escape(link_text)}</u></link>'
         result = result.replace(placeholder, link_html)
-    
+
     return result
 
 
@@ -216,13 +216,16 @@ def parse_markdown_lines(text: str) -> Iterator[tuple[str, any]]:
             continue
 
         # Visual markers: [VISUAL:type:title:description]
-        visual_match = re.match(r'^\[VISUAL:(\w+):([^:]+):([^\]]+)\]$', line.strip())
+        visual_match = re.match(r"^\[VISUAL:(\w+):([^:]+):([^\]]+)\]$", line.strip())
         if visual_match:
-            yield ("visual_marker", {
-                "type": visual_match.group(1).lower(),
-                "title": visual_match.group(2).strip(),
-                "description": visual_match.group(3).strip()
-            })
+            yield (
+                "visual_marker",
+                {
+                    "type": visual_match.group(1).lower(),
+                    "title": visual_match.group(2).strip(),
+                    "description": visual_match.group(3).strip(),
+                },
+            )
             continue
 
         # Headings
@@ -279,11 +282,62 @@ def extract_headings(text: str) -> list[tuple[int, str]]:
     return headings
 
 
+def _normalize_heading_for_comparison(heading: str) -> str:
+    """
+    Normalize a heading for comparison to detect duplicates.
+
+    Removes leading numbers and punctuation (e.g., "1." or "1)"),
+    extra whitespace, and case differences.
+    """
+    # Remove leading number patterns like "1.", "1)", "1:", "1 "
+    cleaned = re.sub(r"^\d+[\.:\)\s]+\s*", "", heading.strip())
+    # Normalize whitespace and case
+    return re.sub(r"\s+", " ", cleaned).strip().lower()
+
+
+def _deduplicate_headings(headings: list[tuple[int, str]]) -> list[tuple[int, str]]:
+    """
+    Remove duplicate headings from the list, keeping the more specific version.
+    """
+    if not headings:
+        return []
+
+    # Group headings by their normalized form
+    normalized_groups: dict[str, list[tuple[int, str, int]]] = {}
+    for idx, (level, heading) in enumerate(headings):
+        normalized = _normalize_heading_for_comparison(heading)
+        if normalized not in normalized_groups:
+            normalized_groups[normalized] = []
+        normalized_groups[normalized].append((level, heading, idx))
+
+    # For each group, keep the best version (prefer numbered)
+    result_with_indices = []
+    for normalized, group in normalized_groups.items():
+        if len(group) == 1:
+            level, heading, idx = group[0]
+            result_with_indices.append((idx, level, heading))
+        else:
+            # Multiple versions - prefer numbered
+            numbered = [
+                (lvl, h, i) for lvl, h, i in group if re.match(r"^\d+[\.:\)\s]", h)
+            ]
+            if numbered:
+                level, heading, idx = numbered[0]
+                result_with_indices.append((idx, level, heading))
+            else:
+                level, heading, idx = group[0]
+                result_with_indices.append((idx, level, heading))
+
+    # Sort by original index to maintain document order
+    result_with_indices.sort(key=lambda x: x[0])
+    return [(level, heading) for _, level, heading in result_with_indices]
+
+
 def make_table_of_contents(
-    headings: list[tuple[int, str]], 
+    headings: list[tuple[int, str]],
     styles: dict,
     markdown_content: str = "",
-    toc_settings: dict = None
+    toc_settings: dict = None,
 ) -> list:
     """
     Create table of contents flowables with optional page numbers and reading time.
@@ -311,19 +365,22 @@ def make_table_of_contents(
             "include_page_numbers": True,
             "max_depth": 3,
             "show_reading_time": True,
-            "words_per_minute": 200
+            "words_per_minute": 200,
         }
 
     # Filter headings by max depth
     max_depth = toc_settings.get("max_depth", 3)
     filtered_headings = [(lvl, txt) for lvl, txt in headings if lvl <= max_depth]
 
+    # Deduplicate headings to avoid entries like "Introduction" and "1. Introduction"
+    filtered_headings = _deduplicate_headings(filtered_headings)
+
     if not filtered_headings:
         return []
 
     flowables = []
     flowables.append(Paragraph("Contents", styles["TOCHeading"]))
-    
+
     # Add reading time estimate if enabled
     if toc_settings.get("show_reading_time", True) and markdown_content:
         word_count = len(markdown_content.split())
@@ -331,7 +388,7 @@ def make_table_of_contents(
         reading_time = max(1, round(word_count / wpm))
         time_text = f"<i>Estimated reading time: {reading_time} min</i>"
         flowables.append(Paragraph(time_text, styles["TOCEntry"]))
-    
+
     flowables.append(Spacer(1, 8))
 
     for level, heading in filtered_headings:
@@ -343,9 +400,8 @@ def make_table_of_contents(
             fontName="Helvetica-Bold" if level == 1 else "Helvetica",
             fontSize=12 if level == 1 else 11,
         )
-        
-        # For now, just add bullet points
-        # Page numbers will be added when we integrate with PDF canvas tracking
+
+        # Format the heading display text
         flowables.append(Paragraph(f"• {inline_md(heading)}", style))
 
     flowables.append(Spacer(1, 24))
@@ -363,15 +419,16 @@ def make_section_divider(styles: dict) -> list:
         List of flowables for the section divider
     Invoked by: (no references found)
     """
-    divider = Table(
-        [[""]],
-        colWidths=[2 * inch]
+    divider = Table([[""]], colWidths=[2 * inch])
+    divider.setStyle(
+        TableStyle(
+            [
+                ("LINEABOVE", (0, 0), (-1, -1), 2, PALETTE["accent"]),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
     )
-    divider.setStyle(TableStyle([
-        ("LINEABOVE", (0, 0), (-1, -1), 2, PALETTE["accent"]),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
     return [Spacer(1, 16), divider, Spacer(1, 16)]
 
 
@@ -388,17 +445,20 @@ def make_banner(text: str, styles: dict) -> Table:
     Invoked by: (no references found)
     """
     banner = Table(
-        [[Paragraph(inline_md(text), styles["SectionBanner"])]],
-        colWidths=[6.9 * inch]
+        [[Paragraph(inline_md(text), styles["SectionBanner"])]], colWidths=[6.9 * inch]
     )
-    banner.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), PALETTE["accent"]),
-        ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-    ]))
+    banner.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), PALETTE["accent"]),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
     return banner
 
 
@@ -421,7 +481,7 @@ def make_image_flowable(
     styles: dict,
     max_width: float = 6.9 * inch,
     max_height: float = 4.4 * inch,
-    add_figure_number: bool = True
+    add_figure_number: bool = True,
 ) -> list:
     """
     Create image flowable with professional caption.
@@ -442,7 +502,9 @@ def make_image_flowable(
 
     if not image_path.exists():
         logger.warning(f"Image not found: {image_path}")
-        return [Paragraph(f"Image placeholder: {inline_md(alt)}", styles["ImageCaption"])]
+        return [
+            Paragraph(f"Image placeholder: {inline_md(alt)}", styles["ImageCaption"])
+        ]
 
     img = ImageReader(str(image_path))
     width_px, height_px = img.getSize()
@@ -467,11 +529,11 @@ def make_image_flowable(
 
 
 def make_code_block(
-    code: str, 
-    styles: dict, 
+    code: str,
+    styles: dict,
     max_height: float = 8.5 * inch,
     language: str = "python",
-    code_settings: dict = None
+    code_settings: dict = None,
 ) -> list:
     """
     Create formatted code block with optional line numbers and syntax highlighting.
@@ -499,22 +561,22 @@ def make_code_block(
             "syntax_highlighting": False,  # Requires pygments
             "max_lines_per_page": 50,
             "font_size": 9,
-            "line_number_color": "#888888"
+            "line_number_color": "#888888",
         }
 
     lines = code.splitlines() or [""]
     show_line_numbers = code_settings.get("show_line_numbers", True)
-    
+
     # Calculate line height
     leading = styles["CodeBlock"].leading or (styles["CodeBlock"].fontSize * 1.2)
     max_lines = code_settings.get("max_lines_per_page", 50)
     max_lines = min(max_lines, max(1, int((max_height - 12) // leading)))
 
     flow: list = []
-    
+
     for i in range(0, len(lines), max_lines):
-        chunk_lines = lines[i:i + max_lines]
-        
+        chunk_lines = lines[i : i + max_lines]
+
         if show_line_numbers:
             # Add line numbers to each line
             line_num_color = code_settings.get("line_number_color", "#888888")
@@ -525,21 +587,25 @@ def make_code_block(
                 # Escape HTML in code content
                 escaped_line = html.escape(line)
                 numbered_lines.append(f"{line_num} │ {escaped_line}")
-            
+
             chunk = "\n".join(numbered_lines)
         else:
             chunk = "\n".join(chunk_lines)
-        
+
         block = Preformatted(chunk, styles["CodeBlock"])
         table = Table([[block]], colWidths=[6.9 * inch])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), PALETTE["code"]),
-            ("BOX", (0, 0), (-1, -1), 0.8, PALETTE["line"]),
-            ("LEFTPADDING", (0, 0), (-1, -1), 8),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), PALETTE["code"]),
+                    ("BOX", (0, 0), (-1, -1), 0.8, PALETTE["line"]),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
         flow.append(table)
         if i + max_lines < len(lines):
             flow.append(Spacer(1, 6))
@@ -548,9 +614,7 @@ def make_code_block(
 
 
 def render_mermaid(
-    mermaid_text: str,
-    image_cache: Path,
-    mmdc_path: Path | None = None
+    mermaid_text: str, image_cache: Path, mmdc_path: Path | None = None
 ) -> Path | None:
     """
     Render mermaid diagram to PNG.
@@ -585,8 +649,15 @@ def render_mermaid(
     try:
         subprocess.run(
             [
-                str(mmdc_path), "-i", str(temp_path), "-o", str(out_path),
-                "-b", "transparent", "-w", "1600"
+                str(mmdc_path),
+                "-i",
+                str(temp_path),
+                "-o",
+                str(out_path),
+                "-b",
+                "transparent",
+                "-w",
+                "1600",
             ],
             check=True,
             capture_output=True,
@@ -602,10 +673,7 @@ def render_mermaid(
     return out_path if out_path.exists() else None
 
 
-def render_mermaid_with_gemini(
-    mermaid_text: str,
-    image_cache: Path
-) -> Path | None:
+def render_mermaid_with_gemini(mermaid_text: str, image_cache: Path) -> Path | None:
     """
     Generate a diagram image from mermaid code using Gemini.
 
@@ -640,10 +708,7 @@ def render_mermaid_with_gemini(
 
 
 def make_mermaid_flowable(
-    mermaid_text: str,
-    styles: dict,
-    image_cache: Path,
-    mmdc_path: Path | None = None
+    mermaid_text: str, styles: dict, image_cache: Path, mmdc_path: Path | None = None
 ) -> list:
     """
     Create mermaid diagram flowable.
@@ -677,34 +742,42 @@ def make_mermaid_flowable(
         # Header for the diagram box
         header = Table(
             [[Paragraph("<b>Diagram</b>", styles["ImageCaption"])]],
-            colWidths=[6.9 * inch]
+            colWidths=[6.9 * inch],
         )
-        header.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), PALETTE["accent"]),
-            ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
-            ("LEFTPADDING", (0, 0), (-1, -1), 10),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-            ("TOPPADDING", (0, 0), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ]))
+        header.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), PALETTE["accent"]),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
         flow.append(header)
 
         # Show a preview of the mermaid code (truncated for display)
-        preview_lines = mermaid_text.strip().split('\n')[:8]
-        if len(mermaid_text.strip().split('\n')) > 8:
+        preview_lines = mermaid_text.strip().split("\n")[:8]
+        if len(mermaid_text.strip().split("\n")) > 8:
             preview_lines.append("...")
-        preview_text = '\n'.join(preview_lines)
+        preview_text = "\n".join(preview_lines)
 
         code_block = Preformatted(preview_text, styles["CodeBlock"])
         code_table = Table([[code_block]], colWidths=[6.9 * inch])
-        code_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), PALETTE["mermaid_bg"]),
-            ("BOX", (0, 0), (-1, -1), 0.8, PALETTE["line"]),
-            ("LEFTPADDING", (0, 0), (-1, -1), 10),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ]))
+        code_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), PALETTE["mermaid_bg"]),
+                    ("BOX", (0, 0), (-1, -1), 0.8, PALETTE["line"]),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ]
+            )
+        )
         flow.append(code_table)
         flow.append(Spacer(1, 12))
 
@@ -736,18 +809,19 @@ def make_quote(text: str, styles: dict) -> Table:
         Table flowable with quote styling
     Invoked by: (no references found)
     """
-    box = Table(
-        [[Paragraph(inline_md(text), styles["Quote"])]],
-        colWidths=[6.9 * inch]
+    box = Table([[Paragraph(inline_md(text), styles["Quote"])]], colWidths=[6.9 * inch])
+    box.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F4FBF8")),
+                ("BOX", (0, 0), (-1, -1), 1, PALETTE["line"]),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ]
+        )
     )
-    box.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F4FBF8")),
-        ("BOX", (0, 0), (-1, -1), 1, PALETTE["line"]),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-    ]))
     return box
 
 
@@ -771,16 +845,20 @@ def make_table(table_data: list[list[str]], styles: dict) -> Table:
         for row in table_data
     ]
     table = Table(wrapped, hAlign="LEFT")
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), PALETTE["teal"]),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.5, PALETTE["line"]),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ]))
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), PALETTE["teal"]),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 0.5, PALETTE["line"]),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
 
     return table
 
@@ -799,201 +877,235 @@ def create_custom_styles() -> dict:
     styles = getSampleStyleSheet()
 
     # Title styles - Professional corporate header
-    styles.add(ParagraphStyle(
-        name="TitleCover",
-        parent=styles["Title"],
-        fontName="Helvetica-Bold",
-        fontSize=32,
-        leading=40,
-        textColor=PALETTE["ink"],
-        spaceAfter=16,
-        spaceBefore=32,
-        alignment=0,  # Left align for corporate look
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="TitleCover",
+            parent=styles["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=32,
+            leading=40,
+            textColor=PALETTE["ink"],
+            spaceAfter=16,
+            spaceBefore=32,
+            alignment=0,  # Left align for corporate look
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="SubtitleCover",
-        parent=styles["BodyText"],
-        fontName="Helvetica",
-        fontSize=14,
-        leading=20,
-        textColor=PALETTE["muted"],
-        spaceAfter=24,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="SubtitleCover",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=14,
+            leading=20,
+            textColor=PALETTE["muted"],
+            spaceAfter=24,
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="CoverKicker",
-        parent=styles["BodyText"],
-        fontName="Helvetica-Bold",
-        fontSize=10,
-        leading=14,
-        textColor=PALETTE["accent"],
-        spaceAfter=6,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="CoverKicker",
+            parent=styles["BodyText"],
+            fontName="Helvetica-Bold",
+            fontSize=10,
+            leading=14,
+            textColor=PALETTE["accent"],
+            spaceAfter=6,
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="CoverMeta",
-        parent=styles["BodyText"],
-        fontName="Helvetica",
-        fontSize=11,
-        leading=16,
-        textColor=PALETTE["muted"],
-        spaceAfter=4,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="CoverMeta",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=11,
+            leading=16,
+            textColor=PALETTE["muted"],
+            spaceAfter=4,
+        )
+    )
 
     # Table of Contents styles
-    styles.add(ParagraphStyle(
-        name="TOCHeading",
-        parent=styles["Heading1"],
-        fontName="Helvetica-Bold",
-        fontSize=18,
-        leading=24,
-        textColor=PALETTE["accent"],
-        spaceBefore=24,
-        spaceAfter=12,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="TOCHeading",
+            parent=styles["Heading1"],
+            fontName="Helvetica-Bold",
+            fontSize=18,
+            leading=24,
+            textColor=PALETTE["accent"],
+            spaceBefore=24,
+            spaceAfter=12,
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="TOCEntry",
-        parent=styles["BodyText"],
-        fontName="Helvetica",
-        fontSize=11,
-        leading=18,
-        textColor=PALETTE["ink"],
-        leftIndent=12,
-        spaceAfter=4,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="TOCEntry",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=11,
+            leading=18,
+            textColor=PALETTE["ink"],
+            leftIndent=12,
+            spaceAfter=4,
+        )
+    )
 
     # Section banner - Corporate section header
-    styles.add(ParagraphStyle(
-        name="SectionBanner",
-        parent=styles["BodyText"],
-        fontName="Helvetica-Bold",
-        fontSize=13,
-        leading=18,
-        textColor=colors.white,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="SectionBanner",
+            parent=styles["BodyText"],
+            fontName="Helvetica-Bold",
+            fontSize=13,
+            leading=18,
+            textColor=colors.white,
+        )
+    )
 
     # Heading styles - Clean corporate headings
-    styles.add(ParagraphStyle(
-        name="Heading2Custom",
-        parent=styles["Heading2"],
-        fontName="Helvetica-Bold",
-        fontSize=22,
-        leading=28,
-        textColor=PALETTE["ink"],
-        spaceBefore=24,
-        spaceAfter=12,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="Heading2Custom",
+            parent=styles["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=22,
+            leading=28,
+            textColor=PALETTE["ink"],
+            spaceBefore=24,
+            spaceAfter=12,
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="Heading3Custom",
-        parent=styles["Heading3"],
-        fontName="Helvetica-Bold",
-        fontSize=16,
-        leading=22,
-        textColor=PALETTE["accent"],
-        spaceBefore=18,
-        spaceAfter=8,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="Heading3Custom",
+            parent=styles["Heading3"],
+            fontName="Helvetica-Bold",
+            fontSize=16,
+            leading=22,
+            textColor=PALETTE["accent"],
+            spaceBefore=18,
+            spaceAfter=8,
+        )
+    )
 
     # Body text - Professional readable body
-    styles.add(ParagraphStyle(
-        name="BodyCustom",
-        parent=styles["BodyText"],
-        fontName="Helvetica",
-        fontSize=11,
-        leading=18,
-        textColor=PALETTE["muted"],
-        spaceAfter=10,
-        alignment=4,  # Justify for professional look
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="BodyCustom",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=11,
+            leading=18,
+            textColor=PALETTE["muted"],
+            spaceAfter=10,
+            alignment=4,  # Justify for professional look
+        )
+    )
 
     # Bullets - Clean corporate bullets
-    styles.add(ParagraphStyle(
-        name="BulletCustom",
-        parent=styles["BodyText"],
-        fontName="Helvetica",
-        fontSize=11,
-        leading=18,
-        leftIndent=24,
-        bulletIndent=12,
-        spaceAfter=6,
-        textColor=PALETTE["muted"],
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="BulletCustom",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=11,
+            leading=18,
+            leftIndent=24,
+            bulletIndent=12,
+            spaceAfter=6,
+            textColor=PALETTE["muted"],
+        )
+    )
 
     # Code block - Professional code styling
-    styles.add(ParagraphStyle(
-        name="CodeBlock",
-        parent=styles["BodyText"],
-        fontName="Courier",
-        fontSize=9,
-        leading=13,
-        leftIndent=8,
-        rightIndent=8,
-        spaceAfter=10,
-        textColor=PALETTE["ink"],
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="CodeBlock",
+            parent=styles["BodyText"],
+            fontName="Courier",
+            fontSize=9,
+            leading=13,
+            leftIndent=8,
+            rightIndent=8,
+            spaceAfter=10,
+            textColor=PALETTE["ink"],
+        )
+    )
 
     # Image caption - Professional centered caption
-    styles.add(ParagraphStyle(
-        name="ImageCaption",
-        parent=styles["BodyText"],
-        fontName="Helvetica",
-        fontSize=10,
-        leading=14,
-        textColor=PALETTE["muted"],
-        alignment=1,  # Center
-        spaceAfter=14,
-        spaceBefore=4,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="ImageCaption",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=10,
+            leading=14,
+            textColor=PALETTE["muted"],
+            alignment=1,  # Center
+            spaceAfter=14,
+            spaceBefore=4,
+        )
+    )
 
     # Quote - Professional blockquote with accent
-    styles.add(ParagraphStyle(
-        name="Quote",
-        parent=styles["BodyText"],
-        fontName="Helvetica-Oblique",
-        fontSize=12,
-        leading=20,
-        textColor=PALETTE["ink"],
-        leftIndent=24,
-        rightIndent=24,
-        borderColor=PALETTE["accent"],
-        borderPadding=8,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="Quote",
+            parent=styles["BodyText"],
+            fontName="Helvetica-Oblique",
+            fontSize=12,
+            leading=20,
+            textColor=PALETTE["ink"],
+            leftIndent=24,
+            rightIndent=24,
+            borderColor=PALETTE["accent"],
+            borderPadding=8,
+        )
+    )
 
     # Table cell - Professional table styling
-    styles.add(ParagraphStyle(
-        name="TableCell",
-        parent=styles["BodyText"],
-        fontName="Helvetica",
-        fontSize=10,
-        leading=14,
-        textColor=PALETTE["ink"],
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="TableCell",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=10,
+            leading=14,
+            textColor=PALETTE["ink"],
+        )
+    )
 
     # Featured/Hero image style
-    styles.add(ParagraphStyle(
-        name="HeroCaption",
-        parent=styles["BodyText"],
-        fontName="Helvetica-Bold",
-        fontSize=11,
-        leading=16,
-        textColor=PALETTE["accent"],
-        alignment=1,  # Center
-        spaceAfter=20,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="HeroCaption",
+            parent=styles["BodyText"],
+            fontName="Helvetica-Bold",
+            fontSize=11,
+            leading=16,
+            textColor=PALETTE["accent"],
+            alignment=1,  # Center
+            spaceAfter=20,
+        )
+    )
 
     # Key Takeaways style
-    styles.add(ParagraphStyle(
-        name="KeyTakeaway",
-        parent=styles["BodyText"],
-        fontName="Helvetica-Bold",
-        fontSize=11,
-        leading=18,
-        textColor=PALETTE["ink"],
-        leftIndent=16,
-        spaceAfter=8,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="KeyTakeaway",
+            parent=styles["BodyText"],
+            fontName="Helvetica-Bold",
+            fontSize=11,
+            leading=18,
+            textColor=PALETTE["ink"],
+            leftIndent=16,
+            spaceAfter=8,
+        )
+    )
 
     return styles
