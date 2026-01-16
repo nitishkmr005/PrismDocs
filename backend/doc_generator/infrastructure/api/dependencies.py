@@ -16,6 +16,7 @@ class APIKeys:
     openai: Optional[str] = None
     anthropic: Optional[str] = None
     image: Optional[str] = None
+    user_id: Optional[str] = None  # For authenticated user tracking
 
 
 def extract_api_keys(
@@ -23,6 +24,7 @@ def extract_api_keys(
     x_openai_key: Optional[str] = Header(None, alias="X-OpenAI-Key"),
     x_anthropic_key: Optional[str] = Header(None, alias="X-Anthropic-Key"),
     x_image_key: Optional[str] = Header(None, alias="X-Image-Key"),
+    x_user_id: Optional[str] = Header(None, alias="X-User-Id"),
 ) -> APIKeys:
     """Extract API keys from request headers.
 
@@ -40,6 +42,7 @@ def extract_api_keys(
         openai=x_openai_key,
         anthropic=x_anthropic_key,
         image=x_image_key,
+        user_id=x_user_id,
     )
 
 

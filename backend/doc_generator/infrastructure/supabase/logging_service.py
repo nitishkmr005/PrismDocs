@@ -43,6 +43,8 @@ class SupabaseLoggingService:
         """
         self.user_id = user_id
         self.session_id = session_id or str(uuid4())
+        # Track tokens used in this session for aggregation
+        self._session_tokens_used: int = 0
 
     @staticmethod
     def is_available() -> bool:
@@ -83,6 +85,12 @@ class SupabaseLoggingService:
         Returns:
             True if logging succeeded, False otherwise
         """
+        # Track tokens for session aggregation
+        if input_tokens:
+            self._session_tokens_used += input_tokens
+        if output_tokens:
+            self._session_tokens_used += output_tokens
+
         client = get_supabase_service_client()
         if client is None:
             return False
@@ -159,6 +167,181 @@ class SupabaseLoggingService:
         except Exception as exc:
             logger.debug(f"Failed to log event to Supabase: {exc}")
             return False
+
+    def log_generation_started(
+        self,
+        *,
+        input_format: str,
+        output_format: str,
+        source_count: int,
+        provider: str | None = None,
+        model: str | None = None,
+    ) -> bool:
+        """
+        Log a generation_started event.
+
+        Args:
+            input_format: Input file format (e.g., 'markdown', 'pdf')
+            output_format: Output format (e.g., 'pdf', 'pptx')
+            source_count: Number of source files/urls
+            provider: LLM provider name
+            model: Model identifier
+
+        Returns:
+            True if logging succeeded, False otherwise
+        """
+        return self.log_event(
+            event_type="generation_started",
+            event_data={
+                "input_format": input_format,
+                "output_format": output_format,
+                "source_count": source_count,
+                "provider": provider,
+                "model": model,
+            },
+            severity="info",
+        )
+
+    def log_generation_completed(
+        self,
+        *,
+        output_format: str,
+        output_path: str,
+        pages: int = 0,
+        slides: int = 0,
+        images_generated: int = 0,
+        duration_seconds: float,
+        total_llm_calls: int = 0,
+        total_image_calls: int = 0,
+        total_tokens_used: int | None = None,
+    ) -> bool:
+        """
+        Log a generation_completed event and update user stats.
+
+        Args:
+            output_format: Output format (e.g., 'pdf', 'pptx')
+            output_path: Path to generated output file
+            pages: Number of pages (for PDF)
+            slides: Number of slides (for PPTX)
+            images_generated: Number of images generated
+            duration_seconds: Total generation duration
+            total_llm_calls: Total number of LLM API calls
+            total_image_calls: Total number of image generation calls
+            total_tokens_used: Total tokens used (input + output)
+
+        Returns:
+            True if logging succeeded, False otherwise
+        """
+        # Use session tokens if not provided
+        tokens = (
+            total_tokens_used
+            if total_tokens_used is not None
+            else self._session_tokens_used
+        )
+
+        event_logged = self.log_event(
+            event_type="generation_completed",
+            event_data={
+                "output_format": output_format,
+                "output_path": output_path,
+                "pages": pages,
+                "slides": slides,
+                "images_generated": images_generated,
+                "duration_seconds": round(duration_seconds, 2),
+                "total_llm_calls": total_llm_calls,
+                "total_image_calls": total_image_calls,
+                "total_tokens_used": tokens,
+            },
+            severity="info",
+        )
+
+        # Update user stats if user_id is available
+        if self.user_id:
+            self.update_user_stats(tokens_used=tokens)
+
+        return event_logged
+
+    def log_generation_failed(
+        self,
+        *,
+        error_message: str,
+        error_code: str | None = None,
+        output_format: str | None = None,
+        duration_seconds: float | None = None,
+    ) -> bool:
+        """
+        Log a generation_failed event.
+
+        Args:
+            error_message: Error message describing the failure
+            error_code: Optional error code
+            output_format: Target output format
+            duration_seconds: Duration before failure
+
+        Returns:
+            True if logging succeeded, False otherwise
+        """
+        return self.log_event(
+            event_type="generation_failed",
+            event_data={
+                "error_message": error_message,
+                "error_code": error_code,
+                "output_format": output_format,
+                "duration_seconds": (
+                    round(duration_seconds, 2) if duration_seconds else None
+                ),
+            },
+            severity="error",
+        )
+
+    def update_user_stats(self, tokens_used: int = 0) -> bool:
+        """
+        Update user statistics (total_documents_generated, total_tokens_used).
+
+        Calls the Supabase stored function `update_user_stats` which increments
+        the user's document count and adds tokens used.
+
+        Args:
+            tokens_used: Number of tokens used in this generation
+
+        Returns:
+            True if update succeeded, False otherwise
+        """
+        if not self.user_id:
+            logger.debug("Cannot update user stats: no user_id provided")
+            return False
+
+        client = get_supabase_service_client()
+        if client is None:
+            return False
+
+        try:
+            # Call the stored function to update user stats
+            result = client.rpc(
+                "update_user_stats",
+                {
+                    "p_user_id": self.user_id,
+                    "p_tokens_used": tokens_used,
+                },
+            ).execute()
+
+            logger.info(
+                f"Updated user stats: user_id={self.user_id}, "
+                f"tokens_used={tokens_used}"
+            )
+            return True
+
+        except Exception as exc:
+            logger.error(f"Failed to update user stats: {exc}")
+            return False
+
+    def get_session_tokens_used(self) -> int:
+        """Get total tokens used in this session."""
+        return self._session_tokens_used
+
+    def reset_session_tokens(self) -> None:
+        """Reset session token counter."""
+        self._session_tokens_used = 0
 
     @staticmethod
     def _truncate(text: str | None, limit: int = 10000) -> str:
