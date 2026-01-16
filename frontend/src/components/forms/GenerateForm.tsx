@@ -68,7 +68,7 @@ export function GenerateForm({
   const [provider, setProvider] = useState<Provider>("gemini");
   const [audience, setAudience] = useState<Audience>("technical");
   const [imageStyle, setImageStyle] = useState<ImageStyle>("auto");
-  const [enableImageGeneration, setEnableImageGeneration] = useState(true);
+  const [enableImageGeneration, setEnableImageGeneration] = useState(false);
   const [contentApiKey, setContentApiKey] = useState("");
   const [imageApiKey, setImageApiKey] = useState("");
 
@@ -307,9 +307,15 @@ export function GenerateForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image-style">Image Style</Label>
-            <Select value={imageStyle} onValueChange={(v) => setImageStyle(v as ImageStyle)}>
-              <SelectTrigger id="image-style">
+            <Label htmlFor="image-style" className={!enableImageGeneration ? "text-muted-foreground" : ""}>
+              Image Style {!enableImageGeneration && <span className="text-xs">(enable images first)</span>}
+            </Label>
+            <Select 
+              value={imageStyle} 
+              onValueChange={(v) => setImageStyle(v as ImageStyle)}
+              disabled={!enableImageGeneration}
+            >
+              <SelectTrigger id="image-style" className={!enableImageGeneration ? "opacity-50" : ""}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -348,7 +354,48 @@ export function GenerateForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="content-api-key">Content Generation API Key *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="content-api-key">Content Generation API Key *</Label>
+              {provider === "gemini" && (
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  Get Gemini API Key
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
+              {provider === "openai" && (
+                <a
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  Get OpenAI API Key
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
+              {provider === "anthropic" && (
+                <a
+                  href="https://console.anthropic.com/settings/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  Get Claude API Key
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               Supports: {provider === "gemini" ? "Gemini" : provider === "openai" ? "OpenAI" : "Claude"}
             </p>
@@ -364,7 +411,20 @@ export function GenerateForm({
 
           {enableImageGeneration && (
             <div className="space-y-2">
-              <Label htmlFor="image-api-key">Image Generation API Key *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="image-api-key">Image Generation API Key *</Label>
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  Get Gemini API Key
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Requires: Gemini API key (image generation only supports Gemini)
               </p>
