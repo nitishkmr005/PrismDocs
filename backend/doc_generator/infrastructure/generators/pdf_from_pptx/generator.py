@@ -36,28 +36,26 @@ class PDFFromPPTXGenerator:
     def _check_libreoffice(self) -> bool:
         """Check if LibreOffice is available for conversion."""
         # Check for libreoffice or soffice command
-        for cmd in [
+        lo_paths = [
             "libreoffice",
             "soffice",
-            "/Applications/LibreOffice.app/Contents/MacOS/soffice",
-        ]:
-            if shutil.which(cmd):
-                logger.debug(f"Found LibreOffice: {cmd}")
-                return True
-
-        # On macOS, check for the app bundle
-        mac_paths = [
-            "/Applications/LibreOffice.app/Contents/MacOS/soffice",
-            "/opt/homebrew/bin/soffice",
+            "/usr/bin/libreoffice",  # Linux/Docker path
+            "/usr/bin/soffice",
+            "/Applications/LibreOffice.app/Contents/MacOS/soffice",  # macOS
+            "/opt/homebrew/bin/soffice",  # macOS Homebrew
         ]
-        for path in mac_paths:
-            if Path(path).exists():
-                logger.debug(f"Found LibreOffice: {path}")
+
+        for cmd in lo_paths:
+            if shutil.which(cmd):
+                logger.info(f"LibreOffice found via shutil.which: {cmd}")
+                return True
+            if Path(cmd).exists():
+                logger.info(f"LibreOffice found via path check: {cmd}")
                 return True
 
         logger.warning(
             "LibreOffice not found. Install LibreOffice for high-quality PPTX to PDF conversion. "
-            "Falling back to basic PDF generation."
+            "Falling back to Python-based PDF generation."
         )
         return False
 
@@ -181,21 +179,88 @@ class PDFFromPPTXGenerator:
             logger.error(f"LibreOffice conversion error: {e}")
             return False
 
+    def _extract_slides_from_pptx(self, pptx_path: Path) -> list[dict]:
+        """
+        Extract slide content from an existing PPTX file.
+
+        Args:
+            pptx_path: Path to the PPTX file
+
+        Returns:
+            List of slide dictionaries with 'title' and 'content' keys
+        """
+        from pptx import Presentation
+        from pptx.util import Inches
+
+        slides_data = []
+
+        try:
+            prs = Presentation(str(pptx_path))
+
+            for slide_idx, slide in enumerate(prs.slides):
+                slide_info = {
+                    "title": "",
+                    "content": [],
+                    "is_title_slide": slide_idx == 0,
+                }
+
+                for shape in slide.shapes:
+                    if shape.has_text_frame:
+                        text_frame = shape.text_frame
+
+                        # Check if this is likely the title (usually first or has title placeholder)
+                        is_title = False
+                        if (
+                            hasattr(shape, "placeholder_format")
+                            and shape.placeholder_format is not None
+                        ):
+                            from pptx.enum.shapes import PP_PLACEHOLDER
+
+                            ph_type = shape.placeholder_format.type
+                            if ph_type in [
+                                PP_PLACEHOLDER.TITLE,
+                                PP_PLACEHOLDER.CENTER_TITLE,
+                            ]:
+                                is_title = True
+
+                        # Extract text from all paragraphs
+                        for para in text_frame.paragraphs:
+                            text = para.text.strip()
+                            if not text:
+                                continue
+
+                            if is_title and not slide_info["title"]:
+                                slide_info["title"] = text
+                            else:
+                                # Check if it looks like a bullet point
+                                slide_info["content"].append(text)
+
+                # Only add slides that have content
+                if slide_info["title"] or slide_info["content"]:
+                    slides_data.append(slide_info)
+
+            logger.info(f"Extracted {len(slides_data)} slides from PPTX")
+            return slides_data
+
+        except Exception as e:
+            logger.error(f"Failed to extract slides from PPTX: {e}")
+            return []
+
     def _generate_fallback_pdf(
         self, content: dict, metadata: dict, output_dir: Path, pptx_path: Path
     ) -> str:
         """
-        Generate a PDF from structured content using slide-based layout.
+        Generate a PDF from the PPTX file's actual slide content.
 
         This is a fallback when LibreOffice is not available.
-        Creates a presentation-style PDF directly from the content with
-        proper markdown rendering and slide-like visual styling.
+        IMPORTANT: Extracts content from the actual PPTX file (not markdown)
+        to ensure the PDF mirrors the PPTX exactly.
 
         Args:
-            content: Structured content dictionary
+            content: Structured content dictionary (used as fallback)
             metadata: Document metadata
             output_dir: Output directory
-            pptx_path: Path to the generated PPTX (for reference)
+            pptx_path: Path to the generated PPTX file
 
         Returns:
             Path to generated PDF
@@ -447,8 +512,46 @@ class PDFFromPPTXGenerator:
             elements.append(PageBreak())
             return elements
 
-        if slides_data:
-            # Use LLM-generated slides structure
+        # === Content Slides ===
+        # CRITICAL: First try to extract slides from the actual PPTX file
+        # to ensure PDF mirrors the PPTX content exactly
+        pptx_slides = self._extract_slides_from_pptx(pptx_path)
+
+        if pptx_slides:
+            logger.info(f"Using {len(pptx_slides)} slides extracted from PPTX")
+            # Skip the first slide if it's a title slide (already rendered above)
+            slides_to_render = (
+                pptx_slides[1:]
+                if pptx_slides and pptx_slides[0].get("is_title_slide")
+                else pptx_slides
+            )
+
+            for slide in slides_to_render:
+                slide_title = slide.get("title", "Slide")
+                content_list = slide.get("content", [])
+
+                content_elements = []
+                for text in content_list:
+                    # Check if it's already a bullet or just text
+                    if (
+                        text.startswith("•")
+                        or text.startswith("-")
+                        or text.startswith("*")
+                    ):
+                        bullet_text = text.lstrip("•-* ").strip()
+                        content_elements.append(
+                            Paragraph(f"• {inline_md(bullet_text)}", bullet_style)
+                        )
+                    else:
+                        # Regular content becomes a bullet
+                        content_elements.append(
+                            Paragraph(f"• {inline_md(text)}", bullet_style)
+                        )
+
+                story.extend(create_slide_frame(slide_title, content_elements))
+        elif slides_data:
+            # Fallback: Use LLM-generated slides structure from content dict
+            logger.info("Using slides from content dict")
             for slide in slides_data:
                 slide_title = slide.get("title", "")
                 bullets = slide.get("bullets", [])
@@ -461,7 +564,8 @@ class PDFFromPPTXGenerator:
 
                 story.extend(create_slide_frame(slide_title, content_elements))
         else:
-            # Parse markdown content for slides
+            # Last resort: Parse markdown content for slides
+            logger.info("Parsing markdown for slides (last resort)")
             self._add_slides_from_markdown_v2(
                 story,
                 markdown_content,
@@ -615,64 +719,5 @@ class PDFFromPPTXGenerator:
             if current_paragraph:
                 text = " ".join(current_paragraph)
                 story.append(Paragraph(inline_md(text), body_style))
-
-            story.append(PageBreak())
-
-    def _add_slides_from_markdown(
-        self, story: list, markdown_content: str, title_style, bullet_style
-    ) -> None:
-        """
-        Legacy method - redirects to v2 implementation.
-        Kept for backwards compatibility.
-        """
-        # This method is now superseded by _add_slides_from_markdown_v2
-        # but kept in case old code calls it
-        import re
-        import html
-        from reportlab.platypus import Spacer, Paragraph, PageBreak
-        from reportlab.lib.units import inch
-
-        def inline_md(text: str) -> str:
-            if not text:
-                return ""
-            parts = re.split(r"(`[^`]+`)", text)
-            rendered = []
-            for part in parts:
-                if part.startswith("`") and part.endswith("`") and len(part) >= 2:
-                    code = html.escape(part[1:-1])
-                    rendered.append(f"<font face='Courier'>{code}</font>")
-                    continue
-                safe = html.escape(part)
-                safe = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", safe)
-                safe = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", safe)
-                rendered.append(safe)
-            return "".join(rendered)
-
-        # Split content by H2 headings
-        sections = re.split(r"^##\s+", markdown_content, flags=re.MULTILINE)
-
-        for section in sections[1:]:
-            lines = section.strip().split("\n")
-            if not lines:
-                continue
-
-            slide_title = lines[0].strip()
-            story.append(Spacer(1, 0.3 * inch))
-            story.append(Paragraph(inline_md(slide_title), title_style))
-            story.append(Spacer(1, 0.3 * inch))
-
-            for line in lines[1:]:
-                line = line.strip()
-                if not line:
-                    continue
-
-                if line.startswith("- ") or line.startswith("* "):
-                    bullet_text = line[2:]
-                    story.append(Paragraph(f"• {inline_md(bullet_text)}", bullet_style))
-                elif line.startswith("• "):
-                    bullet_text = line[2:]
-                    story.append(Paragraph(f"• {inline_md(bullet_text)}", bullet_style))
-                elif not line.startswith("#"):
-                    story.append(Paragraph(f"• {inline_md(line)}", bullet_style))
 
             story.append(PageBreak())
