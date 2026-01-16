@@ -10,7 +10,7 @@
 
 ```bash
 # Using make
-make setup-docgen
+make setup-prismdocs
 
 # Or manually
 uv pip install -e ".[dev]"
@@ -88,21 +88,21 @@ make help
 
 | Command | What It Does | Output |
 |---------|--------------|--------|
-| `make setup-docgen` | Install dependencies | - |
-| `make run-docgen` | Run main application | PDF/PPTX |
+| `make setup-prismdocs` | Install dependencies | - |
+| `make run-prismdocs` | Run main application | PDF/PPTX |
 | `make process-folder FOLDER=<name>` | Process folder | PDF + PPTX |
 | `make batch-topics` | Process all folders | Multiple PDFs + PPTXs |
 | `make list-topics` | List available folders | List |
-| `make test-docgen` | Run tests | Test results |
-| `make lint-docgen` | Format + lint code | - |
-| `make clean-docgen` | Clean outputs | - |
+| `make test-prismdocs` | Run tests | Test results |
+| `make lint-prismdocs` | Format + lint code | - |
+| `make clean-prismdocs` | Clean outputs | - |
 | `make help` | Show all commands | Command list |
 
 ### Common Scenarios
 
 **First Time Setup:**
 ```bash
-make setup-docgen                     # Install dependencies
+make setup-prismdocs                     # Install dependencies
 make process-folder FOLDER=llm-architectures  # Generate everything
 ```
 
@@ -120,9 +120,9 @@ make batch-topics                     # Process all folders
 
 **Maintenance:**
 ```bash
-make clean-docgen   # Clean all generated files
-make test-docgen    # Run tests
-make lint-docgen    # Format and lint
+make clean-prismdocs   # Clean all generated files
+make test-prismdocs    # Run tests
+make lint-prismdocs    # Format and lint
 ```
 
 ---
@@ -240,12 +240,12 @@ docker-compose up --build
 
 Backend API image (for deployments like Render):
 ```bash
-docker build -t doc-generator-backend:latest -f backend/Dockerfile backend
+docker build -t prismdocs-backend:latest -f backend/Dockerfile backend
 docker run --rm \
   -p 8000:8000 \
   -e PORT=8000 \
   -v $(pwd)/backend/data:/app/data \
-  doc-generator-backend:latest
+  prismdocs-backend:latest
 ```
 
 ---
@@ -362,7 +362,7 @@ GEMINI_API_KEY=...
 **2. Module Not Found**
 ```bash
 # Reinstall dependencies
-make setup-docgen
+make setup-prismdocs
 ```
 
 **3. Permission Errors**
@@ -374,7 +374,7 @@ chmod +x run.sh
 **4. No Output Generated**
 ```bash
 # Check logs for errors
-make run-docgen INPUT=your-file.pdf OUTPUT=pdf
+make run-prismdocs INPUT=your-file.pdf OUTPUT=pdf
 
 # Enable verbose logging
 export DOC_GENERATOR_LOGGING__LEVEL="DEBUG"
@@ -390,7 +390,7 @@ make help
 make list-topics
 
 # Test your setup
-make test-docgen
+make test-prismdocs
 ```
 
 ---
@@ -400,8 +400,8 @@ make test-docgen
 1. **Use folder processing** for multiple related files
 2. **Keep images** in `backend/data/output/images/` between runs
 3. **Check `make help`** for all available commands
-4. **Use `make lint-docgen`** before committing code
-5. **Run `make test-docgen`** to verify everything works
+4. **Use `make lint-prismdocs`** before committing code
+5. **Run `make test-prismdocs`** to verify everything works
 
 ---
 
@@ -417,7 +417,7 @@ For issues or questions:
 
 ## Summary
 
-✅ **Install:** `make setup-docgen`  
+✅ **Install:** `make setup-prismdocs`  
 ✅ **Configure:** Add API keys to `.env`  
 ✅ **Process folder:** `make process-folder FOLDER=<name>`  
 ✅ **Process all:** `make batch-topics`  

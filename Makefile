@@ -4,7 +4,7 @@
 VENV_PYTHON := .venv/bin/python
 PYTHON := $(shell if [ -f $(VENV_PYTHON) ]; then echo $(VENV_PYTHON); elif command -v python3 >/dev/null 2>&1; then echo python3; else echo python; fi)
 
-.PHONY: setup-docgen test-docgen lint-docgen run-docgen docker-build docker-run docker-compose-up clean-docgen clean-venv help-docgen run-api run-api-prod
+.PHONY: setup-prismdocs test-prismdocs lint-prismdocs run-prismdocs docker-build docker-run docker-compose-up clean-prismdocs clean-venv help-prismdocs run-api run-api-prod
 .PHONY: process-folder process-folder-fast batch-topics batch-topics-fast quick-pdf clear-cache clear-images list-topics help check-python check-deps
 .DEFAULT_GOAL := help
 
@@ -13,9 +13,9 @@ PYTHON := $(shell if [ -f $(VENV_PYTHON) ]; then echo $(VENV_PYTHON); elif comma
 # ============================================================================
 
 help:  ## Show all available commands (default)
-	@$(MAKE) help-docgen
+	@$(MAKE) help-prismdocs
 
-help-docgen:  ## Show all available document generator commands
+help-prismdocs:  ## Show all available document generator commands
 	@echo "📄 Document Generator - Available Commands"
 	@echo ""
 	@echo "🚀 Quick Start:"
@@ -40,11 +40,11 @@ help-docgen:  ## Show all available document generator commands
 	@echo "  Example: make quick-pdf INPUT=backend/data/llm-architectures/slides.pdf"
 	@echo ""
 	@echo "📝 Single File Processing:"
-	@echo "  make run-docgen INPUT=<file> OUTPUT=<pdf|pptx>"
+	@echo "  make run-prismdocs INPUT=<file> OUTPUT=<pdf|pptx>"
 	@echo "  bash run.sh <file>                          # Generate both PDF and PPTX"
 	@echo ""
 	@echo "⚙️  Setup & Configuration:"
-	@echo "  make setup-docgen                           # Install all dependencies (REQUIRED FIRST!)"
+	@echo "  make setup-prismdocs                           # Install all dependencies (REQUIRED FIRST!)"
 	@echo "  make check-python                           # Check Python interpreter"
 	@echo "  make check-deps                             # Check if dependencies installed"
 	@echo "  Create .env file with:                      # ANTHROPIC_API_KEY or OPENAI_API_KEY"
@@ -54,9 +54,9 @@ help-docgen:  ## Show all available document generator commands
 	@echo "  make docker-run INPUT=<file> OUTPUT=<format>"
 	@echo ""
 	@echo "🧹 Maintenance:"
-	@echo "  make test-docgen                            # Run tests"
-	@echo "  make lint-docgen                            # Lint and type check"
-	@echo "  make clean-docgen                           # Clean generated files"
+	@echo "  make test-prismdocs                            # Run tests"
+	@echo "  make lint-prismdocs                            # Lint and type check"
+	@echo "  make clean-prismdocs                           # Clean generated files"
 	@echo "  make clean-venv                             # Remove virtual environment"
 	@echo "  make clear-cache                            # Clear content cache"
 	@echo "  make clear-images                           # Clear generated images"
@@ -68,7 +68,7 @@ help-docgen:  ## Show all available document generator commands
 	@echo "  README.md                                   # Full documentation"
 	@echo ""
 
-setup-docgen:  ## Setup document generator environment (local development)
+setup-prismdocs:  ## Setup document generator environment (local development)
 	@echo "Setting up document generator..."
 	@if [ ! -f .venv/bin/pip ]; then \
 		echo "Creating virtual environment..."; \
@@ -92,32 +92,32 @@ check-python:  ## Check which Python interpreter will be used
 
 check-deps:  ## Check if dependencies are installed
 	@echo "Checking dependencies..."
-	@$(PYTHON) -c "import loguru; print('✅ loguru installed')" 2>/dev/null || (echo "❌ loguru not installed"; echo "Run: make setup-docgen"; exit 1)
+	@$(PYTHON) -c "import loguru; print('✅ loguru installed')" 2>/dev/null || (echo "❌ loguru not installed"; echo "Run: make setup-prismdocs"; exit 1)
 	@$(PYTHON) -c "import anthropic; print('✅ anthropic installed')" 2>/dev/null || echo "⚠️  anthropic not installed (optional)"
 	@$(PYTHON) -c "import reportlab; print('✅ reportlab installed')" 2>/dev/null || (echo "❌ reportlab not installed"; exit 1)
 	@echo "✅ Core dependencies installed!"
 
-test-docgen:  ## Run document generator tests
+test-prismdocs:  ## Run document generator tests
 	@echo "Running tests..."
 	@pytest tests/ -v --cov=backend/doc_generator --cov-report=term-missing
 
-lint-docgen:  ## Lint and type check document generator code
+lint-prismdocs:  ## Lint and type check document generator code
 	@echo "Linting code..."
 	@ruff check backend/doc_generator
 	@echo "Type checking..."
 	@mypy backend/doc_generator
 
-run-docgen:  ## Run document generator (make run-docgen INPUT=file.md OUTPUT=pdf)
+run-prismdocs:  ## Run document generator (make run-prismdocs INPUT=file.md OUTPUT=pdf)
 	@if [ -z "$(INPUT)" ]; then \
-		echo "Usage: make run-docgen INPUT=<file> OUTPUT=<pdf|pptx>"; \
-		echo "Example: make run-docgen INPUT=backend/data/sample.md OUTPUT=pdf"; \
+		echo "Usage: make run-prismdocs INPUT=<file> OUTPUT=<pdf|pptx>"; \
+		echo "Example: make run-prismdocs INPUT=backend/data/sample.md OUTPUT=pdf"; \
 		exit 1; \
 	fi
 	@$(PYTHON) scripts/run_generator.py $(INPUT) --output $(or $(OUTPUT),pdf)
 
 docker-build:  ## Build Docker image for document generator
 	@echo "Building Docker image..."
-	@docker build -t doc-generator:latest .
+	@docker build -t prismdocs:latest .
 	@echo "✅ Docker image built successfully"
 
 docker-run:  ## Run in Docker (make docker-run INPUT=backend/data/file.md OUTPUT=pdf)
@@ -129,7 +129,7 @@ docker-run:  ## Run in Docker (make docker-run INPUT=backend/data/file.md OUTPUT
 	@docker run --rm \
 		-v $(PWD)/backend/data:/app/backend/data \
 		-v $(PWD)/backend/output:/app/backend/output \
-		doc-generator:latest $(INPUT) --output $(or $(OUTPUT),pdf)
+		prismdocs:latest $(INPUT) --output $(or $(OUTPUT),pdf)
 
 docker-compose-up:  ## Run with docker-compose
 	@echo "Starting docker-compose..."
@@ -309,7 +309,7 @@ llm-arch-full:  ## Shortcut: Process llm-architectures folder (full, with image 
 # Cleanup
 # ============================================================================
 
-clean-docgen:  ## Clean document generator files and caches
+clean-prismdocs:  ## Clean document generator files and caches
 	@echo "Cleaning generated files..."
 	@rm -rf backend/output/*
 	@rm -rf **/__pycache__
@@ -321,14 +321,14 @@ clean-docgen:  ## Clean document generator files and caches
 
 clean-venv:  ## Remove virtual environment (run this if you have venv issues)
 	@echo "⚠️  WARNING: This will delete the virtual environment (.venv/)"
-	@echo "You will need to run 'make setup-docgen' again after this."
+	@echo "You will need to run 'make setup-prismdocs' again after this."
 	@read -p "Continue? (y/N): " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		echo "Removing .venv/..."; \
 		rm -rf .venv; \
 		echo "✅ Virtual environment removed"; \
-		echo "Run 'make setup-docgen' to recreate it"; \
+		echo "Run 'make setup-prismdocs' to recreate it"; \
 	else \
 		echo "❌ Cancelled"; \
 	fi

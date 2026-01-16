@@ -140,11 +140,11 @@
           font-weight="800"
           fill="url(#title-gradient)"
           letter-spacing="-2">
-      DocGen
+      PrismDocs
     </text>
 
     <!-- Animated accent underline -->
-    <rect x="0" y="122" width="190" height="4" rx="2" fill="url(#accent-gradient)" filter="url(#glow)"/>
+    <rect x="0" y="122" width="280" height="4" rx="2" fill="url(#accent-gradient)" filter="url(#glow)"/>
 
     <!-- Subtitle -->
     <text x="0" y="162"

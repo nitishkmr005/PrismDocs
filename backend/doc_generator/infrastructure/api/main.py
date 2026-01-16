@@ -41,15 +41,15 @@ def _init_heavy_routes(app: FastAPI) -> None:
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown."""
     # Startup: only log that we're ready (no heavy imports here)
-    print("==> DocGen API ready to receive requests", flush=True)
+    print("==> PrismDocs API ready to receive requests", flush=True)
     yield
     # Shutdown
-    print("==> DocGen API shutting down", flush=True)
+    print("==> PrismDocs API shutting down", flush=True)
 
 
 app = FastAPI(
-    title="Document Generator API",
-    description="Generate PDF and PPTX documents from multiple sources",
+    title="PrismDocs API",
+    description="Generate PDF and PPTX documents from multiple sources with PrismDocs",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -68,7 +68,7 @@ app.add_middleware(
 @app.get("/api/health", tags=["health"])
 async def health_check():
     """Health check endpoint for load balancers and monitoring."""
-    return {"status": "healthy", "service": "doc-generator"}
+    return {"status": "healthy", "service": "prismdocs"}
 
 
 # Middleware to initialize heavy routes on first non-health request

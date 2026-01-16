@@ -1,5 +1,5 @@
 [project]
-name = "doc-generator"
+name = "prismdocs"
 version = "0.1.0"
 description = "LangGraph-based document generator for PDF and PPTX (Pure Python)"
 readme = "README.md"

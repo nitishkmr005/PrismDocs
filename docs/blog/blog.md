@@ -1106,7 +1106,7 @@ The system is open-source and production-ready:
 git clone https://github.com/your-org/document-generator
 
 # Install dependencies
-make setup-docgen
+make setup-prismdocs
 
 # Generate your first document
 python scripts/run_generator.py input.pdf --output pdf
@@ -1125,7 +1125,7 @@ python scripts/run_generator.py input.pdf --output pdf
 
 This system was built by a team passionate about making professional content creation accessible to everyone. We believe that great ideas shouldn't be held back by formatting challenges.
 
-**Questions? Feedback?** Open an issue on GitHub or reach out on Twitter [@docgenerator](https://twitter.com/docgenerator).
+**Questions? Feedback?** Open an issue on GitHub or reach out on Twitter [@prismdocs](https://twitter.com/prismdocs).
 
 ---
 

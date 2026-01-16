@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/banner.svg" alt="DocGen - AI-Powered Document Generation Toolkit" width="100%"/>
+<img src=".github/banner.svg" alt="PrismDocs - AI-Powered Document Generation Toolkit" width="100%"/>
 
 <br/>
 
@@ -38,7 +38,7 @@
 ## 📋 Table of Contents
 
 - [✨ Use Cases by Role](#-use-cases-by-role)
-- [🎯 What DocGen Does](#-what-docgen-does)
+- [🎯 What PrismDocs Does](#-what-prismdocs-does)
 - [🏗️ Architecture](#️-architecture)
 - [🚀 Quick Start](#-quick-start)
 - [📡 API Usage](#-api-usage)
@@ -50,7 +50,7 @@
 
 ## ✨ Use Cases by Role
 
-**DocGen adapts to your workflow, no matter your role.**
+**PrismDocs adapts to your workflow, no matter your role.**
 
 <table>
 <tr>
@@ -159,13 +159,13 @@
 
 ---
 
-## 🎯 What DocGen Does
+## 🎯 What PrismDocs Does
 
 <div align="center">
 
 ### 🌐 Web Application
 
-<img src=".github/webapp-screenshot.png" alt="DocGen Web Application" width="90%" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"/>
+<img src=".github/webapp-screenshot.png" alt="PrismDocs Web Application" width="90%" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"/>
 
 <br/>
 <br/>
@@ -217,7 +217,7 @@
 | **PPTX Generation**     | python-pptx 1.0.2             | PowerPoint presentations with 16:9 layouts                    |
 | **Architecture**        | Clean Architecture            | Domain/Application/Infrastructure layers (zero circular deps) |
 
-### Two Ways to Use DocGen
+### Two Ways to Use PrismDocs
 
 | Method                | Status           | Best For                                 |
 | --------------------- | ---------------- | ---------------------------------------- |
@@ -226,9 +226,9 @@
 
 ```python
 # Coming Soon: Python Package
-pip install docgen
+pip install prismdocs
 
-from docgen import Generator
+from prismdocs import Generator
 
 generator = Generator(api_key="your-api-key")
 result = generator.create(
@@ -284,7 +284,7 @@ Ingest and normalize content from diverse sources with intelligent extraction:
 
 ## 🏗️ Architecture
 
-DocGen follows **Hybrid Clean Architecture** for maintainability, testability, and extensibility.
+PrismDocs follows **Hybrid Clean Architecture** for maintainability, testability, and extensibility.
 
 ### Clean Architecture Layers
 
@@ -359,8 +359,8 @@ graph LR
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/docgen.git
-cd docgen
+git clone https://github.com/your-org/prismdocs.git
+cd prismdocs
 
 # Start backend + frontend
 docker-compose up --build
@@ -376,9 +376,9 @@ docker-compose up --build
 ### Option 2: Python Package (Coming Soon) 🐍
 
 ```python
-pip install docgen
+pip install prismdocs
 
-from docgen import Generator
+from prismdocs import Generator
 
 # Initialize with your API key
 generator = Generator(api_key="your-claude-key")
@@ -404,7 +404,7 @@ cp .env.example .env
 # Edit .env and add your ANTHROPIC_API_KEY or OPENAI_API_KEY
 
 # Run generation
-make run-docgen INPUT=sample.md OUTPUT=pdf
+make run-prismdocs INPUT=sample.md OUTPUT=pdf
 
 # Start FastAPI backend
 cd backend
@@ -443,14 +443,14 @@ OPENAI_API_KEY=your_openai_key
 GOOGLE_API_KEY=your_gemini_key
 
 # Optional: Database (coming soon)
-DATABASE_URL=postgresql://user:pass@localhost/docgen
+DATABASE_URL=postgresql://user:pass@localhost/prismdocs
 ```
 
 ---
 
 ## 📡 API Usage
 
-DocGen exposes a FastAPI backend for programmatic document generation.
+PrismDocs exposes a FastAPI backend for programmatic document generation.
 
 ### Authentication (Coming Soon)
 
@@ -526,7 +526,7 @@ data: {"download_url": "/api/download/f_abc/pdf/output.pdf", "file_path": "f_abc
 
 ## 🗺️ Roadmap
 
-DocGen is under active development with ambitious plans for new capabilities. Our vision is to become the **go-to toolkit for AI-powered document generation** across all industries and use cases.
+PrismDocs is under active development with ambitious plans for new capabilities. Our vision is to become the **go-to toolkit for AI-powered document generation** across all industries and use cases.
 
 ### Development Timeline
 
@@ -627,7 +627,7 @@ Legend: ✅ Complete  ⏳ In Progress  📋 Planned
 
 **Distribution:**
 
-- 📋 **PyPI package** - `pip install docgen` with CLI
+- 📋 **PyPI package** - `pip install prismdocs` with CLI
 - 📋 **Docker Hub** - Pre-built images for all platforms
 - 📋 **npm package** - JavaScript/TypeScript SDK
 - 📋 **GitHub Action** - CI/CD integration
@@ -650,8 +650,8 @@ Legend: ✅ Complete  ⏳ In Progress  📋 Planned
 
 ```bash
 # Clone and install
-git clone https://github.com/your-org/docgen.git
-cd docgen
+git clone https://github.com/your-org/prismdocs.git
+cd prismdocs
 make setup
 
 # Or manually with uv
@@ -693,7 +693,7 @@ make help        # Show all commands
 ### Project Structure
 
 ```
-docgen/
+prismdocs/
 ├── backend/
 │   ├── Dockerfile                    # FastAPI backend container
 │   ├── config/settings.yaml          # Configuration
@@ -798,15 +798,15 @@ chmod 755 backend/data/output
 
 ### Getting Help
 
-- **Issues:** [GitHub Issues](https://github.com/your-org/docgen/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/your-org/docgen/discussions)
+- **Issues:** [GitHub Issues](https://github.com/your-org/prismdocs/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/your-org/prismdocs/discussions)
 - **Documentation:** See `docs/` for architecture and guides
 
 ---
 
 ## 🙏 Acknowledgments
 
-DocGen is built on the shoulders of giants:
+PrismDocs is built on the shoulders of giants:
 
 | Project                                                    | Creator          | Purpose                                                |
 | ---------------------------------------------------------- | ---------------- | ------------------------------------------------------ |
@@ -837,9 +837,9 @@ MIT License - See [LICENSE](LICENSE) file for details.
 
 <br/>
 
-[![GitHub stars](https://img.shields.io/github/stars/your-org/docgen?style=for-the-badge&logo=github&color=06d6a0)](https://github.com/your-org/docgen/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/your-org/docgen?style=for-the-badge&logo=github&color=00b4d8)](https://github.com/your-org/docgen/network/members)
-[![GitHub watchers](https://img.shields.io/github/watchers/your-org/docgen?style=for-the-badge&logo=github&color=7c3aed)](https://github.com/your-org/docgen/watchers)
+[![GitHub stars](https://img.shields.io/github/stars/your-org/prismdocs?style=for-the-badge&logo=github&color=06d6a0)](https://github.com/your-org/prismdocs/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/your-org/prismdocs?style=for-the-badge&logo=github&color=00b4d8)](https://github.com/your-org/prismdocs/network/members)
+[![GitHub watchers](https://img.shields.io/github/watchers/your-org/prismdocs?style=for-the-badge&logo=github&color=7c3aed)](https://github.com/your-org/prismdocs/watchers)
 
 <br/>
 
