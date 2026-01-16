@@ -31,7 +31,7 @@ export function Footer() {
           © 2026 PrismDocs. Open source document generation.
         </p>
         <p className="text-xs text-muted-foreground/60 mt-1">
-          Made with ❤️ by{" "}
+          Designed & Built by{" "}
           <Link
             href="https://github.com/nitishkmr005"
             target="_blank"

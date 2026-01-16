@@ -21,6 +21,10 @@
 
 <br/>
 
+### 🌐 [Try PrismDocs Live →](https://prism-docs-pink.vercel.app/generate)
+
+<br/>
+
 **Built on** `LangGraph` • `Docling` • `Claude` • `Gemini` • `OpenAI` **| Clean Architecture | Type-Safe | Extensible**
 
 <p align="center">
@@ -560,6 +564,18 @@ PrismDocs is under active development with ambitious plans for new capabilities.
 
 Legend: ✅ Complete  ⏳ In Progress  📋 Planned
 ```
+
+### 🔜 Coming Soon Highlights
+
+| Feature                       | Description                                                         | Status         |
+| ----------------------------- | ------------------------------------------------------------------- | -------------- |
+| 🎙️ **Podcast MP3 Generation** | Convert documents to multi-voice podcasts with ElevenLabs/Azure TTS | 🚧 In Progress |
+| 🧠 **Mind Maps**              | Auto-generate visual concept hierarchies from documents             | 📋 Planned     |
+| 📋 **Template Library**       | 50+ pre-built templates (resumes, arXiv papers, pitch decks)        | 📋 Planned     |
+| 👁️ **Real-time Preview**      | See your document as it generates                                   | 📋 Planned     |
+| 🔐 **API Key Vault**          | Securely store and manage multiple LLM provider keys                | 📋 Planned     |
+| 📦 **PyPI Package**           | `pip install prismdocs` for programmatic access                     | 📋 Planned     |
+| 🏢 **Enterprise Features**    | SSO, team workspaces, usage analytics                               | 📋 Planned     |
 
 ### 🎯 Feature Categories
 

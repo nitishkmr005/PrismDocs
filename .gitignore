@@ -23,3 +23,8 @@ __pycache__/
 # Output files
 # src/output/
 .vercel
+.agent
+.claude
+.codex
+.cursor
+dev
