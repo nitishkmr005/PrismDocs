@@ -21,6 +21,7 @@ export interface GenerateOptions {
   request: GenerateRequest;
   apiKey: string;
   imageApiKey?: string;
+  userId?: string; // For authenticated user tracking
   onEvent?: (event: GenerationEvent) => void;
   onError?: (error: Error) => void;
   signal?: AbortSignal;
@@ -29,7 +30,7 @@ export interface GenerateOptions {
 export async function generateDocument(
   options: GenerateOptions
 ): Promise<GenerationEvent> {
-  const { request, apiKey, imageApiKey, onEvent, onError, signal } = options;
+  const { request, apiKey, imageApiKey, userId, onEvent, onError, signal } = options;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -39,6 +40,10 @@ export async function generateDocument(
 
   if (imageApiKey) {
     headers["X-Image-Key"] = imageApiKey;
+  }
+
+  if (userId) {
+    headers["X-User-Id"] = userId;
   }
 
   const response = await fetch(getApiUrl(API_CONFIG.endpoints.generate), {

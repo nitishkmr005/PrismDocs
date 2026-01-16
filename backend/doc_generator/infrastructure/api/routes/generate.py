@@ -48,6 +48,7 @@ async def event_generator(
     image_api_key: str,
     generation_service: GenerationService,
     cache_service: CacheService,
+    user_id: str | None = None,
 ) -> AsyncIterator[dict]:
     """Generate SSE events for document creation.
 
@@ -56,21 +57,28 @@ async def event_generator(
         api_key: API key for LLM provider
         generation_service: Generation service
         cache_service: Cache service
+        user_id: Optional user ID for authenticated logging
 
     Yields:
         SSE event dicts
     Invoked by: src/doc_generator/infrastructure/api/routes/generate.py
     """
     from loguru import logger
-    
-    logger.info(f"Starting generation for {len(request.sources)} sources, cache.reuse={request.cache.reuse}")
-    
+
+    logger.info(
+        f"Starting generation for {len(request.sources)} sources, cache.reuse={request.cache.reuse}"
+    )
+
     # Check cache first if reuse enabled
     if request.cache.reuse:
         cached = cache_service.get(request)
         if cached:
-            logger.info(f"Cache hit! Returning cached result from {cached.get('created_at')}")
-            cached_download_url = cached.get("download_url") or cached.get("output_path", "")
+            logger.info(
+                f"Cache hit! Returning cached result from {cached.get('created_at')}"
+            )
+            cached_download_url = cached.get("download_url") or cached.get(
+                "output_path", ""
+            )
             cached_file_path = cached.get("file_path", "")
             if not cached_file_path and cached_download_url:
                 if "/api/download/" in cached_download_url:
@@ -81,7 +89,9 @@ async def event_generator(
                     if cached_path.is_absolute():
                         try:
                             cached_file_path = str(
-                                cached_path.relative_to(generation_service.storage.base_output_dir)
+                                cached_path.relative_to(
+                                    generation_service.storage.base_output_dir
+                                )
                             )
                         except ValueError:
                             cached_file_path = cached_path.name
@@ -89,9 +99,13 @@ async def event_generator(
                         cached_file_path = str(cached_path)
 
             if cached_file_path:
-                cached_output_path = generation_service.storage.base_output_dir / cached_file_path
+                cached_output_path = (
+                    generation_service.storage.base_output_dir / cached_file_path
+                )
                 # StorageService.get_download_url: normalize cached output into a download link.
-                download_url = generation_service.storage.get_download_url(cached_output_path)
+                download_url = generation_service.storage.get_download_url(
+                    cached_output_path
+                )
             else:
                 download_url = cached_download_url
 
@@ -113,6 +127,7 @@ async def event_generator(
         request=request,
         api_key=api_key,
         image_api_key=image_api_key,
+        user_id=user_id,
     ):
         logger.debug(f"Yielding event: {type(event).__name__}")
         yield {"data": event.model_dump_json()}
@@ -158,9 +173,11 @@ async def generate_document(
     Invoked by: (no references found)
     """
     from loguru import logger
-    
-    logger.info(f"=== Generate endpoint called: provider={request.provider}, format={request.output_format} ===")
-    
+
+    logger.info(
+        f"=== Generate endpoint called: provider={request.provider}, format={request.output_format} ==="
+    )
+
     # Validate API key for provider
     api_key = get_api_key_for_provider(request.provider, api_keys)
     image_api_key = api_keys.image or api_key
@@ -176,5 +193,6 @@ async def generate_document(
             image_api_key=image_api_key,
             generation_service=generation_service,
             cache_service=cache_service,
+            user_id=api_keys.user_id,
         )
     )

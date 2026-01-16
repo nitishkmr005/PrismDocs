@@ -57,6 +57,7 @@ class GenerationService:
         request: GenerateRequest,
         api_key: str,
         image_api_key: str | None = None,
+        user_id: str | None = None,
     ) -> AsyncIterator[ProgressEvent | CompleteEvent | ErrorEvent]:
         """Generate document with progress streaming.
 
@@ -64,14 +65,19 @@ class GenerationService:
             request: Generation request
             api_key: API key for LLM provider
             image_api_key: API key for image generation (falls back to api_key)
+            user_id: Optional user ID for authenticated logging
 
         Yields:
             Progress events, then completion or error event
         Invoked by: scripts/generate_from_folder.py, src/doc_generator/application/nodes/generate_output.py, src/doc_generator/application/workflow/nodes/generate_output.py, src/doc_generator/infrastructure/api/routes/generate.py, tests/api/test_generation_service.py
         """
         import time
+        from ....infrastructure.supabase.logging_service import get_logging_service
 
         start_time = time.time()
+
+        # Initialize Supabase logging service with user_id for this generation
+        supabase_logger = get_logging_service(user_id=user_id)
 
         try:
             # Log start
@@ -128,6 +134,15 @@ class GenerationService:
                 status=GenerationStatus.TRANSFORMING,
                 progress=25,
                 message="LLM configured",
+            )
+
+            # Log generation started event to Supabase
+            supabase_logger.log_generation_started(
+                input_format="mixed",  # Multiple source types possible
+                output_format=request.output_format.value,
+                source_count=source_count,
+                provider=provider_name,
+                model=request.model,
             )
 
             # Phase 3: Run the actual workflow
@@ -306,6 +321,19 @@ class GenerationService:
                 "✅ Generation Complete",
             )
 
+            # Log generation completed event to Supabase with user stats update
+            supabase_logger.log_generation_completed(
+                output_format=request.output_format.value,
+                output_path=output_path,
+                pages=pages,
+                slides=slides,
+                images_generated=images_generated,
+                duration_seconds=duration,
+                total_llm_calls=0,  # TODO: Get from LLMService.usage_summary()
+                total_image_calls=0,  # TODO: Get from GeminiImageGenerator.usage_summary()
+                total_tokens_used=supabase_logger.get_session_tokens_used(),
+            )
+
             # Complete
             yield CompleteEvent(
                 download_url=download_url,
@@ -321,6 +349,16 @@ class GenerationService:
 
         except Exception as e:
             logger.exception(f"Generation failed: {e}")
+
+            # Log generation failed event to Supabase
+            duration = time.time() - start_time
+            supabase_logger.log_generation_failed(
+                error_message=str(e),
+                error_code="GENERATION_ERROR",
+                output_format=request.output_format.value,
+                duration_seconds=duration,
+            )
+
             yield ErrorEvent(
                 error=str(e),
                 code="GENERATION_ERROR",

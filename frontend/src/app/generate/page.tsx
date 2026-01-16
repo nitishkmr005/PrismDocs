@@ -409,7 +409,7 @@ function ProgressPanel({
 export default function GeneratePage() {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const {
     state,
     progress,
@@ -469,7 +469,8 @@ export default function GeneratePage() {
           },
         },
         contentApiKey,
-        imageApiKey
+        imageApiKey,
+        user?.id // Pass user ID for tracking
       );
     },
     [generate]

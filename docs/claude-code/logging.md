@@ -87,3 +87,65 @@ Include an LLM call summary table when available:
 │ Image Prompt         │ gemini  │ 456/123  │ 1.23s   │ ✅       │
 └──────────────────────┴─────────┴──────────┴─────────┴──────────┘
 ```
+
+## Supabase Logging & User Stats
+
+### User Stats Tracking
+
+The `user_profiles` table tracks per-user statistics:
+
+```sql
+total_documents_generated INTEGER  -- Incremented on each successful generation
+total_tokens_used BIGINT           -- Sum of all tokens (input + output) used
+```
+
+These are automatically updated via the `update_user_stats()` stored function when a generation completes.
+
+### Generation Events
+
+The `app_events` table logs generation lifecycle events:
+
+| Event Type             | Description                       | Data Fields                                                          |
+| ---------------------- | --------------------------------- | -------------------------------------------------------------------- |
+| `generation_started`   | Generation workflow begins        | input_format, output_format, source_count, provider, model           |
+| `generation_completed` | Generation completes successfully | pages, slides, images_generated, duration_seconds, total_tokens_used |
+| `generation_failed`    | Generation encounters an error    | error_message, error_code, output_format, duration_seconds           |
+
+### Usage Example
+
+```python
+from doc_generator.infrastructure.supabase.logging_service import get_logging_service
+
+# Initialize with user_id for authenticated logging
+logger = get_logging_service(user_id="user-uuid")
+
+# Log generation start
+logger.log_generation_started(
+    input_format="markdown",
+    output_format="pdf",
+    source_count=3,
+    provider="gemini",
+    model="gemini-2.5-pro"
+)
+
+# Log generation completion (automatically updates user stats)
+logger.log_generation_completed(
+    output_format="pdf",
+    output_path="/path/to/output.pdf",
+    pages=10,
+    images_generated=5,
+    duration_seconds=45.2,
+    total_llm_calls=8,
+    total_image_calls=5,
+    total_tokens_used=logger.get_session_tokens_used()
+)
+```
+
+### Frontend User ID Passing
+
+The frontend sends `X-User-Id` header with authenticated requests:
+
+```typescript
+// In generate.ts
+headers["X-User-Id"] = userId; // From Supabase auth
+```
