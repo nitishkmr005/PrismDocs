@@ -1,15 +1,15 @@
-# README Redesign for DocGen
+# README Redesign for PrismDocs
 
 ## Date
 2026-01-15
 
 ## Context
-DocGen is a production-grade document generation toolkit that transforms multi-format inputs into polished outputs (PDF, PPTX, Markdown, FAQ docs, podcasts) using AI-powered synthesis. The current README is heavily developer-focused with installation instructions and CLI usage, but doesn't effectively communicate the product vision or serve both end users and developers.
+PrismDocs is a production-grade document generation toolkit that transforms multi-format inputs into polished outputs (PDF, PPTX, Markdown, FAQ docs, podcasts) using AI-powered synthesis. The current README is heavily developer-focused with installation instructions and CLI usage, but doesn't effectively communicate the product vision or serve both end users and developers.
 
 ## Problem
 The existing README:
 - Leads with technical details (architecture, installation) before establishing value
-- Doesn't showcase DocGen's unique capabilities (image generation, LangGraph workflow, multi-LLM support)
+- Doesn't showcase PrismDocs's unique capabilities (image generation, LangGraph workflow, multi-LLM support)
 - Lacks clear pathways for different user types (Python developers vs. UI users)
 - Doesn't communicate the roadmap or future vision
 - Missing use case examples by role (students, content creators, executives)
@@ -40,7 +40,7 @@ The existing README:
 
 **Implementation:**
 ```markdown
-# DocGen
+# PrismDocs
 **Production-grade document generation toolkit built on LangGraph, Docling, and modern LLMs**
 
 [ASCII architecture diagram showing workflow]
@@ -64,13 +64,13 @@ The existing README:
 
 **Implementation:**
 ```markdown
-**Two Ways to Use DocGen:**
-1. Python Package (Coming Soon) - pip install docgen
+**Two Ways to Use PrismDocs:**
+1. Python Package (Coming Soon) - pip install prismdocs
 2. Web UI + API - FastAPI backend + Next.js frontend
 ```
 
 ### 3. Capabilities Before Installation
-**Decision:** Show what DocGen does before how to install it
+**Decision:** Show what PrismDocs does before how to install it
 
 **Rationale:**
 - Developers need to understand value before investing time
@@ -117,7 +117,7 @@ infrastructure/ # External integrations
 **Decision:** Emphasize DX with clear commands, type safety, and contribution guidelines
 
 **Rationale:**
-- DocGen is developer-first, so DX is a feature
+- PrismDocs is developer-first, so DX is a feature
 - Clear Makefile commands reduce friction
 - Type safety and linting show code quality standards
 - Contribution guidelines invite participation
@@ -183,7 +183,7 @@ A successful README should:
 **Remove/minimize:**
 - Redundant "Features" bullet points
 - Overly detailed tech stack table (move to appendix)
-- Generic "what is DocGen" prose
+- Generic "what is PrismDocs" prose
 
 ## Next Steps
 

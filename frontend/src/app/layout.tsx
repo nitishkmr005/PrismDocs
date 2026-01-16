@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DocGen - AI Document Generator",
+  title: "PrismDocs - AI Document Generator",
   description: "Generate professional PDF and PPTX documents from multiple sources using AI",
   keywords: ["document generator", "PDF", "PPTX", "AI", "LLM"],
 };

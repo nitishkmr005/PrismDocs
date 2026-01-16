@@ -1,0 +1,84 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Prism gradient -->
+    <linearGradient id="prism-gradient-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0891b2"/>
+      <stop offset="50%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#c026d3"/>
+    </linearGradient>
+
+    <!-- Document fill for light mode -->
+    <linearGradient id="doc-fill-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#f1f5f9"/>
+    </linearGradient>
+
+    <!-- Output ray gradients -->
+    <linearGradient id="ray-1-l" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06d6a0"/>
+      <stop offset="100%" style="stop-color:#06d6a0;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="ray-2-l" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0891b2"/>
+      <stop offset="100%" style="stop-color:#0891b2;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="ray-3-l" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="ray-4-l" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#c026d3"/>
+      <stop offset="100%" style="stop-color:#c026d3;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="ray-5-l" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e11d48"/>
+      <stop offset="100%" style="stop-color:#e11d48;stop-opacity:0"/>
+    </linearGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow-light" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Document base -->
+  <g transform="translate(6, 8)">
+    <!-- Document shape with folded corner -->
+    <path d="M0 4 C0 1.8 1.8 0 4 0 L24 0 L32 8 L32 44 C32 46.2 30.2 48 28 48 L4 48 C1.8 48 0 46.2 0 44 Z"
+          fill="url(#doc-fill-light)"
+          stroke="url(#prism-gradient-light)"
+          stroke-width="2"/>
+
+    <!-- Folded corner -->
+    <path d="M24 0 L24 8 L32 8"
+          fill="none"
+          stroke="url(#prism-gradient-light)"
+          stroke-width="2"
+          stroke-linejoin="round"/>
+    <path d="M24 0 L24 8 L32 8 Z" fill="#f1f5f9"/>
+
+    <!-- Document lines (content) -->
+    <rect x="6" y="16" width="20" height="2.5" rx="1" fill="#94a3b8"/>
+    <rect x="6" y="22" width="16" height="2.5" rx="1" fill="#94a3b8"/>
+    <rect x="6" y="28" width="18" height="2.5" rx="1" fill="#94a3b8"/>
+
+    <!-- Prism triangle overlay on document -->
+    <path d="M12 34 L22 48 L2 48 Z"
+          fill="url(#prism-gradient-light)"
+          filter="url(#glow-light)"
+          opacity="0.95"/>
+  </g>
+
+  <!-- Refracted output rays -->
+  <g transform="translate(38, 32)" filter="url(#glow-light)">
+    <line x1="0" y1="0" x2="22" y2="-18" stroke="url(#ray-1-l)" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="24" y2="-8" stroke="url(#ray-2-l)" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="24" y2="2" stroke="url(#ray-3-l)" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="24" y2="12" stroke="url(#ray-4-l)" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="20" y2="22" stroke="url(#ray-5-l)" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>

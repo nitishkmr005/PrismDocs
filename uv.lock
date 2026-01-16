@@ -759,7 +759,7 @@ wheels = [
 ]
 
 [[package]]
-name = "doc-generator"
+name = "prismdocs"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

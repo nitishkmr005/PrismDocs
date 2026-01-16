@@ -150,7 +150,7 @@ class WebParserSettings(BaseSettings):
     """Web parser settings."""
 
     timeout: int = 10
-    user_agent: str = "doc-generator/0.1.0"
+    user_agent: str = "prismdocs/0.1.0"
 
 
 class ParserSettings(BaseSettings):

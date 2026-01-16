@@ -8,7 +8,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from ...domain.exceptions import FileNotFoundError as DocGenFileNotFoundError
+from ...domain.exceptions import FileNotFoundError as PrismDocsFileNotFoundError
 
 
 def ensure_directory(directory: Path) -> None:
@@ -38,14 +38,14 @@ def validate_file_exists(file_path: Path) -> None:
         file_path: Path to file
 
     Raises:
-        DocGenFileNotFoundError: If file does not exist
+        PrismDocsFileNotFoundError: If file does not exist
     Invoked by: src/doc_generator/application/parsers/markdown_parser.py, src/doc_generator/infrastructure/parsers/file_system.py
     """
     if not file_path.exists():
-        raise DocGenFileNotFoundError(f"File not found: {file_path}")
+        raise PrismDocsFileNotFoundError(f"File not found: {file_path}")
 
     if not file_path.is_file():
-        raise DocGenFileNotFoundError(f"Path is not a file: {file_path}")
+        raise PrismDocsFileNotFoundError(f"Path is not a file: {file_path}")
 
 
 def get_file_extension(file_path: Path) -> str:
@@ -97,7 +97,7 @@ def read_text_file(file_path: Path, encoding: str = "utf-8") -> str:
         File content as string
 
     Raises:
-        DocGenFileNotFoundError: If file not found
+        PrismDocsFileNotFoundError: If file not found
         UnicodeDecodeError: If encoding is incorrect
     Invoked by: src/doc_generator/application/parsers/markdown_parser.py
     """

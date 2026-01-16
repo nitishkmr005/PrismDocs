@@ -8,7 +8,7 @@ export PYTHONUNBUFFERED=1
 # Use PORT from environment or default to 8000
 PORT=${PORT:-8000}
 
-echo "==> Starting DocGen API on port $PORT..."
+echo "==> Starting PrismDocs API on port $PORT..."
 echo "==> PYTHONPATH: $PYTHONPATH"
 echo "==> Working directory: $(pwd)"
 echo "==> Python version: $(python --version)"
