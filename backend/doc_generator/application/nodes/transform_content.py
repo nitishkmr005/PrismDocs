@@ -153,11 +153,17 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
             
             log_metric("Max Tokens", max_tokens)
             
+            include_visual_markers = (
+                metadata.get("enable_image_generation", True)
+                and settings.image_generation.enable_all
+            )
+
             generated = content_generator.generate_blog_content(
                 raw_content=content,
                 content_type=content_type,
                 topic=topic,
                 max_tokens=max_tokens,
+                include_visual_markers=include_visual_markers,
             )
             
             # Store generated content

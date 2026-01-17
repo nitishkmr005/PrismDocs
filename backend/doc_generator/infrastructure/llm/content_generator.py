@@ -172,7 +172,8 @@ class LLMContentGenerator:
         raw_content: str,
         content_type: str = "transcript",
         topic: str = "",
-        max_tokens: int = 8000
+        max_tokens: int = 8000,
+        include_visual_markers: bool = True,
     ) -> GeneratedContent:
         """
         Transform raw content into structured blog-style markdown using chunked processing.
@@ -204,6 +205,7 @@ class LLMContentGenerator:
                 topic,
                 max_tokens,
                 outline=outline,
+                include_visual_markers=include_visual_markers,
             )
         
         # For long content, use chunked processing
@@ -214,6 +216,7 @@ class LLMContentGenerator:
             topic,
             max_tokens,
             outline=outline,
+            include_visual_markers=include_visual_markers,
         )
     
     def _process_single_chunk(
@@ -222,16 +225,29 @@ class LLMContentGenerator:
         content_type: str,
         topic: str,
         max_tokens: int,
-        outline: str = ""
+        outline: str = "",
+        include_visual_markers: bool = True,
     ) -> GeneratedContent:
         """
         Process a single chunk of content.
         Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
         """
         if outline:
-            prompt = self._build_blog_from_outline_prompt(content, content_type, topic, outline)
+            prompt = self._build_blog_from_outline_prompt(
+                content,
+                content_type,
+                topic,
+                outline,
+                include_visual_markers=include_visual_markers,
+            )
         else:
-            prompt = self._build_generation_prompt(content, content_type, topic, is_chunk=False)
+            prompt = self._build_generation_prompt(
+                content,
+                content_type,
+                topic,
+                is_chunk=False,
+                include_visual_markers=include_visual_markers,
+            )
         
         try:
             generated_text = self._call_llm(prompt, max_tokens, step="content_generate")
@@ -246,7 +262,8 @@ class LLMContentGenerator:
         content_type: str,
         topic: str,
         max_tokens: int,
-        outline: str = ""
+        outline: str = "",
+        include_visual_markers: bool = True,
     ) -> GeneratedContent:
         """
         Process long content in chunks and merge results.
@@ -283,6 +300,7 @@ class LLMContentGenerator:
                 topic=topic,
                 section_start=section_counter,
                 outline=outline,
+                include_visual_markers=include_visual_markers,
             )
             
             try:
@@ -393,6 +411,70 @@ class LLMContentGenerator:
             chunks.append(current_chunk.strip())
         
         return chunks if chunks else [content]
+
+    def _prepare_outline_content(self, raw_content: str) -> str:
+        """
+        Prepare outline input for large content by sampling across the document.
+        Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
+        """
+        if not raw_content:
+            return ""
+        max_chars = self.settings.llm.content_outline_char_limit
+        if max_chars <= 0 or len(raw_content) <= max_chars:
+            return raw_content
+
+        sampled = self._sample_content_windows(
+            raw_content,
+            max_chars=max_chars,
+            window_count=self.settings.llm.content_outline_sample_count,
+        )
+        logger.info(
+            "Outline input truncated from {} to {} chars",
+            len(raw_content),
+            len(sampled),
+        )
+        return sampled
+
+    def _sample_content_windows(self, content: str, max_chars: int, window_count: int) -> str:
+        """
+        Sample content across evenly spaced windows to keep outline input bounded.
+        Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
+        """
+        if max_chars <= 0:
+            return ""
+        if len(content) <= max_chars:
+            return content
+
+        window_count = max(3, min(window_count or 6, 10))
+        window_size = max_chars // window_count
+        if window_size <= 0:
+            return content[:max_chars].strip()
+
+        content_len = len(content)
+        if window_count == 1 or content_len <= window_size:
+            return content[:max_chars].strip()
+
+        step = max(1, (content_len - window_size) // (window_count - 1))
+        segments = []
+        for i in range(window_count):
+            start = i * step
+            end = min(start + window_size, content_len)
+
+            if start > 0:
+                newline = content.rfind("\n", max(0, start - 200), start)
+                if newline != -1:
+                    start = newline + 1
+            if end < content_len:
+                newline = content.find("\n", end, min(content_len, end + 200))
+                if newline != -1:
+                    end = newline
+
+            segment = content[start:end].strip()
+            if segment:
+                segments.append(segment)
+
+        sampled = "\n\n".join(segments).strip()
+        return sampled[:max_chars].strip()
     
     def generate_title(self, content: str, topic_hint: str = "") -> str:
         """
@@ -502,7 +584,11 @@ class LLMContentGenerator:
         if not self.is_available():
             return ""
 
-        prompt = self._build_outline_prompt(raw_content, content_type, topic)
+        outline_source = self._prepare_outline_content(raw_content)
+        if not outline_source:
+            return ""
+
+        prompt = self._build_outline_prompt(outline_source, content_type, topic)
 
         try:
             outline = self._call_llm(prompt, max_tokens, step="content_outline")
@@ -679,12 +765,25 @@ class LLMContentGenerator:
         """
         return get_content_system_prompt()
     
-    def _build_generation_prompt(self, content: str, content_type: str, topic: str, is_chunk: bool = False) -> str:
+    def _build_generation_prompt(
+        self,
+        content: str,
+        content_type: str,
+        topic: str,
+        is_chunk: bool = False,
+        include_visual_markers: bool = True,
+    ) -> str:
         """
         Build the prompt for single content generation.
         Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
         """
-        return build_generation_prompt(content, content_type, topic, is_chunk=is_chunk)
+        return build_generation_prompt(
+            content,
+            content_type,
+            topic,
+            is_chunk=is_chunk,
+            include_visual_markers=include_visual_markers,
+        )
 
     def _build_outline_prompt(self, content: str, content_type: str, topic: str) -> str:
         """
@@ -699,12 +798,19 @@ class LLMContentGenerator:
         content_type: str,
         topic: str,
         outline: str,
+        include_visual_markers: bool = True,
     ) -> str:
         """
         Build the prompt for blog generation using an outline.
         Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
         """
-        return build_blog_from_outline_prompt(content, content_type, topic, outline)
+        return build_blog_from_outline_prompt(
+            content,
+            content_type,
+            topic,
+            outline,
+            include_visual_markers=include_visual_markers,
+        )
     
     def _build_chunk_prompt(
         self,
@@ -714,7 +820,8 @@ class LLMContentGenerator:
         content_type: str,
         topic: str,
         section_start: int,
-        outline: str = ""
+        outline: str = "",
+        include_visual_markers: bool = True,
     ) -> str:
         """
         Build prompt for processing a content chunk.
@@ -728,6 +835,7 @@ class LLMContentGenerator:
             topic=topic,
             section_start=section_start,
             outline=outline,
+            include_visual_markers=include_visual_markers,
         )
 
     def _safe_json_load(self, text: str) -> Optional[object]:
@@ -737,11 +845,97 @@ class LLMContentGenerator:
         """
         if not text:
             return None
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            pass
 
+        normalized = self._normalize_json_text(text)
+        candidates = [normalized] + self._extract_json_candidates(normalized)
+
+        for candidate in candidates:
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
+
+        repaired = self._repair_json_text(normalized)
+        if repaired:
+            try:
+                return json.loads(repaired)
+            except json.JSONDecodeError:
+                return None
+        return None
+
+    def _normalize_json_text(self, text: str) -> str:
+        """
+        Normalize JSON-like text by escaping newlines inside strings.
+        Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
+        """
+        output = []
+        in_string = False
+        escape = False
+
+        for ch in text:
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                elif ch == "\n":
+                    output.append("\\n")
+                    continue
+            else:
+                if ch == '"':
+                    in_string = True
+            output.append(ch)
+        return "".join(output)
+
+    def _extract_json_candidates(self, text: str) -> list[str]:
+        """
+        Extract complete JSON objects/arrays from text.
+        Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
+        """
+        start_idx = None
+        for i, ch in enumerate(text):
+            if ch in "{[":
+                start_idx = i
+                break
+        if start_idx is None:
+            return []
+
+        stack = []
+        in_string = False
+        escape = False
+        candidates = []
+
+        for i in range(start_idx, len(text)):
+            ch = text[i]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+
+            if ch == '"':
+                in_string = True
+            elif ch in "{[":
+                stack.append(ch)
+            elif ch in "}]":
+                if not stack:
+                    continue
+                stack.pop()
+                if not stack:
+                    candidates.append(text[start_idx:i + 1])
+
+        return sorted(candidates, key=len, reverse=True)
+
+    def _repair_json_text(self, text: str) -> Optional[str]:
+        """
+        Attempt minimal repair for truncated JSON.
+        Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
+        """
         start_idx = None
         for i, ch in enumerate(text):
             if ch in "{[":
@@ -750,22 +944,42 @@ class LLMContentGenerator:
         if start_idx is None:
             return None
 
+        snippet = text[start_idx:].strip()
+        snippet = re.sub(r",\s*([}\]])", r"\1", snippet)
+
         stack = []
-        for i in range(start_idx, len(text)):
-            ch = text[i]
-            if ch in "{[":
+        in_string = False
+        escape = False
+
+        for ch in snippet:
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch in "{[":
                 stack.append(ch)
             elif ch in "}]":
-                if not stack:
-                    continue
-                stack.pop()
-                if not stack:
-                    candidate = text[start_idx:i + 1]
-                    try:
-                        return json.loads(candidate)
-                    except json.JSONDecodeError:
-                        return None
-        return None
+                if stack:
+                    stack.pop()
+
+        if in_string:
+            snippet += '"'
+            in_string = False
+
+        closing = []
+        for ch in reversed(stack):
+            closing.append("}" if ch == "{" else "]")
+
+        if closing:
+            snippet += "".join(closing)
+
+        return snippet
 
     def _normalize_heading(self, heading: str, level: int) -> str:
         """
@@ -777,6 +991,97 @@ class LLMContentGenerator:
         heading = heading.strip()
         heading = re.sub(r"^#+\s*", "", heading)
         return f"{'#' * level} {heading}"
+
+    def _looks_like_json(self, text: str) -> bool:
+        """
+        Heuristic check for JSON-like output.
+        Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
+        """
+        if not text:
+            return False
+        sample = text.lstrip()
+        if sample.startswith("{") or sample.startswith("["):
+            return True
+        return any(token in text for token in ('"title"', '"sections"', '"heading"', '"content"'))
+
+    def _decode_json_string(self, value: str) -> str:
+        """
+        Decode a JSON string fragment without surrounding quotes.
+        Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
+        """
+        if value is None:
+            return ""
+        try:
+            return json.loads(f'"{value}"')
+        except Exception:
+            return (
+                value.replace("\\n", "\n")
+                .replace("\\t", "\t")
+                .replace('\\"', '"')
+                .replace("\\\\", "\\")
+            )
+
+    def _jsonish_to_markdown(
+        self,
+        text: str,
+        topic: str,
+        include_title: bool = True,
+    ) -> tuple[str, str, list[str]]:
+        """
+        Best-effort conversion from JSON-like text to markdown.
+        Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
+        """
+        title_match = re.search(r'"title"\s*:\s*"((?:\\.|[^"\\])*)"', text)
+        intro_match = re.search(r'"introduction"\s*:\s*"((?:\\.|[^"\\])*)"', text)
+        takeaways_match = re.search(r'"key_takeaways"\s*:\s*"((?:\\.|[^"\\])*)"', text)
+
+        title = self._decode_json_string(title_match.group(1)) if title_match else ""
+        if not title:
+            title = topic or "Document"
+
+        intro = self._decode_json_string(intro_match.group(1)) if intro_match else ""
+        takeaways = self._decode_json_string(takeaways_match.group(1)) if takeaways_match else ""
+
+        parts = []
+        if include_title and title:
+            parts.append(f"# {title}".strip())
+        if intro:
+            parts.append(self._normalize_heading("Introduction", 2))
+            parts.append(intro.strip())
+
+        section_titles = []
+        heading_pattern = re.compile(r'"heading"\s*:\s*"((?:\\.|[^"\\])*)"')
+        content_pattern = re.compile(r'"content"\s*:\s*"((?:\\.|[^"\\])*)"')
+
+        content_iter = list(content_pattern.finditer(text))
+        content_index = 0
+
+        for heading_match in heading_pattern.finditer(text):
+            heading = self._decode_json_string(heading_match.group(1)).strip()
+            if not heading:
+                continue
+
+            content = ""
+            while content_index < len(content_iter) and content_iter[content_index].start() < heading_match.end():
+                content_index += 1
+            if content_index < len(content_iter):
+                content = self._decode_json_string(content_iter[content_index].group(1))
+                content_index += 1
+
+            level = 3 if re.match(r"^\d+\.\d+", heading) else 2
+            parts.append(self._normalize_heading(heading, level))
+            if content:
+                parts.append(content.strip())
+
+            if level == 2:
+                section_titles.append(re.sub(r"^#+\s*", "", heading).strip())
+
+        if takeaways:
+            parts.append(self._normalize_heading("Key Takeaways", 2))
+            parts.append(takeaways.strip())
+
+        markdown = "\n\n".join([part for part in parts if part])
+        return markdown.strip(), title, section_titles
 
     def _json_to_markdown(self, data: dict, topic: str, include_title: bool = True) -> tuple[str, str, list[str]]:
         """
@@ -848,6 +1153,16 @@ class LLMContentGenerator:
             if isinstance(data, dict):
                 markdown, title, sections = self._json_to_markdown(
                     data,
+                    topic=topic,
+                    include_title=include_title,
+                )
+                markers = self._extract_visual_markers(markdown, marker_start)
+                if include_title and title:
+                    return markdown, sections, markers
+                return markdown, sections, markers
+            if self._looks_like_json(text):
+                markdown, title, sections = self._jsonish_to_markdown(
+                    text,
                     topic=topic,
                     include_title=include_title,
                 )
@@ -949,6 +1264,24 @@ class LLMContentGenerator:
                 visual_markers = self._extract_visual_markers(markdown)
                 logger.info(
                     f"Generated content: {len(markdown)} chars, "
+                    f"{len(visual_markers)} visual markers, {len(sections)} sections"
+                )
+                return GeneratedContent(
+                    markdown=markdown,
+                    visual_markers=visual_markers,
+                    title=title,
+                    sections=sections,
+                    outline=outline,
+                )
+            if self._looks_like_json(text):
+                markdown, title, sections = self._jsonish_to_markdown(
+                    text,
+                    topic=topic,
+                    include_title=True,
+                )
+                visual_markers = self._extract_visual_markers(markdown)
+                logger.info(
+                    f"Generated content (json fallback): {len(markdown)} chars, "
                     f"{len(visual_markers)} visual markers, {len(sections)} sections"
                 )
                 return GeneratedContent(

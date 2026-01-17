@@ -40,6 +40,12 @@ class ImageStyle(str, Enum):
     DECORATIVE = "decorative"
 
 
+class UrlParser(str, Enum):
+    MARKITDOWN = "markitdown"
+    FIRECRAWL = "firecrawl"
+    AUTO = "auto"
+
+
 class FileSource(BaseModel):
     type: Literal["file"] = "file"
     file_id: str
@@ -48,6 +54,7 @@ class FileSource(BaseModel):
 class UrlSource(BaseModel):
     type: Literal["url"] = "url"
     url: str
+    parser: UrlParser | None = None
 
 
 class TextSource(BaseModel):
@@ -111,7 +118,11 @@ class GenerateRequest(BaseModel):
                     "output_format": "pdf",
                     "sources": [
                         {"type": "file", "file_id": "f_abc123"},
-                        {"type": "url", "url": "https://example.com/article"},
+                        {
+                            "type": "url",
+                            "url": "https://example.com/article",
+                            "parser": "markitdown",
+                        },
                         {"type": "text", "content": "Raw text to include"},
                     ],
                     "provider": "gemini",

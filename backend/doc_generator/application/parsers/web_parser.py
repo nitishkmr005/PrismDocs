@@ -1,9 +1,10 @@
 """
-Web article parser using MarkItDown.
+Web article parser using MarkItDown or Firecrawl.
 
 Fetches and converts web pages to markdown.
 """
 
+import os
 from pathlib import Path
 from typing import Tuple
 
@@ -11,7 +12,12 @@ from loguru import logger
 
 from ...domain.exceptions import ParseError
 from ...infrastructure.parsers.markitdown import convert_url_to_markdown, is_markitdown_available
+from ...infrastructure.parsers.firecrawl import (
+    convert_url_to_markdown as convert_url_to_markdown_firecrawl,
+    is_firecrawl_available,
+)
 from ...infrastructure.settings import get_settings
+from ...utils.content_cleaner import clean_markdown_content
 
 
 class WebParser:
@@ -21,14 +27,17 @@ class WebParser:
     Uses Microsoft's MarkItDown library to convert HTML to markdown.
     """
 
-    def __init__(self):
+    def __init__(self, parser: str | None = None):
         """
         Invoked by: (no references found)
         """
-        if not is_markitdown_available():
-            logger.warning(
-                "MarkItDown not available - web parsing will have limited functionality"
-            )
+        self.settings = get_settings().parsers.web
+        self.parser = (parser or self.settings.default_parser or "firecrawl").lower()
+        if self.parser == "firecrawl" and not is_firecrawl_available():
+            logger.warning("Firecrawl not available - falling back to MarkItDown")
+            self.parser = "markitdown"
+        if self.parser == "markitdown" and not is_markitdown_available():
+            logger.warning("MarkItDown not available - web parsing will fail")
 
     def parse(self, input_path: str | Path) -> Tuple[str, dict]:
         """
@@ -45,24 +54,21 @@ class WebParser:
         Invoked by: .claude/skills/pptx/ooxml/scripts/pack.py, .claude/skills/pptx/ooxml/scripts/validation/base.py, .claude/skills/pptx/ooxml/scripts/validation/docx.py, .claude/skills/pptx/ooxml/scripts/validation/pptx.py, .claude/skills/pptx/ooxml/scripts/validation/redlining.py, scripts/generate_from_folder.py, src/doc_generator/application/nodes/parse_content.py, src/doc_generator/application/workflow/nodes/parse_content.py, src/doc_generator/infrastructure/api/services/generation.py
         """
         url = str(input_path)
-        settings = get_settings().parsers.web
-
-        logger.info(f"Fetching web article: {url}")
+        logger.info(f"Fetching web article: {url} (parser={self.parser})")
 
         try:
-            content = convert_url_to_markdown(
-                url,
-                timeout=settings.timeout,
-                user_agent=settings.user_agent,
-            )
+            content, metadata, parser_used = self._fetch_markdown(url)
+            cleaned_content = clean_markdown_content(content)
+            if cleaned_content:
+                content = cleaned_content
 
             # Extract title from content (first heading)
-            title = self._extract_title_from_markdown(content)
-
+            title = metadata.get("title") or self._extract_title_from_markdown(content)
             metadata = {
+                **metadata,
                 "title": title,
                 "url": url,
-                "parser": "web",
+                "parser": parser_used,
             }
 
             logger.info(
@@ -75,6 +81,36 @@ class WebParser:
         except Exception as e:
             logger.error(f"Web parsing failed for {url}: {e}")
             raise ParseError(f"Failed to parse web article: {e}")
+
+    def _fetch_markdown(self, url: str) -> Tuple[str, dict, str]:
+        """
+        Fetch markdown using the selected parser.
+        Invoked by: src/doc_generator/application/parsers/web_parser.py
+        """
+        parser = self.parser
+        if parser == "auto":
+            if is_firecrawl_available() and os.getenv("FIRECRAWL_API_KEY"):
+                parser = "firecrawl"
+            else:
+                parser = "markitdown"
+
+        if parser == "firecrawl":
+            try:
+                content, metadata = convert_url_to_markdown_firecrawl(url)
+                return content, metadata, parser
+            except Exception as e:
+                logger.warning(f"Firecrawl failed, falling back to MarkItDown: {e}")
+                parser = "markitdown"
+
+        if not is_markitdown_available():
+            raise ParseError("MarkItDown is not available for web parsing")
+
+        content = convert_url_to_markdown(
+            url,
+            timeout=self.settings.timeout,
+            user_agent=self.settings.user_agent,
+        )
+        return content, {}, parser
 
     def _extract_title_from_markdown(self, content: str) -> str:
         """

@@ -116,6 +116,7 @@ parsers:
   web:
     timeout: 10 # seconds
     user_agent: "prismdocs/0.1.0"
+    default_parser: "firecrawl"
 
 # LLM service settings
 llm:
@@ -130,6 +131,8 @@ llm:
   temperature_slides: 0.4
   content_single_chunk_char_limit: 30000
   content_chunk_char_limit: 30000
+  content_outline_char_limit: 30000
+  content_outline_sample_count: 6
 
 # Image generation settings (Gemini-based)
 image_generation:

@@ -18,6 +18,8 @@ export type ImageStyle =
   | "mermaid"
   | "decorative";
 
+export type UrlParser = "markitdown" | "firecrawl" | "auto";
+
 export interface FileSource {
   type: "file";
   file_id: string;
@@ -26,6 +28,7 @@ export interface FileSource {
 export interface UrlSource {
   type: "url";
   url: string;
+  parser?: UrlParser;
 }
 
 export interface TextSource {
@@ -63,7 +66,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   audience: "technical",
   image_style: "auto",
   temperature: 0.4,
-  max_tokens: 8000,
+  max_tokens: 12000,
   max_slides: 10,
   max_summary_points: 5,
   enable_image_generation: true,

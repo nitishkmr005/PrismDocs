@@ -50,6 +50,19 @@ def _slugify(text: str, max_len: int = 80) -> str:
     return slug[:max_len].strip("-")
 
 
+def _strip_visual_markers(markdown: str) -> str:
+    """
+    Remove [VISUAL:...] markers from markdown when images are disabled.
+    Invoked by: src/doc_generator/application/nodes/generate_images.py
+    """
+    if not markdown:
+        return markdown
+    cleaned = re.sub(r"\[VISUAL:[^\]]+\]", "", markdown)
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 def _resolve_image_path(
     images_dir: Path,
     section_title: str,
@@ -502,6 +515,11 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         enable_generation = metadata.get("enable_image_generation", True)
         if not enable_generation:
             logger.info("Image generation disabled by user preference")
+            cleaned = _strip_visual_markers(markdown)
+            structured_content["markdown"] = cleaned
+            structured_content["visual_markers"] = []
+            structured_content.pop("section_images", None)
+            state["structured_content"] = structured_content
             log_node_end(
                 "generate_images", success=True, details="Skipped (user disabled)"
             )
@@ -510,6 +528,11 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         # Check settings-level master toggle
         if not settings.image_generation.enable_all:
             logger.info("Image generation disabled in settings")
+            cleaned = _strip_visual_markers(markdown)
+            structured_content["markdown"] = cleaned
+            structured_content["visual_markers"] = []
+            structured_content.pop("section_images", None)
+            state["structured_content"] = structured_content
             log_node_end(
                 "generate_images", success=True, details="Skipped (settings disabled)"
             )
