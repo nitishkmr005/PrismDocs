@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,12 +29,19 @@ interface OutputOption {
   label: string;
 }
 
+interface ModelOption {
+  value: string;
+  label: string;
+}
+
 interface GenerateFormProps {
   onSubmit: (
     sources: SourceItem[],
     options: {
       outputFormat: OutputFormat;
       provider: Provider;
+      contentModel: string;
+      imageModel: string;
       audience: Audience;
       imageStyle: ImageStyle;
       enableImageGeneration: boolean;
@@ -46,6 +53,36 @@ interface GenerateFormProps {
   defaultOutputFormat?: OutputFormat;
   outputOptions?: OutputOption[];
 }
+
+const contentModelOptions: Record<Provider, ModelOption[]> = {
+  gemini: [
+    { value: "gemini-3-flash-preview", label: "gemini-3-flash-preview" },
+    { value: "gemini-3-pro-preview", label: "gemini-3-pro-preview" },
+    { value: "gemini-2.5-pro", label: "gemini-2.5-pro" },
+    { value: "gemini-2.5-flash", label: "gemini-2.5-flash" },
+  ],
+  openai: [
+    { value: "gpt-5.2", label: "gpt-5.2" },
+    { value: "gpt-5-mini", label: "gpt-5-mini" },
+    { value: "gpt-4.1-mini", label: "gpt-4.1-mini" },
+    { value: "gpt-4.1", label: "gpt-4.1" },
+  ],
+  anthropic: [
+    { value: "anthropic.claude-haiku-4-5-20251001-v1:0", label: "claude-haiku-4.5" },
+    { value: "anthropic.claude-sonnet-4-5-20250929-v1:0", label: "claude-sonnet-4.5" },
+  ],
+  google: [
+    { value: "gemini-3-flash-preview", label: "gemini-3-flash-preview" },
+    { value: "gemini-3-pro-preview", label: "gemini-3-pro-preview" },
+    { value: "gemini-2.5-pro", label: "gemini-2.5-pro" },
+    { value: "gemini-2.5-flash", label: "gemini-2.5-flash" },
+  ],
+};
+
+const imageModelOptions: ModelOption[] = [
+  { value: "gemini-3-pro-image-preview", label: "gemini-3-pro-image-preview" },
+  { value: "gemini-2.5-flash-image", label: "gemini-2.5-flash-image" },
+];
 
 const defaultOutputOptions: OutputOption[] = [
   { value: "pdf", label: "PDF Document" },
@@ -66,11 +103,23 @@ export function GenerateForm({
 
   const [outputFormat, setOutputFormat] = useState<OutputFormat>(defaultOutputFormat);
   const [provider, setProvider] = useState<Provider>("gemini");
+  const [contentModel, setContentModel] = useState<string>("gemini-2.5-pro");
+  const [imageModel, setImageModel] = useState<string>("gemini-3-pro-image-preview");
   const [audience, setAudience] = useState<Audience>("technical");
   const [imageStyle, setImageStyle] = useState<ImageStyle>("auto");
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
   const [contentApiKey, setContentApiKey] = useState("");
   const [imageApiKey, setImageApiKey] = useState("");
+
+  useEffect(() => {
+    const options = contentModelOptions[provider] || [];
+    if (!options.length) {
+      return;
+    }
+    if (!options.some((option) => option.value === contentModel)) {
+      setContentModel(options[0].value);
+    }
+  }, [provider, contentModel]);
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +176,15 @@ export function GenerateForm({
 
       onSubmit(
         sources,
-        { outputFormat, provider, audience, imageStyle, enableImageGeneration },
+        {
+          outputFormat,
+          provider,
+          contentModel,
+          imageModel,
+          audience,
+          imageStyle,
+          enableImageGeneration,
+        },
         contentApiKey,
         enableImageGeneration ? imageApiKey : undefined
       );
@@ -141,6 +198,8 @@ export function GenerateForm({
       textContent,
       outputFormat,
       provider,
+      contentModel,
+      imageModel,
       audience,
       imageStyle,
       onSubmit,
@@ -297,6 +356,22 @@ export function GenerateForm({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="content-model">Content Model</Label>
+            <Select value={contentModel} onValueChange={setContentModel}>
+              <SelectTrigger id="content-model">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(contentModelOptions[provider] || []).map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="audience">Target Audience</Label>
             <Select value={audience} onValueChange={(v) => setAudience(v as Audience)}>
               <SelectTrigger id="audience">
@@ -330,6 +405,28 @@ export function GenerateForm({
                 <SelectItem value="corporate">Corporate</SelectItem>
                 <SelectItem value="educational">Educational</SelectItem>
                 <SelectItem value="diagram">Diagram</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="image-model" className={!enableImageGeneration ? "text-muted-foreground" : ""}>
+              Image Model {!enableImageGeneration && <span className="text-xs">(enable images first)</span>}
+            </Label>
+            <Select
+              value={imageModel}
+              onValueChange={setImageModel}
+              disabled={!enableImageGeneration}
+            >
+              <SelectTrigger id="image-model" className={!enableImageGeneration ? "opacity-50" : ""}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {imageModelOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

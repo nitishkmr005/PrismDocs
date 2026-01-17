@@ -446,6 +446,8 @@ export default function GeneratePage() {
       options: {
         outputFormat: OutputFormat;
         provider: Provider;
+        contentModel: string;
+        imageModel: string;
         audience: Audience;
         imageStyle: ImageStyle;
         enableImageGeneration: boolean;
@@ -458,11 +460,13 @@ export default function GeneratePage() {
           output_format: options.outputFormat,
           sources,
           provider: options.provider,
+          model: options.contentModel,
+          image_model: options.imageModel,
           preferences: {
             audience: options.audience,
             image_style: options.imageStyle,
             temperature: 0.4,
-            max_tokens: 8000,
+            max_tokens: 12000,
             max_slides: 10,
             max_summary_points: 5,
             enable_image_generation: options.enableImageGeneration,
