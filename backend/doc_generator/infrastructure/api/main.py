@@ -26,13 +26,20 @@ def _init_heavy_routes(app: FastAPI) -> None:
     setup_logging(verbose=True)
 
     # Import heavy route modules (these load torch, docling, etc.)
-    from .routes import cache_router, download_router, generate_router, upload_router
+    from .routes import (
+        cache_router,
+        download_router,
+        generate_router,
+        image_router,
+        upload_router,
+    )
 
     # Include heavy routers
     app.include_router(upload_router, prefix="/api")
     app.include_router(generate_router, prefix="/api")
     app.include_router(download_router, prefix="/api")
     app.include_router(cache_router, prefix="/api")
+    app.include_router(image_router, prefix="/api")
 
     _routes_initialized = True
 

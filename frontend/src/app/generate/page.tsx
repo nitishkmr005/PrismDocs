@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { GenerateForm } from "@/components/forms/GenerateForm";
+import { ImageGenerateForm } from "@/components/forms/ImageGenerateForm";
+import { ImageEditForm } from "@/components/forms/ImageEditForm";
 import { GenerationProgress } from "@/components/progress/GenerationProgress";
 import { useGeneration, GenerationState } from "@/hooks/useGeneration";
 import { useAuth } from "@/hooks/useAuth";
@@ -129,7 +131,6 @@ const features: Feature[] = [
     shadowColor: "hover:shadow-fuchsia-500/20",
     defaultOutputFormat: "pdf",
     outputOptions: [{ value: "pdf", label: "PDF Document" }],
-    comingSoon: true,
   },
   {
     id: "image-edit",
@@ -156,7 +157,6 @@ const features: Feature[] = [
     shadowColor: "hover:shadow-rose-500/20",
     defaultOutputFormat: "pdf",
     outputOptions: [{ value: "pdf", label: "PDF Document" }],
-    comingSoon: true,
   },
   {
     id: "resume",
@@ -527,33 +527,40 @@ export default function GeneratePage() {
             </div>
           </div>
 
-          {/* Split Layout */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Left: Form */}
-            <div className="order-2 lg:order-1">
-              <GenerateForm
-                onSubmit={handleSubmit}
-                isGenerating={isGenerating}
-                defaultOutputFormat={selectedFeature.defaultOutputFormat}
-                outputOptions={selectedFeature.outputOptions}
-              />
-            </div>
+          {/* Feature-specific content */}
+          {selectedFeature.id === "image" ? (
+            <ImageGenerateForm />
+          ) : selectedFeature.id === "image-edit" ? (
+            <ImageEditForm />
+          ) : (
+            /* Split Layout for other features */
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Left: Form */}
+              <div className="order-2 lg:order-1">
+                <GenerateForm
+                  onSubmit={handleSubmit}
+                  isGenerating={isGenerating}
+                  defaultOutputFormat={selectedFeature.defaultOutputFormat}
+                  outputOptions={selectedFeature.outputOptions}
+                />
+              </div>
 
-            {/* Right: Progress Panel */}
-            <div className="order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start">
-              <ProgressPanel
-                state={state}
-                progress={progress}
-                status={status}
-                downloadUrl={downloadUrl}
-                error={error}
-                metadata={metadata}
-                onReset={reset}
-                onNewGeneration={handleNewGeneration}
-                featureColor={selectedFeature.color}
-              />
+              {/* Right: Progress Panel */}
+              <div className="order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start">
+                <ProgressPanel
+                  state={state}
+                  progress={progress}
+                  status={status}
+                  downloadUrl={downloadUrl}
+                  error={error}
+                  metadata={metadata}
+                  onReset={reset}
+                  onNewGeneration={handleNewGeneration}
+                  featureColor={selectedFeature.color}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     );
