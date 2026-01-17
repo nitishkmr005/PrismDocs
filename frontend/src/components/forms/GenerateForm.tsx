@@ -70,11 +70,11 @@ const contentModelOptions: Record<Provider, ModelOption[]> = {
   ],
   anthropic: [
     {
-      value: "anthropic.claude-haiku-4-5-20251001-v1:0",
+      value: "claude-haiku-4-5-20251001",
       label: "claude-haiku-4-5-20251001",
     },
     {
-      value: "anthropic.claude-sonnet-4-5-20250929-v1:0",
+      value: "claude-sonnet-4-5-20250929",
       label: "claude-sonnet-4-5-20250929",
     },
   ],
@@ -129,7 +129,7 @@ export function GenerateForm({
         gemini: "gemini-2.5-flash",
         google: "gemini-2.5-flash",
         openai: "gpt-4.1-mini",
-        anthropic: "anthropic.claude-haiku-4-5-20251001-v1:0",
+        anthropic: "claude-haiku-4-5-20251001",
       };
       const fallback = defaultByProvider[provider] || options[0].value;
       setContentModel(fallback);
