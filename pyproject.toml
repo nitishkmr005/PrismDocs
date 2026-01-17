@@ -37,6 +37,7 @@ dependencies = [
     "Pillow>=10.0.0",  # Image processing for PPTX
 
     # Web parsing
+    "firecrawl-py",
     "requests==2.32.3",
     "beautifulsoup4==4.12.3",
 

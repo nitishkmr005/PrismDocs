@@ -83,8 +83,9 @@ export function GenerateForm({
   );
 
   const handleAddUrl = useCallback(() => {
-    if (urlInput.trim() && !urls.includes(urlInput.trim())) {
-      setUrls((prev) => [...prev, urlInput.trim()]);
+    const trimmed = urlInput.trim();
+    if (trimmed && !urls.includes(trimmed)) {
+      setUrls((prev) => [...prev, trimmed]);
       setUrlInput("");
     }
   }, [urlInput, urls]);
@@ -167,22 +168,26 @@ export function GenerateForm({
             </TabsList>
 
             <TabsContent value="url" className="space-y-3">
-              <div className="flex gap-2">
-                <Input
-                  type="url"
-                  placeholder="https://example.com/article"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddUrl();
-                    }
-                  }}
-                />
-                <Button type="button" variant="secondary" onClick={handleAddUrl}>
-                  Add
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="url-input">URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="url-input"
+                    type="url"
+                    placeholder="https://example.com/article"
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddUrl();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="secondary" onClick={handleAddUrl}>
+                    Add
+                  </Button>
+                </div>
               </div>
               {urls.length > 0 && (
                 <div className="space-y-2">

@@ -151,6 +151,7 @@ class WebParserSettings(BaseSettings):
 
     timeout: int = 10
     user_agent: str = "prismdocs/0.1.0"
+    default_parser: str = "firecrawl"
 
 
 class ParserSettings(BaseSettings):
@@ -193,11 +194,13 @@ class LlmSettings(BaseSettings):
     # Content generation settings (OpenAI GPT-4o)
     content_model: str = "gemini-2.5-flash"
     content_provider: str = "gemini"  # "gemini" or "openai"
-    content_max_tokens: int = 8000
+    content_max_tokens: int = 12000
     content_temperature: float = 0.4
     content_json_mode: bool = True
     content_single_chunk_char_limit: int = 30000
     content_chunk_char_limit: int = 30000
+    content_outline_char_limit: int = 30000
+    content_outline_sample_count: int = 6
 
     # Legacy model setting (fallback)
     model: str = "gemini-2.5-flash"

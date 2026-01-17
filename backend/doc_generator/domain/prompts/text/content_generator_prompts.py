@@ -39,7 +39,11 @@ Output format:
 
 
 def build_generation_prompt(
-    content: str, content_type: str, topic: str, is_chunk: bool = False
+    content: str,
+    content_type: str,
+    topic: str,
+    is_chunk: bool = False,
+    include_visual_markers: bool = True,
 ) -> str:
     """
     Prompt for single-pass content generation.
@@ -51,6 +55,38 @@ def build_generation_prompt(
         "mixed": "This is mixed content from multiple sources. Combine and structure into a cohesive blog post.",
     }
     instruction = type_instructions.get(content_type, type_instructions["document"])
+
+    mermaid_number = 5
+    formatting_number = 6
+    tables_number = 7
+    code_number = 8
+
+    visual_markers_section = ""
+    if include_visual_markers:
+        visual_markers_section = """4. **Visual Markers**: Where a diagram would help, insert:
+   [VISUAL:type:Title:Brief description]
+   
+   ONLY use these types: architecture, flowchart, comparison, concept_map, mind_map
+   - architecture: for system components and their connections
+   - flowchart: for processes and decision flows  
+   - comparison: for comparing features/approaches
+   - concept_map: for related concepts and relationships
+   - mind_map: for hierarchical topic breakdown
+   
+   Example: [VISUAL:architecture:Transformer Architecture:Show encoder-decoder with attention layers]
+
+"""
+    else:
+        mermaid_number = 4
+        formatting_number = 5
+        tables_number = 6
+        code_number = 7
+
+    schema_visual_note = ""
+    if include_visual_markers:
+        schema_visual_note = " May include tables, code blocks, inline [VISUAL:...] markers and mermaid blocks."
+    else:
+        schema_visual_note = " May include tables, code blocks, and mermaid blocks."
 
     return f"""Transform the following content into a comprehensive, well-structured educational blog post.
 
@@ -77,30 +113,18 @@ def build_generation_prompt(
    - Do not add new facts, examples, metrics, or external context
    - Do not infer missing details; omit if not provided
 
-4. **Visual Markers**: Where a diagram would help, insert:
-   [VISUAL:type:Title:Brief description]
-   
-   ONLY use these types: architecture, flowchart, comparison, concept_map, mind_map
-   - architecture: for system components and their connections
-   - flowchart: for processes and decision flows  
-   - comparison: for comparing features/approaches
-   - concept_map: for related concepts and relationships
-   - mind_map: for hierarchical topic breakdown
-   
-   Example: [VISUAL:architecture:Transformer Architecture:Show encoder-decoder with attention layers]
-
-5. **Mermaid Diagrams**: For simple concepts, include inline mermaid:
+{visual_markers_section}{mermaid_number}. **Mermaid Diagrams**: For simple concepts, include inline mermaid:
    ```mermaid
    graph LR
        A[Input] --> B[Process] --> C[Output]
    ```
 
-6. **Formatting**:
+{formatting_number}. **Formatting**:
    - Use **bold** for key terms
    - Use `code` for technical terms
    - End with ## Key Takeaways section
 
-7. **Tables**: When comparing features, listing specifications, or showing structured data:
+{tables_number}. **Tables**: When comparing features, listing specifications, or showing structured data:
    | Feature | Description | Notes |
    |---------|-------------|-------|
    | Item 1  | Details     | Info  |
@@ -112,7 +136,7 @@ def build_generation_prompt(
    - Performance metrics
    - Configuration options
    
-8. **Code Blocks**: Format code, commands, or configurations:
+{code_number}. **Code Blocks**: Format code, commands, or configurations:
    ```python
    def example():
        return "Use appropriate language identifiers"
@@ -138,11 +162,11 @@ Return JSON in this shape (string values may include markdown like **bold**, `co
   "sections": [
     {{
       "heading": "1. Section Name",
-      "content": "Paragraphs for this section. May include tables, code blocks, inline [VISUAL:...] markers and mermaid blocks.",
+      "content": "Paragraphs for this section.{schema_visual_note}",
       "subsections": [
         {{
           "heading": "1.1 Subsection Name",
-          "content": "Paragraphs for this subsection. May include tables and code blocks."
+        "content": "Paragraphs for this subsection. May include tables and code blocks."
         }}
       ]
     }}
@@ -200,6 +224,7 @@ def build_blog_from_outline_prompt(
     content_type: str,
     topic: str,
     outline: str,
+    include_visual_markers: bool = True,
 ) -> str:
     """
     Prompt for blog generation using an outline.
@@ -211,6 +236,30 @@ def build_blog_from_outline_prompt(
         "mixed": "This is mixed content from multiple sources. Combine and structure into a cohesive blog post.",
     }
     instruction = type_instructions.get(content_type, type_instructions["document"])
+
+    mermaid_number = 5
+    formatting_number = 6
+    tables_number = 7
+    code_number = 8
+
+    visual_markers_section = ""
+    if include_visual_markers:
+        visual_markers_section = """4. **Visual Markers**: Where a diagram would help, insert:
+   [VISUAL:type:Title:Brief description]
+   ONLY use these types: architecture, flowchart, comparison, concept_map, mind_map
+
+"""
+    else:
+        mermaid_number = 4
+        formatting_number = 5
+        tables_number = 6
+        code_number = 7
+
+    schema_visual_note = ""
+    if include_visual_markers:
+        schema_visual_note = " May include inline [VISUAL:...] markers and mermaid blocks."
+    else:
+        schema_visual_note = " May include mermaid blocks."
 
     return f"""Use the outline below to write the full blog post.
 
@@ -240,29 +289,25 @@ def build_blog_from_outline_prompt(
    - Do not add new facts, examples, metrics, or external context
    - Do not infer missing details; omit if not provided
 
-4. **Visual Markers**: Where a diagram would help, insert:
-   [VISUAL:type:Title:Brief description]
-   ONLY use these types: architecture, flowchart, comparison, concept_map, mind_map
-
-5. **Mermaid Diagrams**: For simple concepts, include inline mermaid:
+{visual_markers_section}{mermaid_number}. **Mermaid Diagrams**: For simple concepts, include inline mermaid:
    ```mermaid
    graph LR
        A[Input] --> B[Process] --> C[Output]
    ```
 
-6. **Formatting**:
+{formatting_number}. **Formatting**:
    - Use **bold** for key terms
    - Use `code` for technical terms
    - End with ## Key Takeaways section
 
-7. **Tables**: When comparing features, listing specifications, or showing structured data:
+{tables_number}. **Tables**: When comparing features, listing specifications, or showing structured data:
    | Feature | Description | Notes |
    |---------|-------------|-------|
    | Item 1  | Details     | Info  |
    
    Use tables for comparisons, feature lists, specifications, and performance metrics.
    
-8. **Code Blocks**: Format code, commands, or configurations with appropriate language identifiers:
+{code_number}. **Code Blocks**: Format code, commands, or configurations with appropriate language identifiers:
    ```python
    def example():
        return "code"
@@ -278,7 +323,7 @@ Return JSON in this shape (string values may include markdown like **bold**, `co
   "sections": [
     {{
       "heading": "1. Section Name",
-      "content": "Paragraphs for this section. May include inline [VISUAL:...] markers and mermaid blocks.",
+      "content": "Paragraphs for this section.{schema_visual_note}",
       "subsections": [
         {{
           "heading": "1.1 Subsection Name",
@@ -307,6 +352,7 @@ def build_chunk_prompt(
     topic: str,
     section_start: int,
     outline: str = "",
+    include_visual_markers: bool = True,
 ) -> str:
     """
     Prompt for processing a content chunk.
@@ -326,6 +372,21 @@ def build_chunk_prompt(
         f"{outline_block}"
     )
 
+    visual_line = ""
+    visual_line_short = ""
+    if include_visual_markers:
+        visual_line = (
+            "- Include [VISUAL:type:title:description] markers where diagrams would help\n"
+            "  (ONLY use types: architecture, flowchart, comparison, concept_map, mind_map)\n"
+        )
+        visual_line_short = "- Include visual markers where helpful\n"
+
+    schema_visual_note = ""
+    if include_visual_markers:
+        schema_visual_note = " May include inline [VISUAL:...] markers and mermaid blocks."
+    else:
+        schema_visual_note = " May include mermaid blocks."
+
     if chunk_index == 0:
         return f"""{context}
 
@@ -336,9 +397,7 @@ Requirements:
 - Write detailed paragraphs, not bullet points
 - Include tables for comparisons and structured data
 - Use code blocks for technical content with proper language identifiers
-- Include [VISUAL:type:title:description] markers where diagrams would help
-  (ONLY use types: architecture, flowchart, comparison, concept_map, mind_map)
-- Cover ALL topics in this chunk - do not skip anything
+{visual_line}- Cover ALL topics in this chunk - do not skip anything
 - Use ONLY information in this chunk; do not add new details
 
 Output JSON Schema:
@@ -348,7 +407,7 @@ Output JSON Schema:
   "sections": [
     {{
       "heading": "{section_start}. Section Name",
-      "content": "Paragraphs for this section. May include inline [VISUAL:...] markers and mermaid blocks.",
+      "content": "Paragraphs for this section.{schema_visual_note}",
       "subsections": [
         {{
           "heading": "{section_start}.1 Subsection Name",
@@ -379,7 +438,7 @@ Requirements:
 - Write detailed paragraphs
 - Include tables for comparisons and structured data
 - Use code blocks for technical content with proper language identifiers
-- Include visual markers where helpful
+{visual_line_short}
 - End with ## Key Takeaways section summarizing main points
 - Cover ALL topics in this chunk
 - Use ONLY information in this chunk; do not add new details
@@ -391,7 +450,7 @@ Output JSON Schema:
   "sections": [
     {{
       "heading": "{section_start}. Section Name",
-      "content": "Paragraphs for this section. May include inline [VISUAL:...] markers and mermaid blocks.",
+      "content": "Paragraphs for this section.{schema_visual_note}",
       "subsections": []
     }}
   ],
@@ -416,7 +475,7 @@ Requirements:
 - Write detailed paragraphs
 - Include tables for comparisons and structured data
 - Use code blocks for technical content with proper language identifiers
-- Include visual markers where helpful
+{visual_line_short}
 - Cover ALL topics in this chunk - do not skip anything
 - Use ONLY information in this chunk; do not add new details
 
@@ -427,7 +486,7 @@ Output JSON Schema:
   "sections": [
     {{
       "heading": "{section_start}. Section Name",
-      "content": "Paragraphs for this section. May include inline [VISUAL:...] markers and mermaid blocks.",
+      "content": "Paragraphs for this section.{schema_visual_note}",
       "subsections": []
     }}
   ],

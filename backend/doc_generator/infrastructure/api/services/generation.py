@@ -10,7 +10,7 @@ from typing import AsyncIterator, Optional
 from loguru import logger
 
 from ....application.graph_workflow import run_workflow
-from ....application.parsers import get_parser
+from ....application.parsers import WebParser, get_parser
 from ....domain.content_types import ContentFormat
 from ....infrastructure.llm import LLMService
 from ....infrastructure.logging_config import (
@@ -417,7 +417,7 @@ class GenerationService:
                     }
                 )
             elif isinstance(source, UrlSource):
-                parser = get_parser(ContentFormat.URL.value)
+                parser = WebParser(parser=source.parser.value if source.parser else None)
                 content, metadata = parser.parse(source.url)
                 title = metadata.get("title") or source.url
                 parsed_blocks.append(
