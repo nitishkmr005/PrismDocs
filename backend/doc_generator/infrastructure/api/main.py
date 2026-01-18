@@ -30,6 +30,7 @@ def _init_heavy_routes(app: FastAPI) -> None:
         cache_router,
         download_router,
         generate_router,
+        idea_canvas_router,
         image_router,
         mindmap_router,
         upload_router,
@@ -42,6 +43,7 @@ def _init_heavy_routes(app: FastAPI) -> None:
     app.include_router(cache_router, prefix="/api")
     app.include_router(image_router, prefix="/api")
     app.include_router(mindmap_router, prefix="/api")
+    app.include_router(idea_canvas_router, prefix="/api")
 
     _routes_initialized = True
 

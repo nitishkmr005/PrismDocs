@@ -5,8 +5,10 @@ import { GenerateForm } from "@/components/forms/GenerateForm";
 import { ImageStudioForm } from "@/components/forms/ImageStudioForm";
 import { GenerationProgress } from "@/components/progress/GenerationProgress";
 import { MindMapForm, MindMapViewer, MindMapProgress } from "@/components/mindmap";
+import { IdeaCanvasForm, IdeaCanvas, QuestionCard } from "@/components/idea-canvas";
 import { useGeneration, GenerationState } from "@/hooks/useGeneration";
 import { useMindMapGeneration } from "@/hooks/useMindMapGeneration";
+import { useIdeaCanvas } from "@/hooks/useIdeaCanvas";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { Button } from "@/components/ui/button";
@@ -18,6 +20,9 @@ import {
   SourceItem,
 } from "@/lib/types/requests";
 import { MindMapMode } from "@/lib/types/mindmap";
+import { StartCanvasRequest } from "@/lib/types/idea-canvas";
+import { generateCanvasReport } from "@/lib/api/idea-canvas";
+import { generateImage, downloadImage } from "@/lib/api/image";
 
 // Feature type definition
 type FeatureType =
@@ -26,6 +31,7 @@ type FeatureType =
   | "resume"
   | "podcast"
   | "mindmap"
+  | "idea-canvas"
   | "faq"
   | "research";
 
@@ -134,6 +140,38 @@ const features: Feature[] = [
     bgColor:
       "bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/40 dark:to-purple-950/40",
     shadowColor: "hover:shadow-purple-500/20",
+    defaultOutputFormat: "pdf",
+    outputOptions: [{ value: "pdf", label: "PDF Document" }],
+  },
+  {
+    id: "idea-canvas",
+    title: "Idea Canvas",
+    description: "Explore ideas through guided Q&A and get implementation specs",
+    icon: (
+      <svg
+        className="w-7 h-7"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+        />
+      </svg>
+    ),
+    color: "text-amber-600",
+    bgColor:
+      "bg-gradient-to-br from-amber-100 via-orange-100 to-amber-50 dark:from-amber-900/40 dark:via-orange-900/40 dark:to-amber-950/40",
+    shadowColor: "hover:shadow-amber-500/20",
     defaultOutputFormat: "pdf",
     outputOptions: [{ value: "pdf", label: "PDF Document" }],
   },
@@ -393,6 +431,45 @@ export default function GeneratePage() {
     reset: resetMindMap,
   } = useMindMapGeneration();
 
+  // Idea canvas hook
+  const {
+    state: canvasState,
+    sessionId: canvasSessionId,
+    canvas,
+    currentQuestion,
+    questionHistory,
+    progressMessage: canvasProgressMessage,
+    error: canvasError,
+    provider: canvasProvider,
+    apiKey: canvasApiKey,
+    canGoBack,
+    start: startCanvas,
+    answer: submitCanvasAnswer,
+    goBack: goBackCanvas,
+    reset: resetCanvas,
+  } = useIdeaCanvas();
+
+  // Report generation state
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportData, setReportData] = useState<{
+    title: string;
+    markdown_content: string;
+    pdf_base64?: string;
+  } | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [exitedToSummary, setExitedToSummary] = useState(false);
+  
+  // Image generation from report state
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<{data: string; format: string} | null>(null);
+  const [imageGenError, setImageGenError] = useState<string | null>(null);
+
+  // Handler to exit to summary view (instead of resetting)
+  const handleExitToSummary = useCallback(() => {
+    setExitedToSummary(true);
+  }, []);
+
   const handleFeatureSelect = useCallback(
     (feature: Feature) => {
       if (!feature.comingSoon) {
@@ -403,16 +480,24 @@ export default function GeneratePage() {
         setSelectedFeature(feature);
         reset(); // Reset any previous generation state
         resetMindMap(); // Reset mind map state
+        resetCanvas(); // Reset canvas state
+        setReportData(null);
+        setReportError(null);
+        setExitedToSummary(false);
       }
     },
-    [reset, resetMindMap, isAuthenticated]
+    [reset, resetMindMap, resetCanvas, isAuthenticated]
   );
 
   const handleBackToFeatures = useCallback(() => {
     setSelectedFeature(null);
     reset();
     resetMindMap();
-  }, [reset, resetMindMap]);
+    resetCanvas();
+    setReportData(null);
+    setReportError(null);
+    setExitedToSummary(false);
+  }, [reset, resetMindMap, resetCanvas]);
 
   const handleSubmit = useCallback(
     (
@@ -485,8 +570,140 @@ export default function GeneratePage() {
     [generateMindMap, user?.id]
   );
 
+  // Idea canvas submit handler
+  const handleCanvasSubmit = useCallback(
+    (request: StartCanvasRequest, apiKey: string) => {
+      startCanvas(request, apiKey, user?.id);
+    },
+    [startCanvas, user?.id]
+  );
+
+  // Idea canvas answer handler
+  const handleCanvasAnswer = useCallback(
+    (answer: string | string[]) => {
+      submitCanvasAnswer(answer, user?.id);
+    },
+    [submitCanvasAnswer, user?.id]
+  );
+
+  // Generate report handler
+  const handleGenerateReport = useCallback(async () => {
+    if (!canvasSessionId || !canvasApiKey) {
+      setReportError("No active canvas session");
+      return;
+    }
+
+    setIsGeneratingReport(true);
+    setReportError(null);
+
+    try {
+      const result = await generateCanvasReport({
+        sessionId: canvasSessionId,
+        outputFormat: "both",
+        provider: canvasProvider,
+        apiKey: canvasApiKey,
+      });
+
+      setReportData({
+        title: result.title,
+        markdown_content: result.markdown_content || "",
+        pdf_base64: result.pdf_base64,
+      });
+      setShowReportModal(true);
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : "Failed to generate report");
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  }, [canvasSessionId, canvasApiKey, canvasProvider]);
+
+  // Download report as markdown
+  const handleDownloadMarkdown = useCallback(() => {
+    if (!reportData) return;
+    
+    const blob = new Blob([reportData.markdown_content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${reportData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [reportData]);
+
+  // Download report as PDF
+  const handleDownloadPdf = useCallback(() => {
+    if (!reportData?.pdf_base64) return;
+    
+    // Convert base64 to blob
+    const byteCharacters = atob(reportData.pdf_base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "application/pdf" });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${reportData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [reportData]);
+
+  // Generate handwritten-style image from report
+  const handleGenerateImageFromReport = useCallback(async () => {
+    if (!reportData || !canvasApiKey) {
+      setImageGenError("No report data or API key available");
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    setImageGenError(null);
+    setGeneratedImage(null);
+
+    try {
+      // Create a prompt from the report content
+      const summaryPrompt = `Create a beautiful hand-drawn style infographic that visually summarizes this implementation plan:
+
+Title: ${reportData.title}
+
+Key points to visualize:
+${reportData.markdown_content.slice(0, 1500)}
+
+Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with icons and arrows connecting concepts. Include the main title at the top.`;
+
+      const result = await generateImage({
+        prompt: summaryPrompt,
+        style_category: "handwritten_and_human",
+        style: "whiteboard_handwritten",
+        output_format: "raster",
+        free_text_mode: false,
+      }, canvasApiKey);
+
+      if (result.success && result.image_data) {
+        setGeneratedImage({
+          data: result.image_data,
+          format: result.format,
+        });
+      } else {
+        setImageGenError(result.error || "Failed to generate image");
+      }
+    } catch (err) {
+      setImageGenError(err instanceof Error ? err.message : "Image generation failed");
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  }, [reportData, canvasApiKey]);
+
   const isGenerating = state === "generating";
   const isMindMapGenerating = mindMapState === "generating";
+  const isCanvasStarting = canvasState === "starting";
+  const isCanvasAnswering = canvasState === "answering";
 
   // Show form when a feature is selected (split layout)
   if (selectedFeature) {
@@ -574,6 +791,354 @@ export default function GeneratePage() {
                 />
               </div>
             </div>
+          ) : selectedFeature.id === "idea-canvas" ? (
+            /* Idea Canvas Layout */
+            canvasState === "idle" || canvasState === "starting" ? (
+              /* Show form when idle */
+              <div className="max-w-2xl mx-auto">
+                <IdeaCanvasForm
+                  onSubmit={handleCanvasSubmit}
+                  isStarting={isCanvasStarting}
+                />
+              </div>
+            ) : canvasState === "error" ? (
+              /* Show error state */
+              <div className="max-w-md mx-auto">
+                <div className="flex flex-col items-center justify-center min-h-[400px] p-8 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
+                  <svg className="w-12 h-12 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h3 className="text-lg font-medium text-red-800 dark:text-red-200 mb-2">Something went wrong</h3>
+                  <p className="text-sm text-red-600 dark:text-red-300 text-center mb-4">{canvasError}</p>
+                  <Button variant="outline" onClick={resetCanvas}>Try Again</Button>
+                </div>
+              </div>
+            ) : canvasState === "suggest_complete" || reportData || exitedToSummary ? (
+              /* Completion/Summary state - Split view: Canvas left, Report right */
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Left: Canvas Decision Tree */}
+                <div className="order-1 lg:sticky lg:top-24 lg:self-start">
+                  <div className="border rounded-xl overflow-hidden bg-card">
+                    <div className="px-4 py-3 border-b bg-muted/50 flex items-center justify-between">
+                      <h4 className="font-medium text-sm">Decision Tree</h4>
+                      <span className="text-xs text-muted-foreground">
+                        {canvas?.question_count || 0} questions explored
+                      </span>
+                    </div>
+                    <div className="h-[500px] lg:h-[calc(100vh-280px)]">
+                      <IdeaCanvas
+                        canvas={canvas}
+                        currentQuestion={null}
+                        progressMessage={null}
+                        isAnswering={false}
+                        onAnswer={() => {}}
+                        onReset={resetCanvas}
+                        isSuggestComplete={true}
+                        hideQuestionCard={true}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Report & Actions */}
+                <div className="order-2">
+                  <div className="space-y-6">
+                    {/* Success Card */}
+                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shrink-0">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg text-emerald-800 dark:text-emerald-200">
+                            {reportData ? "Report Generated!" : "Exploration Complete!"}
+                          </h3>
+                          <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
+                            {canvasProgressMessage || `Explored ${canvas?.question_count || 0} questions about your idea.`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Report Error */}
+                    {reportError && (
+                      <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
+                        {reportError}
+                      </div>
+                    )}
+
+                    {/* Actions Card */}
+                    <div className="bg-card border rounded-xl p-6">
+                      <h4 className="font-medium mb-4">
+                        {reportData ? "Download Your Spec" : "Generate Implementation Spec"}
+                      </h4>
+                      
+                      {!reportData ? (
+                        <div className="space-y-3">
+                          <Button 
+                            onClick={handleGenerateReport} 
+                            disabled={isGeneratingReport}
+                            className="w-full"
+                            size="lg"
+                          >
+                            {isGeneratingReport ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                Generating Report...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Generate Report
+                              </>
+                            )}
+                          </Button>
+                          <Button onClick={() => handleCanvasAnswer("continue")} variant="outline" className="w-full">
+                            Continue Exploring
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Download Buttons */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <Button 
+                              onClick={handleDownloadPdf} 
+                              disabled={!reportData?.pdf_base64}
+                              className="w-full" 
+                              size="lg"
+                            >
+                              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                              Download PDF
+                            </Button>
+                            <Button onClick={handleDownloadMarkdown} variant="outline" className="w-full" size="lg">
+                              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                              Download MD
+                            </Button>
+                          </div>
+                          
+                          {/* Generate Images Section */}
+                          <div className="pt-4 border-t">
+                            <label className="text-sm font-medium mb-2 block">
+                              Create Visual Summary
+                            </label>
+                            <Button 
+                              variant="outline" 
+                              className="w-full"
+                              disabled={isGeneratingImage}
+                              onClick={handleGenerateImageFromReport}
+                            >
+                              {isGeneratingImage ? (
+                                <>
+                                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                                  Generating Infographic...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  Generate Handwritten Infographic
+                                </>
+                              )}
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Creates a whiteboard-style visual summary of your report
+                            </p>
+                            
+                            {/* Image Generation Error */}
+                            {imageGenError && (
+                              <p className="text-xs text-red-600 mt-2">{imageGenError}</p>
+                            )}
+                            
+                            {/* Generated Image Preview */}
+                            {generatedImage && (
+                              <div className="mt-4 space-y-3">
+                                <div className="rounded-lg border overflow-hidden bg-white">
+                                  <img 
+                                    src={`data:image/${generatedImage.format};base64,${generatedImage.data}`}
+                                    alt="Generated infographic"
+                                    className="w-full h-auto"
+                                  />
+                                </div>
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full"
+                                  onClick={() => {
+                                    if (generatedImage) {
+                                      downloadImage(
+                                        generatedImage.data, 
+                                        `${reportData?.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'infographic'}`, 
+                                        generatedImage.format as "png" | "svg"
+                                      );
+                                    }
+                                  }}
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                  Download Image
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Preview Card with Tabs */}
+                    {reportData && (
+                      <div className="bg-card border rounded-xl overflow-hidden">
+                        <div className="px-4 py-3 border-b bg-muted/50 flex items-center justify-between">
+                          <h4 className="font-medium text-sm">Report Preview</h4>
+                          <div className="flex gap-1">
+                            <button 
+                              id="preview-pdf-tab"
+                              onClick={() => {
+                                document.getElementById("preview-pdf")?.classList.remove("hidden");
+                                document.getElementById("preview-md")?.classList.add("hidden");
+                                document.getElementById("preview-pdf-tab")?.classList.add("bg-primary", "text-primary-foreground");
+                                document.getElementById("preview-md-tab")?.classList.remove("bg-primary", "text-primary-foreground");
+                              }}
+                              className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground"
+                            >
+                              PDF
+                            </button>
+                            <button 
+                              id="preview-md-tab"
+                              onClick={() => {
+                                document.getElementById("preview-pdf")?.classList.add("hidden");
+                                document.getElementById("preview-md")?.classList.remove("hidden");
+                                document.getElementById("preview-md-tab")?.classList.add("bg-primary", "text-primary-foreground");
+                                document.getElementById("preview-pdf-tab")?.classList.remove("bg-primary", "text-primary-foreground");
+                              }}
+                              className="text-xs px-2 py-1 rounded hover:bg-muted"
+                            >
+                              Markdown
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* PDF Preview */}
+                        <div id="preview-pdf" className="h-[500px]">
+                          {reportData.pdf_base64 ? (
+                            <iframe
+                              src={`data:application/pdf;base64,${reportData.pdf_base64}`}
+                              className="w-full h-full border-0"
+                              title="PDF Preview"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                              <p>PDF generation in progress...</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Markdown Preview */}
+                        <div id="preview-md" className="hidden p-4 max-h-[500px] overflow-y-auto">
+                          <pre className="text-sm font-mono whitespace-pre-wrap text-muted-foreground leading-relaxed">
+                            {reportData.markdown_content}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Start New */}
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => { resetCanvas(); setReportData(null); setExitedToSummary(false); }}
+                      className="w-full"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Start New Canvas
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Active questioning - Fullscreen mode */
+              <div className="fixed inset-0 z-50 bg-background">
+                {/* Header */}
+                <div className="h-14 border-b flex items-center justify-between px-4">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleExitToSummary}
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Finish & View Summary
+                    </button>
+                    <div className="h-6 w-px bg-border" />
+                    <span className="text-sm font-medium">{canvas?.idea.slice(0, 50)}{(canvas?.idea.length || 0) > 50 ? "..." : ""}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Questions: <span className="font-medium text-foreground">{canvas?.question_count || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main content: Questions left, Canvas right */}
+                <div className="h-[calc(100vh-3.5rem)] flex">
+                  {/* Left: Question Panel */}
+                  <div className="w-[420px] border-r bg-muted/30 flex flex-col">
+                    {/* Progress indicator */}
+                    {questionHistory.length > 0 && (
+                      <div className="px-6 pt-4 pb-2 border-b flex items-center justify-end">
+                        <span className="text-xs text-muted-foreground">
+                          Q{questionHistory.length + 1} of ~{Math.max(questionHistory.length + 3, 8)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="flex-1 overflow-y-auto p-6">
+                      {currentQuestion ? (
+                        <QuestionCard
+                          question={currentQuestion}
+                          onAnswer={handleCanvasAnswer}
+                          onSkip={currentQuestion.allow_skip ? () => handleCanvasAnswer("Skipped") : undefined}
+                          isAnswering={isCanvasAnswering}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                            <p className="text-sm text-muted-foreground">{canvasProgressMessage || "Loading next question..."}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Canvas Visualization */}
+                  <div className="flex-1 bg-card">
+                    <IdeaCanvas
+                      canvas={canvas}
+                      currentQuestion={currentQuestion}
+                      progressMessage={null}
+                      isAnswering={isCanvasAnswering}
+                      onAnswer={handleCanvasAnswer}
+                      onReset={resetCanvas}
+                      isSuggestComplete={false}
+                      hideQuestionCard={true}
+                    />
+                  </div>
+                </div>
+              </div>
+            )
           ) : (
             /* Split Layout for other features */
             <div className="grid gap-6 lg:grid-cols-2">
