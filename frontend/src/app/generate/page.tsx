@@ -22,8 +22,7 @@ import { MindMapMode } from "@/lib/types/mindmap";
 
 // Feature type definition
 type FeatureType =
-  | "blog"
-  | "slides"
+  | "content"
   | "image"
   | "image-edit"
   | "resume"
@@ -52,9 +51,9 @@ interface Feature {
 
 const features: Feature[] = [
   {
-    id: "blog",
-    title: "Blog Generation",
-    description: "Transform content into engaging blog posts",
+    id: "content",
+    title: "Content Generation",
+    description: "Transform ideas into documents & presentations",
     icon: (
       <svg
         className="w-7 h-7"
@@ -66,47 +65,20 @@ const features: Feature[] = [
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={2}
-          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
         />
       </svg>
     ),
-    color: "text-cyan-600",
+    color: "text-indigo-600",
     bgColor:
-      "bg-gradient-to-br from-cyan-100 to-cyan-50 dark:from-cyan-900/40 dark:to-cyan-950/40",
-    shadowColor: "hover:shadow-cyan-500/20",
+      "bg-gradient-to-br from-cyan-100 via-indigo-100 to-violet-100 dark:from-cyan-900/40 dark:via-indigo-900/40 dark:to-violet-900/40",
+    shadowColor: "hover:shadow-indigo-500/20",
     defaultOutputFormat: "pdf",
     outputOptions: [
-      { value: "pdf", label: "PDF Document" },
-      { value: "markdown", label: "Markdown" },
-    ],
-  },
-  {
-    id: "slides",
-    title: "Slide Generation",
-    description: "Create professional presentations",
-    icon: (
-      <svg
-        className="w-7 h-7"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-        />
-      </svg>
-    ),
-    color: "text-violet-600",
-    bgColor:
-      "bg-gradient-to-br from-violet-100 to-violet-50 dark:from-violet-900/40 dark:to-violet-950/40",
-    shadowColor: "hover:shadow-violet-500/20",
-    defaultOutputFormat: "pptx",
-    outputOptions: [
-      { value: "pptx", label: "PowerPoint Presentation" },
-      { value: "pdf_from_pptx", label: "PDF (from slides)" },
+      { value: "pptx", label: "📊 Presentation (PPTX)" },
+      { value: "pdf_from_pptx", label: "📑 Slide Deck (PDF)" },
+      { value: "pdf", label: "📄 Article (PDF)" },
+      { value: "markdown", label: "📝 Article (Markdown)" },
     ],
   },
   {
