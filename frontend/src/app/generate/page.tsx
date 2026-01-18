@@ -886,78 +886,98 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
                 </div>
               </div>
             ) : canvasState === "suggest_complete" || reportData || exitedToSummary ? (
-              /* Completion/Summary state - Split view: Canvas left, Report right */
-              <div className="grid gap-6 lg:grid-cols-2">
-                {/* Left: Canvas Decision Tree */}
-                <div className="order-1 lg:sticky lg:top-24 lg:self-start">
-                  <div className="border rounded-xl overflow-hidden bg-card">
-                    <div className="px-4 py-3 border-b bg-muted/50 flex items-center justify-between">
-                      <h4 className="font-medium text-sm">Decision Tree</h4>
-                      <span className="text-xs text-muted-foreground">
-                        {canvas?.question_count || 0} questions explored
-                      </span>
+              /* Completion/Summary state - Enhanced Split view: Canvas left, Report right */
+              <div className="h-[calc(100vh-10rem)] flex gap-4">
+                {/* Left Panel: Canvas Decision Tree */}
+                <div className="w-1/2 flex flex-col rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm">
+                  {/* Panel Header */}
+                  <div className="px-5 py-4 border-b border-border/60 bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-900/50 dark:to-slate-800/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm">Decision Tree</h4>
+                        <p className="text-xs text-muted-foreground">Your exploration journey</p>
+                      </div>
                     </div>
-                    <div className="h-[500px] lg:h-[calc(100vh-280px)]">
-                      <IdeaCanvas
-                        canvas={canvas}
-                        currentQuestion={null}
-                        progressMessage={null}
-                        isAnswering={false}
-                        onAnswer={() => {}}
-                        onReset={resetCanvas}
-                        isSuggestComplete={true}
-                        hideQuestionCard={true}
-                      />
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-border/60 shadow-sm">
+                      <svg className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs font-medium">{canvas?.question_count || 0} questions</span>
                     </div>
+                  </div>
+                  {/* Canvas Content */}
+                  <div className="flex-1 min-h-0">
+                    <IdeaCanvas
+                      canvas={canvas}
+                      currentQuestion={null}
+                      progressMessage={null}
+                      isAnswering={false}
+                      onAnswer={() => {}}
+                      onReset={resetCanvas}
+                      isSuggestComplete={true}
+                      hideQuestionCard={true}
+                    />
                   </div>
                 </div>
 
-                {/* Right: Report & Actions */}
-                <div className="order-2 flex flex-col lg:min-h-[calc(100vh-280px)]">
-                  <div className="flex flex-col gap-6 h-full">
-                    {/* Success Card */}
-                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shrink-0">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg text-emerald-800 dark:text-emerald-200">
-                            {reportData ? "Report Generated!" : "Exploration Complete!"}
-                          </h3>
-                          <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
-                            {canvasProgressMessage || `Explored ${canvas?.question_count || 0} questions about your idea.`}
-                          </p>
-                        </div>
+                {/* Right Panel: Report & Actions */}
+                <div className="w-1/2 flex flex-col rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm">
+                  {/* Panel Header */}
+                  <div className="px-5 py-4 border-b border-border/60 bg-gradient-to-r from-emerald-50 to-teal-50/50 dark:from-emerald-950/30 dark:to-teal-950/20 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm">{reportData ? "Report Ready" : "Exploration Complete"}</h4>
+                        <p className="text-xs text-muted-foreground">{canvasProgressMessage || "Generate your implementation spec"}</p>
                       </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { resetCanvas(); setReportData(null); setExitedToSummary(false); }}
+                      className="text-xs h-8"
+                    >
+                      <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      New Canvas
+                    </Button>
+                  </div>
 
-                    {/* Report Error */}
-                    {reportError && (
-                      <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
-                        {reportError}
-                      </div>
-                    )}
+                  {/* Panel Content */}
+                  <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                    <div className="p-5 flex-1 flex flex-col min-h-0 space-y-5">
+                      {/* Report Error */}
+                      {reportError && (
+                        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 shrink-0">
+                          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {reportError}
+                        </div>
+                      )}
 
-                    {/* Actions Card */}
-                    <div className="bg-card border rounded-xl p-6">
-                      <h4 className="font-medium mb-4">
-                        {reportData ? "Download Your Spec" : "Generate Implementation Spec"}
-                      </h4>
-                      
+                      {/* Actions */}
                       {!reportData ? (
                         <div className="space-y-3">
-                          <Button 
-                            onClick={handleGenerateReport} 
+                          <Button
+                            onClick={handleGenerateReport}
                             disabled={isGeneratingReport}
-                            className="w-full"
+                            className="w-full h-12 text-base shadow-sm hover:shadow-md transition-all"
                             size="lg"
                           >
                             {isGeneratingReport ? (
                               <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                                 Generating Report Pack...
                               </>
                             ) : (
@@ -969,30 +989,32 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
                               </>
                             )}
                           </Button>
-                          <Button onClick={() => handleCanvasAnswer("continue")} variant="outline" className="w-full">
+                          <Button onClick={() => handleCanvasAnswer("continue")} variant="outline" className="w-full h-10">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
                             Continue Exploring
                           </Button>
                         </div>
                       ) : (
-                        <div className="space-y-4">
+                        <>
                           {/* Download Buttons */}
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <Button 
-                              onClick={handleDownloadPdf} 
+                          <div className="grid grid-cols-3 gap-2 shrink-0">
+                            <Button
+                              onClick={handleDownloadPdf}
                               disabled={!reportData?.pdf_base64}
-                              className="w-full" 
-                              size="lg"
+                              className="h-10 text-sm"
                             >
-                              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                               </svg>
-                              Download PDF
+                              PDF
                             </Button>
-                            <Button onClick={handleDownloadMarkdown} variant="outline" className="w-full" size="lg">
-                              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <Button onClick={handleDownloadMarkdown} variant="outline" className="h-10 text-sm">
+                              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                               </svg>
-                              Download MD
+                              Markdown
                             </Button>
                             <Button
                               onClick={() => {
@@ -1006,136 +1028,114 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
                               }}
                               disabled={!includeReportImage || !generatedImage || isGeneratingImage}
                               variant="outline"
-                              className="w-full"
-                              size="lg"
+                              className="h-10 text-sm"
                             >
                               {isGeneratingImage ? (
                                 <>
-                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                                  Generating Image...
+                                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+                                  Image...
                                 </>
                               ) : (
                                 <>
-                                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                   </svg>
-                                  Download Image
+                                  Image
                                 </>
                               )}
                             </Button>
                           </div>
 
                           {imageGenError && (
-                            <p className="text-xs text-red-600">{imageGenError}</p>
+                            <p className="text-xs text-red-600 shrink-0">{imageGenError}</p>
                           )}
-                        </div>
-                      )}
-                    </div>
 
-                    {/* Preview Card with Tabs */}
-                    {reportData && (
-                      <div className="bg-card border rounded-xl overflow-hidden flex flex-col flex-1 min-h-[560px]">
-                        <div className="px-4 py-3 border-b bg-muted/50">
-                          <h4 className="font-medium text-sm">Report Preview</h4>
-                        </div>
-
-                        <Tabs defaultValue="image" className="flex flex-col flex-1 min-h-[560px]">
-                          <div className="px-4 pt-3">
-                            <TabsList>
-                              <TabsTrigger value="image">Image</TabsTrigger>
-                              <TabsTrigger value="pdf">PDF</TabsTrigger>
-                              <TabsTrigger value="markdown">Markdown</TabsTrigger>
+                          {/* Preview Tabs */}
+                          <Tabs defaultValue="image" className="flex-1 flex flex-col min-h-0">
+                            <TabsList className="w-full grid grid-cols-3 h-9 shrink-0">
+                              <TabsTrigger value="image" className="text-xs">Image</TabsTrigger>
+                              <TabsTrigger value="pdf" className="text-xs">PDF</TabsTrigger>
+                              <TabsTrigger value="markdown" className="text-xs">Markdown</TabsTrigger>
                             </TabsList>
-                          </div>
 
-                          <TabsContent value="image" className="p-4 flex-1 min-h-[520px] overflow-y-auto">
-                            {isGeneratingImage ? (
-                              <div className="flex items-center justify-center h-[420px] text-muted-foreground">
-                                <div className="flex items-center gap-2 text-sm">
-                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                  Generating visual summary...
+                            <TabsContent value="image" className="mt-3 rounded-lg border border-border/60 overflow-auto bg-white dark:bg-slate-900">
+                              {isGeneratingImage ? (
+                                <div className="flex items-center justify-center flex-1 min-h-[200px] text-muted-foreground">
+                                  <div className="flex flex-col items-center gap-3">
+                                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-sm">Generating visual summary...</span>
+                                  </div>
                                 </div>
-                              </div>
-                            ) : generatedImage ? (
-                              <div className="space-y-3">
-                                <div className="rounded-lg border overflow-hidden bg-white">
-                                  <img
-                                    src={`data:image/${generatedImage.format};base64,${generatedImage.data}`}
-                                    alt="Generated infographic"
-                                    className="w-full h-auto"
-                                  />
+                              ) : generatedImage ? (
+                                <img
+                                  src={`data:image/${generatedImage.format};base64,${generatedImage.data}`}
+                                  alt="Generated infographic"
+                                  className="w-full h-auto"
+                                />
+                              ) : imageGenError ? (
+                                <div className="flex items-center justify-center flex-1 min-h-[200px] text-red-600 text-sm">
+                                  {imageGenError}
                                 </div>
-                              </div>
-                            ) : imageGenError ? (
-                              <div className="flex items-center justify-center h-[420px] text-red-600 text-sm">
-                                {imageGenError}
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center h-[420px] text-muted-foreground text-sm">
-                                {includeReportImage
-                                  ? "Image generation pending..."
-                                  : "Image disabled for this report."}
-                              </div>
-                            )}
-                          </TabsContent>
+                              ) : (
+                                <div className="flex items-center justify-center flex-1 min-h-[200px] text-muted-foreground text-sm">
+                                  {includeReportImage ? "Image generation pending..." : "Image disabled for this report."}
+                                </div>
+                              )}
+                            </TabsContent>
 
-                          <TabsContent value="pdf" className="flex flex-1 min-h-[520px] flex-col">
-                            <div className="flex items-center justify-end px-4 py-2 border-b">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleOpenPdfPreview}
-                                disabled={!reportData.pdf_base64}
-                              >
-                                Open in New Tab
-                              </Button>
-                            </div>
-                            <div className="flex-1 min-h-0">
+                            <TabsContent value="pdf" className="mt-3 rounded-lg border border-border/60 overflow-hidden">
+                              <div className="flex items-center justify-end px-3 py-2 border-b border-border/60 bg-muted/30 shrink-0">
+                                <Button size="sm" variant="ghost" onClick={handleOpenPdfPreview} disabled={!reportData.pdf_base64} className="h-7 text-xs">
+                                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                  Open in New Tab
+                                </Button>
+                              </div>
                               {reportData.pdf_base64 ? (
                                 <iframe
                                   src={`data:application/pdf;base64,${reportData.pdf_base64}#view=FitH&zoom=page-width`}
-                                  className="w-full h-full border-0 bg-white"
+                                  className="w-full flex-1 min-h-0 border-0 bg-white"
                                   title="PDF Preview"
                                 />
                               ) : (
-                                <div className="flex items-center justify-center h-full text-muted-foreground">
-                                  <p>PDF generation in progress...</p>
+                                <div className="flex items-center justify-center flex-1 text-muted-foreground text-sm">
+                                  PDF generation in progress...
                                 </div>
                               )}
-                            </div>
-                          </TabsContent>
+                            </TabsContent>
 
-                          <TabsContent value="markdown" className="p-4 flex-1 min-h-[520px] overflow-y-auto space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">Markdown</span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleCopyMarkdown}
-                                disabled={!reportData.markdown_content}
-                              >
-                                {markdownCopied ? "Copied" : "Copy"}
-                              </Button>
-                            </div>
-                            <pre className="text-sm font-mono whitespace-pre-wrap text-muted-foreground leading-relaxed">
-                              {reportData.markdown_content}
-                            </pre>
-                          </TabsContent>
-                        </Tabs>
-                      </div>
-                    )}
-
-                    {/* Start New */}
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => { resetCanvas(); setReportData(null); setExitedToSummary(false); }}
-                      className="w-full mt-auto"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Start New Canvas
-                    </Button>
+                            <TabsContent value="markdown" className="mt-3 rounded-lg border border-border/60 overflow-hidden">
+                              <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/30 shrink-0">
+                                <span className="text-xs text-muted-foreground font-medium">Markdown Source</span>
+                                <Button size="sm" variant="ghost" onClick={handleCopyMarkdown} disabled={!reportData.markdown_content} className="h-7 text-xs">
+                                  {markdownCopied ? (
+                                    <>
+                                      <svg className="w-3.5 h-3.5 mr-1 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      Copied!
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                      </svg>
+                                      Copy
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                              <div className="p-3 flex-1 min-h-0 overflow-y-auto">
+                                <pre className="text-xs font-mono whitespace-pre-wrap text-muted-foreground leading-relaxed">
+                                  {reportData.markdown_content}
+                                </pre>
+                              </div>
+                            </TabsContent>
+                          </Tabs>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
