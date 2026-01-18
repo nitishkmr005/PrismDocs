@@ -264,6 +264,12 @@ Ingest and normalize content from diverse sources with intelligent extraction:
 - **Slide Generation:** Automatic PPTX layouts with bullet points, titles, and visuals
 - **Mind Map Creation:** Hierarchical concept visualization from document structure
 
+### 🧭 Interactive Studios
+
+- **Idea Canvas:** Guided Q&A that builds a decision tree and outputs an implementation spec pack (PDF + Markdown + visual summary image)
+- **Mind Maps:** Streamed generation with an interactive viewer and export to PNG/SVG/JSON
+- **Image Studio:** Style-based image generation and refinement (style transfer, region edits) with PNG/SVG output
+
 ### 📤 Professional Output Formats
 
 | Format           | Description                              | Key Features                                                |
@@ -271,7 +277,7 @@ Ingest and normalize content from diverse sources with intelligent extraction:
 | **📕 PDF**       | Professional reports with custom styling | Headers, footers, TOC, embedded images with AI descriptions |
 | **📊 PPTX**      | PowerPoint presentations                 | 16:9 layouts, bullet points, embedded visuals               |
 | **📝 Markdown**  | Structured documentation                 | Frontmatter, heading hierarchy, code blocks                 |
-| **🧠 Mind Maps** | Visual concept hierarchies               | Interactive diagrams from document structure                |
+| **🧠 Mind Maps** | Visual concept hierarchies               | Interactive diagrams with PNG/SVG/JSON export               |
 | **🖼️ Images**    | AI-generated/edited visuals              | Context-aware diagrams, infographics, charts                |
 | **🎙️ Podcasts**  | Audio content (coming soon)              | Multi-voice MP3 generation                                  |
 
@@ -520,6 +526,13 @@ data: {"download_url": "/api/download/f_abc/pdf/output.pdf", "file_path": "f_abc
 
 | Endpoint                                      | Method | Purpose                     |
 | --------------------------------------------- | ------ | --------------------------- |
+| `/api/generate/mindmap`                       | POST   | Stream mind map generation  |
+| `/api/canvas/start`                           | POST   | Start Idea Canvas (SSE)     |
+| `/api/canvas/answer`                          | POST   | Continue Idea Canvas (SSE)  |
+| `/api/canvas/report`                          | POST   | Generate canvas report pack |
+| `/api/image/styles`                           | GET    | List image styles           |
+| `/api/image/generate`                         | POST   | Generate styled images      |
+| `/api/image/edit`                             | POST   | Edit images (style/region)  |
 | `/api/upload`                                 | POST   | Upload files for processing |
 | `/api/download/{file_id}/{format}/{filename}` | GET    | Download generated files    |
 | `/api/health`                                 | GET    | Health check endpoint       |
@@ -540,7 +553,7 @@ PrismDocs is under active development with ambitious plans for new capabilities.
   ├─ Phase 1 ─────────────┤                      │                      │
   │  🎨 Enhanced Generation│                      │                      │
   │  ✅ Podcast MP3        │                      │                      │
-  │  ⏳ Mind maps          │                      │                      │
+  │  ✅ Mind maps          │                      │                      │
   │  ⏳ Code blocks        │                      │                      │
   │                        │                      │                      │
   │                        ├─ Phase 2 ───────────┤                      │
@@ -570,7 +583,7 @@ Legend: ✅ Complete  ⏳ In Progress  📋 Planned
 | Feature                       | Description                                                         | Status         |
 | ----------------------------- | ------------------------------------------------------------------- | -------------- |
 | 🎙️ **Podcast MP3 Generation** | Convert documents to multi-voice podcasts with ElevenLabs/Azure TTS | 🚧 In Progress |
-| 🧠 **Mind Maps**              | Auto-generate visual concept hierarchies from documents             | 📋 Planned     |
+| 🧠 **Mind Maps**              | Auto-generate visual concept hierarchies from documents             | ✅ Available   |
 | 📋 **Template Library**       | 50+ pre-built templates (resumes, arXiv papers, pitch decks)        | 📋 Planned     |
 | 👁️ **Real-time Preview**      | See your document as it generates                                   | 📋 Planned     |
 | 🔐 **API Key Vault**          | Securely store and manage multiple LLM provider keys                | 📋 Planned     |
@@ -585,7 +598,7 @@ Legend: ✅ Complete  ⏳ In Progress  📋 Planned
 **Content & Media:**
 
 - ⏳ **Podcast MP3 generation** - Multi-voice support with ElevenLabs/Azure TTS
-- 📋 **Mind maps** - Visual hierarchy with D3.js/Mermaid
+- ✅ **Mind maps** - Interactive viewer with PNG/SVG/JSON export
 - 📋 **FAQ cards** - Structured Q&A with auto-formatting
 - 📋 **SVG diagram generation** - Technical diagrams from text
 - ✅ **Image generation toggle** - Per-request control

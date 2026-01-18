@@ -51,7 +51,7 @@ class StartCanvasRequest(BaseModel):
         max_length=2000,
     )
     provider: Provider = Provider.GEMINI
-    model: str = "gemini-2.5-flash"
+    model: str = "gemini-2.5-flash-lite"
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -60,7 +60,7 @@ class StartCanvasRequest(BaseModel):
                     "template": "web_app",
                     "idea": "I want to build a task management app with team collaboration features",
                     "provider": "gemini",
-                    "model": "gemini-2.5-flash",
+                    "model": "gemini-2.5-flash-lite",
                 }
             ]
         }
@@ -215,5 +215,7 @@ class GenerateReportResponse(BaseModel):
     title: str
     pdf_url: str | None = None
     pdf_base64: str | None = None  # Base64-encoded PDF data
+    image_base64: str | None = None  # Base64-encoded summary image (PNG)
+    image_format: str | None = None
     markdown_url: str | None = None
     markdown_content: str | None = None

@@ -40,10 +40,14 @@ export interface UseIdeaCanvasResult {
   error: string | null;
   provider: Provider;
   apiKey: string;
+  imageApiKey: string;
+  includeReportImage: boolean;
   canGoBack: boolean;
   start: (
     request: StartCanvasRequest,
     apiKey: string,
+    imageApiKey: string | null,
+    includeReportImage: boolean,
     userId?: string
   ) => Promise<void>;
   answer: (answer: string | string[], userId?: string) => Promise<void>;
@@ -61,6 +65,8 @@ export function useIdeaCanvas(): UseIdeaCanvasResult {
   const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState<Provider>("gemini");
   const [apiKey, setApiKey] = useState<string>("");
+  const [imageApiKey, setImageApiKey] = useState<string>("");
+  const [includeReportImage, setIncludeReportImage] = useState<boolean>(true);
 
   const reset = useCallback(() => {
     setState("idle");
@@ -72,6 +78,8 @@ export function useIdeaCanvas(): UseIdeaCanvasResult {
     setError(null);
     setProvider("gemini");
     setApiKey("");
+    setImageApiKey("");
+    setIncludeReportImage(true);
   }, []);
 
   const handleEvent = useCallback((event: CanvasEvent) => {
@@ -98,11 +106,19 @@ export function useIdeaCanvas(): UseIdeaCanvasResult {
   }, []);
 
   const start = useCallback(
-    async (request: StartCanvasRequest, key: string, userId?: string) => {
+    async (
+      request: StartCanvasRequest,
+      key: string,
+      imageKey: string | null,
+      includeImage: boolean,
+      userId?: string
+    ) => {
       reset();
       setState("starting");
       setProvider(request.provider);
       setApiKey(key);
+      setImageApiKey(imageKey || "");
+      setIncludeReportImage(includeImage);
       setProgressMessage("Starting canvas session...");
 
       try {
@@ -192,6 +208,8 @@ export function useIdeaCanvas(): UseIdeaCanvasResult {
     error,
     provider,
     apiKey,
+    imageApiKey,
+    includeReportImage,
     canGoBack,
     start,
     answer,

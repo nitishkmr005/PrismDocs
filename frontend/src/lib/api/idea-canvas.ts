@@ -166,6 +166,7 @@ export interface GenerateReportOptions {
   outputFormat?: "pdf" | "markdown" | "both";
   provider: Provider;
   apiKey: string;
+  imageApiKey?: string;
 }
 
 export interface GenerateReportResult {
@@ -173,17 +174,22 @@ export interface GenerateReportResult {
   title: string;
   pdf_url?: string;
   pdf_base64?: string;
+  image_base64?: string;
+  image_format?: "png" | "svg";
   markdown_url?: string;
   markdown_content?: string;
 }
 
 export async function generateCanvasReport(options: GenerateReportOptions): Promise<GenerateReportResult> {
-  const { sessionId, outputFormat = "both", provider, apiKey } = options;
+  const { sessionId, outputFormat = "both", provider, apiKey, imageApiKey } = options;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     [getApiKeyHeader(provider)]: apiKey,
   };
+  if (imageApiKey) {
+    headers["X-Image-Key"] = imageApiKey;
+  }
 
   const url = getApiUrl("/api/canvas/report");
 
@@ -203,4 +209,3 @@ export async function generateCanvasReport(options: GenerateReportOptions): Prom
 
   return response.json();
 }
-
