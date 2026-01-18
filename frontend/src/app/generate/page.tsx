@@ -5,7 +5,9 @@ import { GenerateForm } from "@/components/forms/GenerateForm";
 import { ImageGenerateForm } from "@/components/forms/ImageGenerateForm";
 import { ImageEditForm } from "@/components/forms/ImageEditForm";
 import { GenerationProgress } from "@/components/progress/GenerationProgress";
+import { MindMapForm, MindMapViewer, MindMapProgress } from "@/components/mindmap";
 import { useGeneration, GenerationState } from "@/hooks/useGeneration";
+import { useMindMapGeneration } from "@/hooks/useMindMapGeneration";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,7 @@ import {
   ImageStyle,
   SourceItem,
 } from "@/lib/types/requests";
+import { MindMapMode } from "@/lib/types/mindmap";
 
 // Feature type definition
 type FeatureType =
@@ -237,7 +240,6 @@ const features: Feature[] = [
     shadowColor: "hover:shadow-purple-500/20",
     defaultOutputFormat: "pdf",
     outputOptions: [{ value: "pdf", label: "PDF Document" }],
-    comingSoon: true,
   },
   {
     id: "faq",
@@ -421,6 +423,16 @@ export default function GeneratePage() {
     reset,
   } = useGeneration();
 
+  // Mind map generation hook
+  const {
+    state: mindMapState,
+    tree: mindMapTree,
+    progress: mindMapProgress,
+    error: mindMapError,
+    generate: generateMindMap,
+    reset: resetMindMap,
+  } = useMindMapGeneration();
+
   const handleFeatureSelect = useCallback(
     (feature: Feature) => {
       if (!feature.comingSoon) {
@@ -430,15 +442,17 @@ export default function GeneratePage() {
         }
         setSelectedFeature(feature);
         reset(); // Reset any previous generation state
+        resetMindMap(); // Reset mind map state
       }
     },
-    [reset, isAuthenticated]
+    [reset, resetMindMap, isAuthenticated]
   );
 
   const handleBackToFeatures = useCallback(() => {
     setSelectedFeature(null);
     reset();
-  }, [reset]);
+    resetMindMap();
+  }, [reset, resetMindMap]);
 
   const handleSubmit = useCallback(
     (
@@ -484,7 +498,35 @@ export default function GeneratePage() {
     reset();
   }, [reset]);
 
+  // Mind map submit handler
+  const handleMindMapSubmit = useCallback(
+    (
+      sources: SourceItem[],
+      options: {
+        mode: MindMapMode;
+        provider: Provider;
+        model: string;
+        maxDepth: number;
+      },
+      apiKey: string
+    ) => {
+      generateMindMap(
+        {
+          sources,
+          mode: options.mode,
+          provider: options.provider,
+          model: options.model,
+          max_depth: options.maxDepth,
+        },
+        apiKey,
+        user?.id
+      );
+    },
+    [generateMindMap, user?.id]
+  );
+
   const isGenerating = state === "generating";
+  const isMindMapGenerating = mindMapState === "generating";
 
   // Show form when a feature is selected (split layout)
   if (selectedFeature) {
@@ -536,6 +578,44 @@ export default function GeneratePage() {
             <ImageGenerateForm />
           ) : selectedFeature.id === "image-edit" ? (
             <ImageEditForm />
+          ) : selectedFeature.id === "mindmap" ? (
+            /* Mind Map Layout */
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Left: Form or Progress */}
+              <div className="order-2 lg:order-1">
+                {mindMapState === "generating" ? (
+                  <div className="flex items-center justify-center min-h-[400px]">
+                    <MindMapProgress
+                      stage={mindMapProgress.stage}
+                      progress={mindMapProgress.percent}
+                      message={mindMapProgress.message}
+                    />
+                  </div>
+                ) : mindMapState === "error" ? (
+                  <div className="flex flex-col items-center justify-center min-h-[400px] p-8 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
+                    <svg className="w-12 h-12 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 className="text-lg font-medium text-red-800 dark:text-red-200 mb-2">Generation Failed</h3>
+                    <p className="text-sm text-red-600 dark:text-red-300 text-center mb-4">{mindMapError}</p>
+                    <Button variant="outline" onClick={resetMindMap}>Try Again</Button>
+                  </div>
+                ) : (
+                  <MindMapForm
+                    onSubmit={handleMindMapSubmit}
+                    isGenerating={isMindMapGenerating}
+                  />
+                )}
+              </div>
+
+              {/* Right: Mind Map Viewer */}
+              <div className="order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start min-h-[500px] lg:h-[calc(100vh-200px)]">
+                <MindMapViewer
+                  tree={mindMapTree}
+                  onReset={resetMindMap}
+                />
+              </div>
+            </div>
           ) : (
             /* Split Layout for other features */
             <div className="grid gap-6 lg:grid-cols-2">
