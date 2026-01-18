@@ -121,8 +121,9 @@ function MindMapViewerInner({ tree, onReset }: MindMapViewerInnerProps) {
         return;
       }
 
+      // Get the entire React Flow container for better export
       const element = reactFlowWrapper.current?.querySelector(
-        ".react-flow__viewport"
+        ".react-flow"
       ) as HTMLElement;
       if (!element) return;
 
@@ -132,7 +133,9 @@ function MindMapViewerInner({ tree, onReset }: MindMapViewerInnerProps) {
         const prevExpanded = new Set(expandedNodes);
         setExpandedNodes(new Set(getAllNodeIds(tree.nodes)));
 
-        // Wait for re-render
+        // Wait for re-render and fit view
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        fitView({ padding: 0.1 });
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         if (format === "png") {
@@ -147,7 +150,7 @@ function MindMapViewerInner({ tree, onReset }: MindMapViewerInnerProps) {
         setIsExporting(false);
       }
     },
-    [tree, expandedNodes]
+    [tree, expandedNodes, fitView]
   );
 
   return (

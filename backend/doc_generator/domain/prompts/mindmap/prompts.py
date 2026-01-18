@@ -44,23 +44,41 @@ Rules:
 
     mode_instructions = {
         "summarize": """
-MODE: SUMMARIZE
+MODE: SUMMARIZE (Strict Extraction)
+CRITICAL RULES:
+- Extract ONLY information that is EXPLICITLY stated in the provided content
+- DO NOT add any external knowledge, assumptions, or inferences
+- DO NOT hallucinate or make up any information not present in the source
+- Every node label must be directly derived from the content
+- If the content is short, create a smaller mind map - do not pad with invented content
+
+Instructions:
 - Extract the key concepts and main ideas from the content
 - Organize them hierarchically from most general to most specific
-- Focus on capturing the essence of the content
-- Use factual, informative labels""",
+- Focus on capturing the essence of what is actually written
+- Use factual, informative labels that reflect the source material""",
         "brainstorm": """
-MODE: BRAINSTORM
+MODE: BRAINSTORM (Creative Expansion)
+Instructions:
 - Use the content as a starting point for related ideas
 - Branch out into creative extensions and possibilities
 - Include potential applications, questions, and connections
-- Be expansive while maintaining relevance""",
+- Be expansive while maintaining relevance to the original topic
+- You MAY suggest related concepts that extend beyond the source content""",
         "structure": """
 MODE: STRUCTURE (Document Outline)
-- Reflect the actual structure and sections of the content
-- Preserve the document's organization
-- Include main sections, subsections, and key points
-- Maintain the logical flow of the original content""",
+CRITICAL RULES:
+- Reflect ONLY the actual structure and sections present in the content
+- DO NOT add sections or headings that are not in the original document
+- DO NOT hallucinate or invent structural elements
+- If the document has no clear structure, create a flat list of key points
+- Every node must correspond to actual content from the source
+
+Instructions:
+- Preserve the document's organization exactly as it appears
+- Include main sections, subsections, and key points as they exist
+- Maintain the logical flow of the original content
+- Use the actual headings and section titles when available""",
     }
 
     return base_prompt + mode_instructions.get(mode, mode_instructions["summarize"])

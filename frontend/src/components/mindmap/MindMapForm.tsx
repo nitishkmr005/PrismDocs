@@ -228,26 +228,82 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
 
       <Card>
         <CardHeader>
-          <CardTitle>Options</CardTitle>
-          <CardDescription>Configure mind map generation</CardDescription>
+          <CardTitle>Generation Mode</CardTitle>
+          <CardDescription>Choose how to process your content</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Generation Mode</Label>
-            <Select value={mode} onValueChange={(v) => setMode(v as MindMapMode)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="summarize">Summarize Content</SelectItem>
-                <SelectItem value="brainstorm">Brainstorm Ideas</SelectItem>
-                <SelectItem value="structure">Document Structure</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent>
+          <div className="grid gap-3">
+            <button
+              type="button"
+              onClick={() => setMode("summarize")}
+              className={`flex items-start gap-3 p-4 rounded-lg border text-left transition-all ${
+                mode === "summarize"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-border hover:border-muted-foreground/50"
+              }`}
+            >
+              <div className={`p-2 rounded-md ${mode === "summarize" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium">Summarize Content</div>
+                <div className="text-sm text-muted-foreground">Extract key concepts from your content. Strictly based on provided text, no external data.</div>
+              </div>
+            </button>
 
+            <button
+              type="button"
+              onClick={() => setMode("brainstorm")}
+              className={`flex items-start gap-3 p-4 rounded-lg border text-left transition-all ${
+                mode === "brainstorm"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-border hover:border-muted-foreground/50"
+              }`}
+            >
+              <div className={`p-2 rounded-md ${mode === "brainstorm" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium">Brainstorm Ideas</div>
+                <div className="text-sm text-muted-foreground">Expand on your topic with related ideas, connections, and creative suggestions.</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode("structure")}
+              className={`flex items-start gap-3 p-4 rounded-lg border text-left transition-all ${
+                mode === "structure"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "border-border hover:border-muted-foreground/50"
+              }`}
+            >
+              <div className={`p-2 rounded-md ${mode === "structure" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium">Document Structure</div>
+                <div className="text-sm text-muted-foreground">Show how your document is organized. Faithful to the original structure, no additions.</div>
+              </div>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Settings</CardTitle>
+          <CardDescription>Configure the AI model</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label>AI Provider</Label>
+            <Label>Provider</Label>
             <Select value={provider} onValueChange={(v) => setProvider(v as Provider)}>
               <SelectTrigger>
                 <SelectValue />
@@ -277,7 +333,7 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
           </div>
 
           <div className="space-y-2">
-            <Label>Max Depth (2-5)</Label>
+            <Label>Max Depth</Label>
             <Select value={String(maxDepth)} onValueChange={(v) => setMaxDepth(Number(v))}>
               <SelectTrigger>
                 <SelectValue />
@@ -286,7 +342,7 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
                 <SelectItem value="2">2 levels</SelectItem>
                 <SelectItem value="3">3 levels</SelectItem>
                 <SelectItem value="4">4 levels</SelectItem>
-                <SelectItem value="5">5 levels (default)</SelectItem>
+                <SelectItem value="5">5 levels</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -300,8 +356,51 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
             Enter your API key for the selected provider
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="mindmap-api-key">API Key *</Label>
+            {provider === "gemini" && (
+              <a
+                href="https://aistudio.google.com/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                Get Gemini API Key
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+            {provider === "openai" && (
+              <a
+                href="https://platform.openai.com/api-keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                Get OpenAI API Key
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+            {provider === "anthropic" && (
+              <a
+                href="https://console.anthropic.com/settings/keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                Get Claude API Key
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+          </div>
           <Input
+            id="mindmap-api-key"
             type="password"
             placeholder={`Enter your ${provider === "gemini" ? "Gemini" : provider === "openai" ? "OpenAI" : "Claude"} API key`}
             value={apiKey}

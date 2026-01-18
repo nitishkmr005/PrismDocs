@@ -17,12 +17,33 @@ function getFilename(title: string, ext: string): string {
   return `mindmap-${slug}-${timestamp}.${ext}`;
 }
 
+// Filter function to exclude MiniMap, Controls, and other non-essential elements
+function filterElements(node: HTMLElement): boolean {
+  const excludeClasses = [
+    "react-flow__minimap",
+    "react-flow__controls",
+    "react-flow__background",
+    "react-flow__attribution",
+  ];
+
+  if (node.classList) {
+    for (const className of excludeClasses) {
+      if (node.classList.contains(className)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 export async function exportToPng(
   element: HTMLElement,
   title: string
 ): Promise<void> {
   const dataUrl = await toPng(element, {
-    backgroundColor: "#0f172a", // slate-900
+    backgroundColor: "#0f172a",
+    cacheBust: true,
+    filter: filterElements,
     quality: 1,
     pixelRatio: 2,
   });
@@ -39,6 +60,8 @@ export async function exportToSvg(
 ): Promise<void> {
   const dataUrl = await toSvg(element, {
     backgroundColor: "#0f172a",
+    cacheBust: true,
+    filter: filterElements,
   });
 
   const link = document.createElement("a");
