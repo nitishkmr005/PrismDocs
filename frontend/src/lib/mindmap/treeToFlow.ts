@@ -8,8 +8,8 @@ export interface FlowData {
   edges: Edge[];
 }
 
-const HORIZONTAL_SPACING = 280;
-const VERTICAL_SPACING = 80;
+const HORIZONTAL_SPACING = 320;
+const VERTICAL_SPACING = 100;
 
 // Calculate the height of a subtree (number of leaf nodes)
 function getSubtreeHeight(node: MindMapNode): number {

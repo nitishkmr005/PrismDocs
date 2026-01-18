@@ -29,7 +29,7 @@ function MindMapNodeComponent({ id, data }: NodeProps<MindMapNodeType>) {
 
   return (
     <div
-      className="relative px-4 py-2 rounded-lg shadow-lg min-w-[120px] max-w-[200px] cursor-pointer transition-all duration-200 hover:scale-105"
+      className="relative px-4 py-2 rounded-lg shadow-lg min-w-[140px] max-w-[280px] cursor-pointer transition-all duration-200 hover:scale-105"
       style={{
         backgroundColor: colors.bg,
         borderColor: colors.border,
@@ -37,6 +37,7 @@ function MindMapNodeComponent({ id, data }: NodeProps<MindMapNodeType>) {
         borderStyle: "solid",
       }}
       onClick={handleToggle}
+      title={label}
     >
       <Handle
         type="target"
@@ -44,7 +45,7 @@ function MindMapNodeComponent({ id, data }: NodeProps<MindMapNodeType>) {
         className="!w-2 !h-2 !bg-slate-400"
       />
 
-      <span className="text-white text-sm font-medium leading-tight block truncate">
+      <span className="text-white text-sm font-medium leading-snug block pr-2">
         {label}
       </span>
 
