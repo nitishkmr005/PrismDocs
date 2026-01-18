@@ -25,29 +25,33 @@ export interface MindMapRequest {
 }
 
 export interface MindMapProgressEvent {
-  status: "parsing" | "generating" | "complete" | "error";
-  progress: number;
+  type: "progress";
+  stage: "extracting" | "analyzing" | "generating" | "complete";
+  percent: number;
   message?: string;
 }
 
 export interface MindMapCompleteEvent {
-  status: "complete";
-  progress: 100;
+  type: "complete";
   tree: MindMapTree;
 }
 
 export interface MindMapErrorEvent {
-  status: "error";
-  error: string;
+  type: "error";
+  message: string;
   code?: string;
 }
 
 export type MindMapEvent = MindMapProgressEvent | MindMapCompleteEvent | MindMapErrorEvent;
 
-export function isCompleteEvent(event: MindMapEvent): event is MindMapCompleteEvent {
-  return event.status === "complete" && "tree" in event;
+export function isMindMapCompleteEvent(event: MindMapEvent): event is MindMapCompleteEvent {
+  return event.type === "complete" && "tree" in event;
 }
 
-export function isErrorEvent(event: MindMapEvent): event is MindMapErrorEvent {
-  return event.status === "error" && "error" in event;
+export function isMindMapErrorEvent(event: MindMapEvent): event is MindMapErrorEvent {
+  return event.type === "error";
+}
+
+export function isMindMapProgressEvent(event: MindMapEvent): event is MindMapProgressEvent {
+  return event.type === "progress";
 }

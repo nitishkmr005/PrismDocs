@@ -3,9 +3,9 @@
 "use client";
 
 import { memo } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
+import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 
-interface MindMapNodeData {
+interface MindMapNodeData extends Record<string, unknown> {
   label: string;
   depth: number;
   hasChildren: boolean;
@@ -15,8 +15,10 @@ interface MindMapNodeData {
   onToggle?: (nodeId: string) => void;
 }
 
-function MindMapNodeComponent({ id, data }: NodeProps) {
-  const { label, hasChildren, isExpanded, childCount, colors, onToggle } = data as MindMapNodeData;
+type MindMapNodeType = Node<MindMapNodeData, "mindMapNode">;
+
+function MindMapNodeComponent({ id, data }: NodeProps<MindMapNodeType>) {
+  const { label, hasChildren, isExpanded, childCount, colors, onToggle } = data;
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
