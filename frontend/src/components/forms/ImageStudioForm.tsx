@@ -18,6 +18,8 @@ import {
 import { useImageGeneration, useImageEditing } from "@/hooks/useImageGeneration";
 import { getStyleById, type StyleCategory } from "@/data/imageStyles";
 import type { OutputFormat, EditMode, Region } from "@/lib/types/image";
+import { useAuth } from "@/hooks/useAuth";
+import { FeedbackButtons } from "@/components/feedback/FeedbackButtons";
 
 type StudioPhase = "generate" | "refine";
 
@@ -44,6 +46,7 @@ export function ImageStudioForm() {
   const [region, setRegion] = useState<Region | null>(null);
 
   // Hooks
+  const { user } = useAuth();
   const { state: genState, result: genResult, error: genError, generate, reset: resetGen } = useImageGeneration();
   const { state: editState, result: editResult, error: editError, edit, reset: resetEdit } = useImageEditing();
 
@@ -429,6 +432,16 @@ export function ImageStudioForm() {
                 </Button>
               </div>
             )}
+            
+            {/* Feedback Buttons after editing */}
+            {editState === "success" && (
+              <FeedbackButtons
+                contentType="image"
+                outputFormat={editResult?.imageData ? "png" : "png"}
+                userId={user?.id}
+                metadata={{ phase: "edited", editMode }}
+              />
+            )}
           </>
         ) : (
           <>
@@ -459,6 +472,16 @@ export function ImageStudioForm() {
                   Start Fresh
                 </Button>
               </div>
+            )}
+            
+            {/* Feedback Buttons after generation */}
+            {hasGenerated && (
+              <FeedbackButtons
+                contentType="image"
+                outputFormat={genResult?.format === "svg" ? "svg" : "png"}
+                userId={user?.id}
+                metadata={{ phase: "generated", outputFormat }}
+              />
             )}
           </>
         )}
