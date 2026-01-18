@@ -8,16 +8,22 @@ import {
   MindMapTree,
   MindMapRequest,
   MindMapEvent,
-  isCompleteEvent,
-  isErrorEvent,
+  isMindMapCompleteEvent,
+  isMindMapErrorEvent,
+  isMindMapProgressEvent,
 } from "@/lib/types/mindmap";
 
 export type MindMapGenerationState = "idle" | "generating" | "complete" | "error";
 
+export interface MindMapProgressState {
+  stage: string;
+  percent: number;
+  message?: string;
+}
+
 export interface UseMindMapGenerationResult {
   state: MindMapGenerationState;
-  progress: number;
-  status: string;
+  progress: MindMapProgressState;
   tree: MindMapTree | null;
   error: string | null;
   generate: (
@@ -28,40 +34,39 @@ export interface UseMindMapGenerationResult {
   reset: () => void;
 }
 
+const initialProgress: MindMapProgressState = {
+  stage: "extracting",
+  percent: 0,
+  message: undefined,
+};
+
 export function useMindMapGeneration(): UseMindMapGenerationResult {
   const [state, setState] = useState<MindMapGenerationState>("idle");
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState("");
+  const [progress, setProgress] = useState<MindMapProgressState>(initialProgress);
   const [tree, setTree] = useState<MindMapTree | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reset = useCallback(() => {
     setState("idle");
-    setProgress(0);
-    setStatus("");
+    setProgress(initialProgress);
     setTree(null);
     setError(null);
   }, []);
 
   const handleEvent = useCallback((event: MindMapEvent) => {
-    if ("progress" in event) {
-      setProgress(event.progress);
-    }
-
-    if (isCompleteEvent(event)) {
+    if (isMindMapCompleteEvent(event)) {
       setState("complete");
       setTree(event.tree);
-      setStatus("Mind map generated successfully");
-    } else if (isErrorEvent(event)) {
+      setProgress({ stage: "complete", percent: 100, message: "Mind map generated successfully" });
+    } else if (isMindMapErrorEvent(event)) {
       setState("error");
-      setError(event.error);
-      setStatus("Generation failed");
-    } else {
-      const statusMessages: Record<string, string> = {
-        parsing: "Parsing source content...",
-        generating: "Generating mind map structure...",
-      };
-      setStatus(event.message || statusMessages[event.status] || event.status);
+      setError(event.message);
+    } else if (isMindMapProgressEvent(event)) {
+      setProgress({
+        stage: event.stage,
+        percent: event.percent,
+        message: event.message,
+      });
     }
   }, []);
 
@@ -94,7 +99,6 @@ export function useMindMapGeneration(): UseMindMapGenerationResult {
   return {
     state,
     progress,
-    status,
     tree,
     error,
     generate,
