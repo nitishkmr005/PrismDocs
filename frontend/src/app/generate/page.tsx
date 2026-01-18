@@ -275,6 +275,7 @@ function FeatureTile({
           Voice AI
         </span>
       )}
+      
       <div
         className={`h-14 w-14 rounded-xl ${feature.bgColor} flex items-center justify-center mb-4`}
       >
@@ -288,6 +289,8 @@ function FeatureTile({
   );
 }
 
+
+
 function ProgressPanel({
   state,
   progress,
@@ -298,6 +301,8 @@ function ProgressPanel({
   onReset,
   onNewGeneration,
   featureColor,
+  userId,
+  outputFormat,
 }: {
   state: GenerationState;
   progress: number;
@@ -313,6 +318,8 @@ function ProgressPanel({
   onReset: () => void;
   onNewGeneration: () => void;
   featureColor: string;
+  userId?: string;
+  outputFormat?: string;
 }) {
   if (state === "idle") {
     return (
@@ -353,6 +360,8 @@ function ProgressPanel({
           error={error}
           metadata={metadata}
           onReset={onReset}
+          userId={userId}
+          outputFormat={outputFormat}
         />
       </div>
     </div>
@@ -590,6 +599,8 @@ export default function GeneratePage() {
                   onReset={reset}
                   onNewGeneration={handleNewGeneration}
                   featureColor={selectedFeature.color}
+                  userId={user?.id}
+                  outputFormat={selectedFeature.defaultOutputFormat}
                 />
               </div>
             </div>

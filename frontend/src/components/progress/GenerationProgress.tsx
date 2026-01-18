@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { GenerationState } from "@/hooks/useGeneration";
+import { FeedbackButtons } from "@/components/feedback/FeedbackButtons";
 
 interface GenerationProgressProps {
   state: GenerationState;
@@ -19,6 +20,8 @@ interface GenerationProgressProps {
     imagesGenerated?: number;
   } | null;
   onReset?: () => void;
+  userId?: string;
+  outputFormat?: string;
 }
 
 export function GenerationProgress({
@@ -29,6 +32,8 @@ export function GenerationProgress({
   error,
   metadata,
   onReset,
+  userId,
+  outputFormat,
 }: GenerationProgressProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -225,7 +230,17 @@ export function GenerationProgress({
                   Generate Another
                 </Button>
               )}
-            </div>
+             </div>
+
+            {/* Feedback Buttons */}
+            {downloadUrl && (
+              <FeedbackButtons
+                contentType="document"
+                outputFormat={outputFormat}
+                userId={userId}
+                metadata={metadata || undefined}
+              />
+            )}
 
             {/* PDF Preview */}
             {downloadUrl && isPdf && showPreview && (
