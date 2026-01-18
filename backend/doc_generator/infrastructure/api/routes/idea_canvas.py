@@ -215,13 +215,20 @@ async def generate_canvas_report(
     api_key = get_api_key_for_provider(session.provider, api_keys)
 
     try:
-        report_data = service.generate_report(request.session_id, api_key)
+        image_api_key = api_keys.image
+        report_data = service.generate_report(
+            request.session_id,
+            api_key,
+            image_api_key=image_api_key,
+        )
 
         response = GenerateReportResponse(
             session_id=request.session_id,
             title=report_data["title"],
             markdown_content=report_data["markdown_content"],
             pdf_base64=report_data.get("pdf_base64"),
+            image_base64=report_data.get("image_base64"),
+            image_format=report_data.get("image_format"),
         )
 
         return response

@@ -443,6 +443,8 @@ export default function GeneratePage() {
     error: canvasError,
     provider: canvasProvider,
     apiKey: canvasApiKey,
+    imageApiKey: canvasImageApiKey,
+    includeReportImage,
     canGoBack,
     start: startCanvas,
     answer: submitCanvasAnswer,
@@ -456,6 +458,8 @@ export default function GeneratePage() {
     title: string;
     markdown_content: string;
     pdf_base64?: string;
+    image_base64?: string;
+    image_format?: "png" | "svg";
   } | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -574,8 +578,13 @@ export default function GeneratePage() {
 
   // Idea canvas submit handler
   const handleCanvasSubmit = useCallback(
-    (request: StartCanvasRequest, apiKey: string) => {
-      startCanvas(request, apiKey, user?.id);
+    (
+      request: StartCanvasRequest,
+      contentApiKey: string,
+      imageApiKey: string | null,
+      includeImage: boolean
+    ) => {
+      startCanvas(request, contentApiKey, imageApiKey, includeImage, user?.id);
     },
     [startCanvas, user?.id]
   );
@@ -589,8 +598,8 @@ export default function GeneratePage() {
   );
 
   const generateImageFromReportContent = useCallback(async (reportTitle: string, reportMarkdown: string) => {
-    if (!canvasApiKey) {
-      setImageGenError("No API key available");
+    if (!canvasImageApiKey) {
+      setImageGenError("No image API key available");
       return;
     }
 
@@ -614,7 +623,7 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
         style: "whiteboard_handwritten",
         output_format: "raster",
         free_text_mode: false,
-      }, canvasApiKey);
+      }, canvasImageApiKey);
 
       if (result.success && result.image_data) {
         setGeneratedImage({
@@ -629,7 +638,7 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [canvasApiKey]);
+  }, [canvasImageApiKey]);
 
   // Generate report handler
   const handleGenerateReport = useCallback(async () => {
@@ -637,33 +646,59 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
       setReportError("No active canvas session");
       return;
     }
+    if (includeReportImage && !canvasImageApiKey) {
+      setReportError("Missing image API key for report image");
+      return;
+    }
 
     setIsGeneratingReport(true);
     setReportError(null);
     setImageGenError(null);
     setMarkdownCopied(false);
+    setGeneratedImage(null);
 
     try {
+      const reportImageApiKey = includeReportImage ? canvasImageApiKey : undefined;
       const result = await generateCanvasReport({
         sessionId: canvasSessionId,
         outputFormat: "both",
         provider: canvasProvider,
         apiKey: canvasApiKey,
+        imageApiKey: reportImageApiKey,
       });
 
       setReportData({
         title: result.title,
         markdown_content: result.markdown_content || "",
         pdf_base64: result.pdf_base64,
+        image_base64: result.image_base64,
+        image_format: result.image_format,
       });
       setShowReportModal(true);
-      void generateImageFromReportContent(result.title, result.markdown_content || "");
+      if (result.image_base64 && result.image_format) {
+        setGeneratedImage({
+          data: result.image_base64,
+          format: result.image_format,
+        });
+      } else if (includeReportImage) {
+        void generateImageFromReportContent(
+          result.title,
+          result.markdown_content || ""
+        );
+      }
     } catch (err) {
       setReportError(err instanceof Error ? err.message : "Failed to generate report");
     } finally {
       setIsGeneratingReport(false);
     }
-  }, [canvasSessionId, canvasApiKey, canvasProvider, generateImageFromReportContent]);
+  }, [
+    canvasSessionId,
+    canvasApiKey,
+    canvasProvider,
+    canvasImageApiKey,
+    includeReportImage,
+    generateImageFromReportContent,
+  ]);
 
   // Download report as markdown
   const handleDownloadMarkdown = useCallback(() => {
@@ -969,7 +1004,7 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
                                   );
                                 }
                               }}
-                              disabled={!generatedImage || isGeneratingImage}
+                              disabled={!includeReportImage || !generatedImage || isGeneratingImage}
                               variant="outline"
                               className="w-full"
                               size="lg"
@@ -1004,14 +1039,45 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
                           <h4 className="font-medium text-sm">Report Preview</h4>
                         </div>
 
-                        <Tabs defaultValue="pdf" className="flex flex-col flex-1 min-h-[560px]">
+                        <Tabs defaultValue="image" className="flex flex-col flex-1 min-h-[560px]">
                           <div className="px-4 pt-3">
                             <TabsList>
+                              <TabsTrigger value="image">Image</TabsTrigger>
                               <TabsTrigger value="pdf">PDF</TabsTrigger>
                               <TabsTrigger value="markdown">Markdown</TabsTrigger>
-                              <TabsTrigger value="image">Image</TabsTrigger>
                             </TabsList>
                           </div>
+
+                          <TabsContent value="image" className="p-4 flex-1 min-h-[520px] overflow-y-auto">
+                            {isGeneratingImage ? (
+                              <div className="flex items-center justify-center h-[420px] text-muted-foreground">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                  Generating visual summary...
+                                </div>
+                              </div>
+                            ) : generatedImage ? (
+                              <div className="space-y-3">
+                                <div className="rounded-lg border overflow-hidden bg-white">
+                                  <img
+                                    src={`data:image/${generatedImage.format};base64,${generatedImage.data}`}
+                                    alt="Generated infographic"
+                                    className="w-full h-auto"
+                                  />
+                                </div>
+                              </div>
+                            ) : imageGenError ? (
+                              <div className="flex items-center justify-center h-[420px] text-red-600 text-sm">
+                                {imageGenError}
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center h-[420px] text-muted-foreground text-sm">
+                                {includeReportImage
+                                  ? "Image generation pending..."
+                                  : "Image disabled for this report."}
+                              </div>
+                            )}
+                          </TabsContent>
 
                           <TabsContent value="pdf" className="flex flex-1 min-h-[520px] flex-col">
                             <div className="flex items-center justify-end px-4 py-2 border-b">
@@ -1054,35 +1120,6 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
                             <pre className="text-sm font-mono whitespace-pre-wrap text-muted-foreground leading-relaxed">
                               {reportData.markdown_content}
                             </pre>
-                          </TabsContent>
-
-                          <TabsContent value="image" className="p-4 flex-1 min-h-[520px] overflow-y-auto">
-                            {isGeneratingImage ? (
-                              <div className="flex items-center justify-center h-[420px] text-muted-foreground">
-                                <div className="flex items-center gap-2 text-sm">
-                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                  Generating visual summary...
-                                </div>
-                              </div>
-                            ) : generatedImage ? (
-                              <div className="space-y-3">
-                                <div className="rounded-lg border overflow-hidden bg-white">
-                                  <img
-                                    src={`data:image/${generatedImage.format};base64,${generatedImage.data}`}
-                                    alt="Generated infographic"
-                                    className="w-full h-auto"
-                                  />
-                                </div>
-                              </div>
-                            ) : imageGenError ? (
-                              <div className="flex items-center justify-center h-[420px] text-red-600 text-sm">
-                                {imageGenError}
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center h-[420px] text-muted-foreground text-sm">
-                                Image generation pending...
-                              </div>
-                            )}
                           </TabsContent>
                         </Tabs>
                       </div>
