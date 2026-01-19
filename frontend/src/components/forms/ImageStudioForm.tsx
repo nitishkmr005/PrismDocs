@@ -188,12 +188,12 @@ export function ImageStudioForm() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="prompt">Describe your image</Label>
+                  <Label htmlFor="prompt">What would you like to create?</Label>
                   <Textarea
                     id="prompt"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="A futuristic city with flying cars at sunset..."
+                    placeholder="e.g., A system architecture showing microservices, A flowchart for user authentication..."
                     rows={3}
                     disabled={isGenerating}
                   />

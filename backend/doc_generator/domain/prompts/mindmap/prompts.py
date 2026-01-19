@@ -79,6 +79,68 @@ Instructions:
 - Include main sections, subsections, and key points as they exist
 - Maintain the logical flow of the original content
 - Use the actual headings and section titles when available""",
+        "goal_planning": """
+MODE: GOAL PLANNING (Action Roadmap)
+Instructions:
+- Transform the idea or goal into a structured execution plan
+- Create a hierarchical breakdown with phases, steps, and actionable tasks
+- Organize from high-level objectives down to specific actions
+- Include milestones and key deliverables at each phase
+- Consider dependencies and logical sequencing
+
+Structure:
+- Root: The main goal or project
+- Level 1: Major phases or milestones
+- Level 2: Steps within each phase
+- Level 3: Specific tasks and actions
+- Level 4+: Sub-tasks and details as needed
+
+Focus on:
+- Clear, actionable language ("Define...", "Build...", "Test...")
+- Logical progression from start to completion
+- Realistic breakdown of complex goals into manageable pieces""",
+        "pros_cons": """
+MODE: PROS & CONS (Decision Analysis)
+Instructions:
+- Analyze the topic/decision from multiple perspectives
+- Create a balanced view of benefits, risks, costs, and considerations
+- Be thorough but fair in presenting both sides
+- Include trade-offs and nuanced points
+
+Structure:
+- Root: The decision or topic being analyzed
+- Level 1: Main categories (Pros, Cons, Considerations)
+- Level 2: Specific points within each category
+- Level 3: Supporting details, examples, or sub-points
+
+Categories to consider:
+- Pros/Benefits/Advantages
+- Cons/Drawbacks/Risks
+- Costs (time, money, resources)
+- Trade-offs
+- External factors
+- Long-term vs short-term implications""",
+        "presentation_structure": """
+MODE: PRESENTATION STRUCTURE (Document Flow)
+Instructions:
+- Transform content into a logical presentation or document structure
+- Create a narrative flow suitable for slides or written documents
+- Organize into sections that build upon each other
+- Focus on storytelling and audience engagement
+
+Structure:
+- Root: Presentation/Document title
+- Level 1: Main sections (Introduction, Body sections, Conclusion)
+- Level 2: Key points within each section
+- Level 3: Supporting details, data points, examples
+
+Flow considerations:
+- Hook/Opening: Grab attention
+- Context: Set the stage
+- Main Body: Core content organized logically
+- Evidence: Supporting points and examples
+- Takeaways: Key messages
+- Call to Action: What should the audience do next?""",
     }
 
     return base_prompt + mode_instructions.get(mode, mode_instructions["summarize"])
