@@ -306,12 +306,21 @@ class PDFFromPPTXGenerator:
             rendered = []
             for part in parts:
                 if part.startswith("`") and part.endswith("`") and len(part) >= 2:
-                    code = html.escape(part[1:-1])
+                    # Only escape < and > for code, not quotes
+                    code = part[1:-1]
+                    code = (
+                        code.replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                    )
                     rendered.append(
                         f"<font face='Courier' color='#6366f1'>{code}</font>"
                     )
                     continue
-                safe = html.escape(part)
+                # Only escape < and > for regular text, not quotes
+                safe = (
+                    part.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                )
                 # Bold **text**
                 safe = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", safe)
                 # Italic *text*
@@ -323,7 +332,17 @@ class PDFFromPPTXGenerator:
             # Restore links
             for i, (link_text, url) in enumerate(links):
                 placeholder = f"__LINK_{i}__"
-                link_html = f'<link href="{html.escape(url)}" color="blue"><u>{html.escape(link_text)}</u></link>'
+                safe_url = (
+                    url.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                )
+                safe_text = (
+                    link_text.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                )
+                link_html = (
+                    f'<link href="{safe_url}" color="blue"><u>{safe_text}</u></link>'
+                )
                 result = result.replace(placeholder, link_html)
 
             return result

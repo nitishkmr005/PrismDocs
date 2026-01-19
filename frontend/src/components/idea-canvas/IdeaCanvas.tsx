@@ -334,6 +334,49 @@ function IdeaCanvasInner({
     onAnswer("Skipped");
   }, [onAnswer]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Number keys 1-9 to select options
+      if (currentQuestion && !isAnswering) {
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= 9) {
+          const options = currentQuestion.options || [];
+          if (num <= options.length) {
+            e.preventDefault();
+            onAnswer(options[num - 1].label);
+          }
+        }
+      }
+
+      // Tab or S to skip
+      if ((e.key === "Tab" || e.key === "s" || e.key === "S") && currentQuestion?.allow_skip && !isAnswering) {
+        e.preventDefault();
+        onAnswer("Skipped");
+      }
+
+      // Cmd/Ctrl + G to generate report
+      if ((e.metaKey || e.ctrlKey) && e.key === "g" && onGenerateReport) {
+        e.preventDefault();
+        onGenerateReport();
+      }
+
+      // Cmd/Ctrl + R to reset (only when shift is also pressed to avoid browser refresh)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "r") {
+        e.preventDefault();
+        onReset();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentQuestion, isAnswering, onAnswer, onGenerateReport, onReset]);
+
   return (
     <div ref={containerRef} className="relative w-full h-full min-h-[500px]">
       {/* ReactFlow Canvas */}
@@ -446,6 +489,13 @@ function IdeaCanvasInner({
           <Button variant="outline" size="sm" onClick={onReset}>
             Start Over
           </Button>
+          {/* Keyboard shortcuts hint */}
+          <div className="bg-card/90 backdrop-blur border rounded-lg px-3 py-1.5 shadow-sm text-xs text-muted-foreground">
+            <span className="font-medium">⌨️</span>{" "}
+            <span className="opacity-70">1-9</span> select ·{" "}
+            <span className="opacity-70">Tab</span> skip ·{" "}
+            <span className="opacity-70">⌘G</span> generate
+          </div>
         </div>
       )}
     </div>

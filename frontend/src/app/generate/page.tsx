@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { GenerateForm } from "@/components/forms/GenerateForm";
 import { ImageStudioForm } from "@/components/forms/ImageStudioForm";
 import { GenerationProgress } from "@/components/progress/GenerationProgress";
@@ -22,7 +22,7 @@ import {
 } from "@/lib/types/requests";
 import { MindMapMode } from "@/lib/types/mindmap";
 import { StartCanvasRequest } from "@/lib/types/idea-canvas";
-import { generateCanvasReport } from "@/lib/api/idea-canvas";
+import { generateCanvasReport, generateCanvasMindmap, CanvasMindmapResult } from "@/lib/api/idea-canvas";
 import { generateImage, downloadImage } from "@/lib/api/image";
 
 // Feature type definition
@@ -471,6 +471,11 @@ export default function GeneratePage() {
   const [generatedImage, setGeneratedImage] = useState<{data: string; format: string} | null>(null);
   const [imageGenError, setImageGenError] = useState<string | null>(null);
 
+  // Canvas mind map state
+  const [canvasMindMap, setCanvasMindMap] = useState<CanvasMindmapResult | null>(null);
+  const [isGeneratingCanvasMindMap, setIsGeneratingCanvasMindMap] = useState(false);
+  const [canvasMindMapError, setCanvasMindMapError] = useState<string | null>(null);
+
   // Handler to exit to summary view (instead of resetting)
   const handleExitToSummary = useCallback(() => {
     setExitedToSummary(true);
@@ -490,6 +495,8 @@ export default function GeneratePage() {
         setReportData(null);
         setReportError(null);
         setExitedToSummary(false);
+        setCanvasMindMap(null);
+        setCanvasMindMapError(null);
       }
     },
     [reset, resetMindMap, resetCanvas, isAuthenticated]
@@ -503,6 +510,8 @@ export default function GeneratePage() {
     setReportData(null);
     setReportError(null);
     setExitedToSummary(false);
+    setCanvasMindMap(null);
+    setCanvasMindMapError(null);
   }, [reset, resetMindMap, resetCanvas]);
 
   const handleSubmit = useCallback(
@@ -557,7 +566,6 @@ export default function GeneratePage() {
         mode: MindMapMode;
         provider: Provider;
         model: string;
-        maxDepth: number;
       },
       apiKey: string
     ) => {
@@ -567,7 +575,6 @@ export default function GeneratePage() {
           mode: options.mode,
           provider: options.provider,
           model: options.model,
-          max_depth: options.maxDepth,
         },
         apiKey,
         user?.id
@@ -596,6 +603,27 @@ export default function GeneratePage() {
     },
     [submitCanvasAnswer, user?.id]
   );
+
+  // Generate mind map from canvas Q&A
+  const handleGenerateCanvasMindMap = useCallback(async () => {
+    if (!canvasSessionId || !canvasApiKey) return;
+
+    setIsGeneratingCanvasMindMap(true);
+    setCanvasMindMapError(null);
+
+    try {
+      const result = await generateCanvasMindmap({
+        sessionId: canvasSessionId,
+        provider: canvasProvider,
+        apiKey: canvasApiKey,
+      });
+      setCanvasMindMap(result);
+    } catch (err) {
+      setCanvasMindMapError(err instanceof Error ? err.message : "Failed to generate mind map");
+    } finally {
+      setIsGeneratingCanvasMindMap(false);
+    }
+  }, [canvasSessionId, canvasApiKey, canvasProvider]);
 
   const generateImageFromReportContent = useCallback(async (reportTitle: string, reportMarkdown: string) => {
     if (!canvasImageApiKey) {
@@ -777,6 +805,13 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
   const isCanvasStarting = canvasState === "starting";
   const isCanvasAnswering = canvasState === "answering";
 
+  // Auto-generate mind map when canvas completes
+  useEffect(() => {
+    if (canvasState === "suggest_complete" && canvasSessionId && !canvasMindMap && !isGeneratingCanvasMindMap && !canvasMindMapError) {
+      handleGenerateCanvasMindMap();
+    }
+  }, [canvasState, canvasSessionId, canvasMindMap, isGeneratingCanvasMindMap, canvasMindMapError, handleGenerateCanvasMindMap]);
+
   // Check if we're in a workspace mode (full-width needed)
   const isCanvasWorkspace = selectedFeature?.id === "idea-canvas" &&
     (canvasState === "suggest_complete" || reportData || exitedToSummary);
@@ -813,43 +848,91 @@ Style: Hand-drawn, sketch-like, warm colors, clean whiteboard aesthetic with ico
 
           {/* Full-width Canvas Completion View */}
           <div className="h-[calc(100vh-7rem)] flex gap-4">
-                {/* Left Panel: Canvas Decision Tree */}
+                {/* Left Panel: Mind Map & Decision Tree */}
                 <div className="w-1/2 flex flex-col rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm">
-                  {/* Panel Header */}
-                  <div className="px-5 py-4 border-b border-border/60 bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-900/50 dark:to-slate-800/30 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  {/* Tabbed Content */}
+                  <Tabs defaultValue="mindmap" className="flex flex-col h-full">
+                    {/* Panel Header with Tabs */}
+                    <div className="px-5 py-3 border-b border-border/60 bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-900/50 dark:to-slate-800/30 flex items-center justify-between">
+                      <TabsList className="bg-white/50 dark:bg-slate-800/50">
+                        <TabsTrigger value="mindmap" className="text-xs gap-1.5">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          Mind Map
+                          {isGeneratingCanvasMindMap && (
+                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          )}
+                        </TabsTrigger>
+                        <TabsTrigger value="tree" className="text-xs gap-1.5">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                          </svg>
+                          Decision Tree
+                        </TabsTrigger>
+                      </TabsList>
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-border/60 shadow-sm">
+                        <svg className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm">Decision Tree</h4>
-                        <p className="text-xs text-muted-foreground">Your exploration journey</p>
+                        <span className="text-xs font-medium">{canvas?.question_count || 0} questions</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-border/60 shadow-sm">
-                      <svg className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-xs font-medium">{canvas?.question_count || 0} questions</span>
-                    </div>
-                  </div>
-                  {/* Canvas Content */}
-                  <div className="flex-1 min-h-0">
-                    <IdeaCanvas
-                      canvas={canvas}
-                      currentQuestion={null}
-                      progressMessage={null}
-                      isAnswering={false}
-                      onAnswer={() => {}}
-                      onReset={resetCanvas}
-                      isSuggestComplete={true}
-                      hideQuestionCard={true}
-                    />
-                  </div>
-                </div>
 
+                    {/* Mind Map Tab */}
+                    <TabsContent value="mindmap" className="flex-1 min-h-0 m-0">
+                      {isGeneratingCanvasMindMap ? (
+                        <div className="flex flex-col items-center justify-center h-full p-8">
+                          <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                          <p className="text-sm text-muted-foreground">Generating mind map from your exploration...</p>
+                        </div>
+                      ) : canvasMindMapError ? (
+                        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+                            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <p className="text-sm text-red-600 dark:text-red-400 mb-3">{canvasMindMapError}</p>
+                          <Button variant="outline" size="sm" onClick={handleGenerateCanvasMindMap}>
+                            Try Again
+                          </Button>
+                        </div>
+                      ) : canvasMindMap ? (
+                        <MindMapViewer 
+                          tree={{
+                            title: canvasMindMap.title,
+                            summary: canvasMindMap.summary,
+                            source_count: canvasMindMap.source_count,
+                            mode: canvasMindMap.mode,
+                            nodes: canvasMindMap.nodes as import("@/lib/types/mindmap").MindMapNode,
+                          }}
+                          onReset={() => setCanvasMindMap(null)}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full p-8">
+                          <Button onClick={handleGenerateCanvasMindMap}>
+                            Generate Mind Map
+                          </Button>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    {/* Decision Tree Tab */}
+                    <TabsContent value="tree" className="flex-1 min-h-0 m-0">
+                      <IdeaCanvas
+                        canvas={canvas}
+                        currentQuestion={null}
+                        progressMessage={null}
+                        isAnswering={false}
+                        onAnswer={() => {}}
+                        onReset={resetCanvas}
+                        isSuggestComplete={true}
+                        hideQuestionCard={true}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </div>
                 {/* Right Panel: Report & Actions */}
                 <div className="w-1/2 flex flex-col rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm">
                   {/* Panel Header */}

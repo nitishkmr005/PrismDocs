@@ -10,6 +10,7 @@ from .requests import Provider, SourceItem
 
 class MindMapMode(str, Enum):
     """Mind map generation modes."""
+
     SUMMARIZE = "summarize"
     BRAINSTORM = "brainstorm"
     STRUCTURE = "structure"
@@ -27,8 +28,7 @@ class MindMapRequest(BaseModel):
             ],
             "mode": "summarize",
             "provider": "gemini",
-            "model": "gemini-2.5-flash",
-            "max_depth": 5
+            "model": "gemini-2.5-flash"
         }
     """
 
@@ -39,7 +39,7 @@ class MindMapRequest(BaseModel):
     mode: MindMapMode = MindMapMode.SUMMARIZE
     provider: Provider = Provider.GEMINI
     model: str = "gemini-2.5-flash"
-    max_depth: int = Field(default=5, ge=2, le=5)
+    # max_depth is now determined by LLM based on content complexity
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -52,7 +52,6 @@ class MindMapRequest(BaseModel):
                     "mode": "summarize",
                     "provider": "gemini",
                     "model": "gemini-2.5-flash",
-                    "max_depth": 5,
                 }
             ]
         }
@@ -61,6 +60,7 @@ class MindMapRequest(BaseModel):
 
 class MindMapNode(BaseModel):
     """A node in the mind map tree."""
+
     id: str
     label: str
     children: list["MindMapNode"] = Field(default_factory=list)
@@ -68,6 +68,7 @@ class MindMapNode(BaseModel):
 
 class MindMapTree(BaseModel):
     """Complete mind map tree structure."""
+
     title: str
     summary: str
     source_count: int
@@ -80,6 +81,7 @@ class MindMapTree(BaseModel):
 
 class MindMapProgressEvent(BaseModel):
     """Progress event during mind map generation."""
+
     type: Literal["progress"] = "progress"
     stage: str  # extracting, analyzing, generating
     percent: float = Field(ge=0, le=100)
@@ -88,12 +90,14 @@ class MindMapProgressEvent(BaseModel):
 
 class MindMapCompleteEvent(BaseModel):
     """Completion event with mind map data."""
+
     type: Literal["complete"] = "complete"
     tree: MindMapTree
 
 
 class MindMapErrorEvent(BaseModel):
     """Error event during mind map generation."""
+
     type: Literal["error"] = "error"
     message: str
     code: str | None = None

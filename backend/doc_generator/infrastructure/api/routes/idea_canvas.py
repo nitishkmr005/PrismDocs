@@ -237,3 +237,54 @@ async def generate_canvas_report(
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post(
+    "/canvas/mindmap",
+    summary="Generate a mind map from a canvas session",
+    description=(
+        "Generate a mind map visualization from the canvas Q&A session. "
+        "This shows a hierarchical view of the decisions made during exploration."
+    ),
+)
+async def generate_canvas_mindmap(
+    request: GenerateReportRequest,  # Reuse same request schema
+    api_keys: APIKeys = Depends(extract_api_keys),
+):
+    """Generate a mind map from a canvas session.
+
+    Args:
+        request: Request with session_id
+        api_keys: API keys from headers
+
+    Returns:
+        MindMapTree structure
+    """
+    logger.info(f"=== Generating Canvas MindMap: session={request.session_id} ===")
+
+    service = get_idea_canvas_service()
+
+    # Get session to determine which API key to use
+    session = service.get_session(request.session_id)
+    if not session:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=404, detail=f"Session not found: {request.session_id}"
+        )
+
+    # Get the appropriate API key based on session provider
+    api_key = get_api_key_for_provider(session.provider, api_keys)
+
+    try:
+        mindmap_data = service.generate_mindmap_from_session(
+            request.session_id,
+            api_key,
+        )
+
+        return mindmap_data
+
+    except ValueError as e:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail=str(e))

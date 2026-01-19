@@ -1,12 +1,29 @@
 """Prompts for Idea Canvas question generation."""
 
 TEMPLATE_CONTEXTS = {
-    "startup": """The user wants to plan a startup. Focus on:
-- Problem/solution fit
-- Target market and customer segments
-- Business model and revenue
-- MVP scope and features
-- Go-to-market strategy
+    "startup": """The user wants to plan a startup. Focus on gathering information for these key areas:
+
+HOOK & PROBLEM DEFINITION:
+- One compelling story or striking statistic that illustrates the problem
+- Why this problem matters NOW (timing, urgency, trends)
+- Define the user/customer clearly (who exactly has this pain)
+- Current workflow: How do they solve this problem today? What's broken?
+
+SOLUTION:
+- The core solution and how it solves the problem
+- Key differentiators from existing solutions
+- MVP scope and essential features
+
+MARKET OPPORTUNITY:
+- Target market size and segments
+- Customer acquisition strategy
+- Go-to-market approach
+
+BUSINESS/IMPACT MODEL:
+- Revenue model or impact metrics
+- Productivity, quality, cost savings potential
+- Risk reduction benefits
+- Integration and adoption path for users
 - Team and resources needed
 - Key risks and mitigation""",
     "web_app": """The user wants to build a web application. Focus on:
@@ -41,14 +58,6 @@ TEMPLATE_CONTEXTS = {
 - Ecosystem and community support
 - Cost considerations
 - Migration and integration challenges""",
-    "feature": """The user wants to plan a feature. Focus on:
-- User problem being solved
-- Feature scope and boundaries
-- User stories and acceptance criteria
-- Edge cases and error handling
-- Dependencies on existing systems
-- Implementation approach
-- Testing strategy""",
     "custom": """The user has a custom idea. Adapt your questions to explore:
 - Core concept and goals
 - Target audience/users
@@ -56,6 +65,55 @@ TEMPLATE_CONTEXTS = {
 - Implementation approach
 - Potential challenges
 - Success criteria""",
+    # Developer-focused templates
+    "implement_feature": """The user wants to implement a feature. Focus on:
+- Feature requirements and acceptance criteria
+- User stories and edge cases
+- Dependencies and integration points
+- Implementation approach (step-by-step)
+- Testing strategy
+- Rollout and monitoring plan
+- Code examples where helpful""",
+    "solve_problem": """The user wants to explore different approaches to solve a technical problem. Focus on:
+- Problem definition and constraints
+- Available resources and limitations
+- Present 2-4 DIFFERENT APPROACHES with clear trade-offs
+- For each approach: pros, cons, complexity, when to use
+- Include code snippets or pseudocode when relevant
+- Your recommendation with reasoning
+IMPORTANT: Always present multiple approaches so the user can make an informed decision.""",
+    "performance": """The user wants to optimize performance. Focus on:
+- Current bottlenecks and symptoms
+- Metrics and benchmarks (what to measure)
+- Profiling approach
+- Quick wins vs long-term optimizations
+- Implementation priority
+- Testing and validation plan
+- Specific tools and techniques""",
+    "scaling": """The user wants to scale a system. Focus on:
+- Current load and capacity limits
+- Target scale requirements
+- Horizontal vs vertical scaling trade-offs
+- Database scaling strategies
+- Caching and CDN strategies
+- Cost implications
+- Migration plan and rollback strategy""",
+    "security_review": """The user wants to review and improve security. Focus on:
+- Threat model and attack surface
+- Authentication and authorization
+- Data encryption (at rest, in transit)
+- Input validation and sanitization
+- Dependency vulnerabilities
+- Compliance requirements
+- Security testing approach""",
+    "code_architecture": """The user wants to design or refactor code architecture. Focus on:
+- Current pain points and technical debt
+- Design patterns and principles (SOLID, etc.)
+- Module/package structure
+- Dependency management
+- Testing architecture
+- Documentation approach
+- Migration strategy if refactoring""",
 }
 
 

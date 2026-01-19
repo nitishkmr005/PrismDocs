@@ -85,7 +85,9 @@ class MindMapService:
             )
 
             if not llm_service.is_available():
-                raise ValueError(f"LLM service not available for provider: {provider_name}")
+                raise ValueError(
+                    f"LLM service not available for provider: {provider_name}"
+                )
 
             yield MindMapProgressEvent(
                 stage="analyzing",
@@ -105,7 +107,6 @@ class MindMapService:
                 llm_service=llm_service,
                 content=content,
                 mode=request.mode.value,
-                max_depth=request.max_depth,
                 source_count=source_count,
             )
 
@@ -192,14 +193,13 @@ class MindMapService:
         llm_service: LLMService,
         content: str,
         mode: str,
-        max_depth: int,
         source_count: int,
     ) -> str:
         """Call LLM to generate mind map JSON."""
         loop = asyncio.get_event_loop()
 
         system_prompt = mindmap_system_prompt(mode)
-        user_prompt = mindmap_user_prompt(content, max_depth, source_count)
+        user_prompt = mindmap_user_prompt(content, source_count)
 
         result = await loop.run_in_executor(
             self._executor,
@@ -207,7 +207,7 @@ class MindMapService:
             system_prompt,
             user_prompt,
             8000,  # max_tokens
-            0.4,   # temperature
+            0.4,  # temperature
             True,  # json_mode
             "mindmap_generation",  # step
         )
@@ -283,7 +283,7 @@ class MindMapService:
                     stack.pop()
                     if not stack:
                         try:
-                            return json.loads(text[start_idx:i + 1])
+                            return json.loads(text[start_idx : i + 1])
                         except json.JSONDecodeError:
                             return None
 

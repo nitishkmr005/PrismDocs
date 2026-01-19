@@ -43,6 +43,12 @@ except ImportError:
 RASTER_MODEL = "gemini-3-pro-image-preview"
 SVG_MODEL = "gemini-3-pro-preview"
 
+# Fallback models for image generation (in order of preference)
+RASTER_FALLBACK_MODELS = [
+    "gemini-3-pro-image-preview",  # Primary
+    "gemini-2.5-flash-image",  # Fallback
+]
+
 
 class ImageService:
     """
@@ -99,39 +105,64 @@ class ImageService:
         else:
             final_prompt = self._build_styled_prompt(prompt, style)
 
-        try:
-            logger.info(f"Generating raster image with model: {RASTER_MODEL}")
-            start_time = time.perf_counter()
+        start_time = time.perf_counter()
+        last_error = None
 
-            # Create chat with image generation capabilities
-            chat = self.client.chats.create(
-                model=RASTER_MODEL,
-                config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
-            )
+        # Try each model in the fallback list
+        for model in RASTER_FALLBACK_MODELS:
+            try:
+                logger.info(f"Generating raster image with model: {model}")
 
-            # Send the prompt
-            response = chat.send_message(final_prompt)
+                # Create chat with image generation capabilities
+                chat = self.client.chats.create(
+                    model=model,
+                    config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
+                )
 
-            # Extract image from response
-            for part in response.parts:
-                if hasattr(part, "as_image"):
-                    image = part.as_image()
-                    if image:
-                        base64_data = self._encode_image(image)
-                        if not base64_data:
-                            logger.warning("Failed to encode raster image")
-                            return None, final_prompt
+                # Send the prompt
+                response = chat.send_message(final_prompt)
 
-                        duration_ms = int((time.perf_counter() - start_time) * 1000)
-                        logger.success(f"Raster image generated in {duration_ms}ms")
-                        return base64_data, final_prompt
+                # Extract image from response
+                for part in response.parts:
+                    if hasattr(part, "as_image"):
+                        image = part.as_image()
+                        if image:
+                            base64_data = self._encode_image(image)
+                            if not base64_data:
+                                logger.warning("Failed to encode raster image")
+                                continue
 
-            logger.warning("No image in response")
-            return None, final_prompt
+                            duration_ms = int((time.perf_counter() - start_time) * 1000)
+                            logger.success(
+                                f"Raster image generated with {model} in {duration_ms}ms"
+                            )
+                            return base64_data, final_prompt
 
-        except Exception as e:
-            logger.error(f"Raster image generation failed: {e}")
-            return None, final_prompt
+                logger.warning(f"No image in response from {model}")
+                # Try next model
+
+            except Exception as e:
+                error_str = str(e)
+                last_error = e
+                # Check if it's a 503/overload error that we should retry
+                if (
+                    "503" in error_str
+                    or "overload" in error_str.lower()
+                    or "unavailable" in error_str.lower()
+                ):
+                    logger.warning(
+                        f"Model {model} overloaded, trying next model. Error: {error_str[:100]}"
+                    )
+                    continue
+                else:
+                    logger.error(f"Raster image generation failed with {model}: {e}")
+                    # For non-overload errors, still try next model
+                    continue
+
+        # All models failed
+        if last_error:
+            logger.error(f"All image models failed. Last error: {last_error}")
+        return None, final_prompt
 
     def generate_svg(
         self,
@@ -212,45 +243,74 @@ class ImageService:
         # Build the edit prompt
         final_prompt = self._build_edit_prompt(prompt, style, region)
 
+        # Decode the input image (once, reuse for all attempts)
         try:
-            logger.info(f"Editing image with model: {RASTER_MODEL}")
-            start_time = time.perf_counter()
-
-            # Decode the input image
             image_bytes = base64.b64decode(image_base64)
-
-            # Create the image part for the API
-            image_part = types.Part.from_bytes(data=image_bytes, mime_type="image/png")
-
-            # Create chat with image generation capabilities
-            chat = self.client.chats.create(
-                model=RASTER_MODEL,
-                config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
-            )
-
-            # Send image and edit prompt
-            response = chat.send_message([image_part, final_prompt])
-
-            # Extract edited image from response
-            for part in response.parts:
-                if hasattr(part, "as_image"):
-                    image = part.as_image()
-                    if image:
-                        base64_data = self._encode_image(image)
-                        if not base64_data:
-                            logger.warning("Failed to encode edited image")
-                            return None
-
-                        duration_ms = int((time.perf_counter() - start_time) * 1000)
-                        logger.success(f"Image edited in {duration_ms}ms")
-                        return base64_data
-
-            logger.warning("No edited image in response")
-            return None
-
         except Exception as e:
-            logger.error(f"Image editing failed: {e}")
+            logger.error(f"Failed to decode input image: {e}")
             return None
+
+        start_time = time.perf_counter()
+        last_error = None
+
+        # Try each model in the fallback list
+        for model in RASTER_FALLBACK_MODELS:
+            try:
+                logger.info(f"Editing image with model: {model}")
+
+                # Create the image part for the API
+                image_part = types.Part.from_bytes(
+                    data=image_bytes, mime_type="image/png"
+                )
+
+                # Create chat with image generation capabilities
+                chat = self.client.chats.create(
+                    model=model,
+                    config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
+                )
+
+                # Send image and edit prompt
+                response = chat.send_message([image_part, final_prompt])
+
+                # Extract edited image from response
+                for part in response.parts:
+                    if hasattr(part, "as_image"):
+                        image = part.as_image()
+                        if image:
+                            base64_data = self._encode_image(image)
+                            if not base64_data:
+                                logger.warning("Failed to encode edited image")
+                                continue
+
+                            duration_ms = int((time.perf_counter() - start_time) * 1000)
+                            logger.success(
+                                f"Image edited with {model} in {duration_ms}ms"
+                            )
+                            return base64_data
+
+                logger.warning(f"No edited image in response from {model}")
+                # Try next model
+
+            except Exception as e:
+                error_str = str(e)
+                last_error = e
+                if (
+                    "503" in error_str
+                    or "overload" in error_str.lower()
+                    or "unavailable" in error_str.lower()
+                ):
+                    logger.warning(
+                        f"Model {model} overloaded for editing, trying next model. Error: {error_str[:100]}"
+                    )
+                    continue
+                else:
+                    logger.error(f"Image editing failed with {model}: {e}")
+                    continue
+
+        # All models failed
+        if last_error:
+            logger.error(f"All image edit models failed. Last error: {last_error}")
+        return None
 
     def _build_free_text_prompt(self, prompt: str) -> str:
         """Build prompt for free-text mode (no style)."""
