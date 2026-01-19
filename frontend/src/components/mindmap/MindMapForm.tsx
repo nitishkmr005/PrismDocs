@@ -227,67 +227,145 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
       <Card>
         <CardHeader>
           <CardTitle>Generation Mode</CardTitle>
-          <CardDescription>Choose how to process your content</CardDescription>
+          <CardDescription>Choose how you want to transform your content</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Understand Fast (Summarize) */}
             <button
               type="button"
               onClick={() => setMode("summarize")}
-              className={`flex items-start gap-3 p-4 rounded-lg border text-left transition-all ${
+              className={`group flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
                 mode === "summarize"
-                  ? "border-primary bg-primary/5 ring-1 ring-primary"
-                  : "border-border hover:border-muted-foreground/50"
+                  ? "border-primary bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 ring-2 ring-primary shadow-md"
+                  : "border-border hover:border-primary/50 hover:shadow-sm hover:bg-muted/50"
               }`}
             >
-              <div className={`p-2 rounded-md ${mode === "summarize" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+              <div className={`p-2.5 rounded-lg mb-3 ${mode === "summarize" ? "bg-blue-100 dark:bg-blue-900/50" : "bg-muted"}`}>
+                <span className="text-xl">📘</span>
               </div>
-              <div>
-                <div className="font-medium">Summarize Content</div>
-                <div className="text-sm text-muted-foreground">Extract key concepts from your content. Strictly based on provided text, no external data.</div>
+              <div className="font-semibold text-sm mb-1.5">Understand Fast</div>
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                Turn PDFs, articles, or URLs into a clean map of key ideas
+              </div>
+              <div className="flex flex-wrap gap-1 mt-3">
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Research papers</span>
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Articles</span>
               </div>
             </button>
 
+            {/* Brainstorm Ideas */}
             <button
               type="button"
               onClick={() => setMode("brainstorm")}
-              className={`flex items-start gap-3 p-4 rounded-lg border text-left transition-all ${
+              className={`group flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
                 mode === "brainstorm"
-                  ? "border-primary bg-primary/5 ring-1 ring-primary"
-                  : "border-border hover:border-muted-foreground/50"
+                  ? "border-primary bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/40 dark:to-yellow-950/40 ring-2 ring-primary shadow-md"
+                  : "border-border hover:border-primary/50 hover:shadow-sm hover:bg-muted/50"
               }`}
             >
-              <div className={`p-2 rounded-md ${mode === "brainstorm" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
+              <div className={`p-2.5 rounded-lg mb-3 ${mode === "brainstorm" ? "bg-amber-100 dark:bg-amber-900/50" : "bg-muted"}`}>
+                <span className="text-xl">💡</span>
               </div>
-              <div>
-                <div className="font-medium">Brainstorm Ideas</div>
-                <div className="text-sm text-muted-foreground">Expand on your topic with related ideas, connections, and creative suggestions.</div>
+              <div className="font-semibold text-sm mb-1.5">Brainstorm Ideas</div>
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                Expand a topic into use cases, variations & possibilities
+              </div>
+              <div className="flex flex-wrap gap-1 mt-3">
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Startup ideas</span>
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Features</span>
               </div>
             </button>
 
+            {/* Create Action Plan (Goal Planning) */}
+            <button
+              type="button"
+              onClick={() => setMode("goal_planning")}
+              className={`group flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                mode === "goal_planning"
+                  ? "border-primary bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 ring-2 ring-primary shadow-md"
+                  : "border-border hover:border-primary/50 hover:shadow-sm hover:bg-muted/50"
+              }`}
+            >
+              <div className={`p-2.5 rounded-lg mb-3 ${mode === "goal_planning" ? "bg-emerald-100 dark:bg-emerald-900/50" : "bg-muted"}`}>
+                <span className="text-xl">🎯</span>
+              </div>
+              <div className="font-semibold text-sm mb-1.5">Create Action Plan</div>
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                Turn an idea into phases, steps & milestones
+              </div>
+              <div className="flex flex-wrap gap-1 mt-3">
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Projects</span>
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Learning paths</span>
+              </div>
+            </button>
+
+            {/* Analyze Pros & Cons */}
+            <button
+              type="button"
+              onClick={() => setMode("pros_cons")}
+              className={`group flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                mode === "pros_cons"
+                  ? "border-primary bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/40 dark:to-purple-950/40 ring-2 ring-primary shadow-md"
+                  : "border-border hover:border-primary/50 hover:shadow-sm hover:bg-muted/50"
+              }`}
+            >
+              <div className={`p-2.5 rounded-lg mb-3 ${mode === "pros_cons" ? "bg-violet-100 dark:bg-violet-900/50" : "bg-muted"}`}>
+                <span className="text-xl">⚖️</span>
+              </div>
+              <div className="font-semibold text-sm mb-1.5">Analyze Pros & Cons</div>
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                See tradeoffs, benefits & risks for better decisions
+              </div>
+              <div className="flex flex-wrap gap-1 mt-3">
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Tech choices</span>
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Decisions</span>
+              </div>
+            </button>
+
+            {/* Presentation Structure */}
+            <button
+              type="button"
+              onClick={() => setMode("presentation_structure")}
+              className={`group flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                mode === "presentation_structure"
+                  ? "border-primary bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/40 dark:to-pink-950/40 ring-2 ring-primary shadow-md"
+                  : "border-border hover:border-primary/50 hover:shadow-sm hover:bg-muted/50"
+              }`}
+            >
+              <div className={`p-2.5 rounded-lg mb-3 ${mode === "presentation_structure" ? "bg-rose-100 dark:bg-rose-900/50" : "bg-muted"}`}>
+                <span className="text-xl">📊</span>
+              </div>
+              <div className="font-semibold text-sm mb-1.5">Presentation Outline</div>
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                Create logical structure for slides or documents
+              </div>
+              <div className="flex flex-wrap gap-1 mt-3">
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Slides</span>
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Articles</span>
+              </div>
+            </button>
+
+            {/* Document Structure (keeping original) */}
             <button
               type="button"
               onClick={() => setMode("structure")}
-              className={`flex items-start gap-3 p-4 rounded-lg border text-left transition-all ${
+              className={`group flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
                 mode === "structure"
-                  ? "border-primary bg-primary/5 ring-1 ring-primary"
-                  : "border-border hover:border-muted-foreground/50"
+                  ? "border-primary bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950/40 dark:to-gray-950/40 ring-2 ring-primary shadow-md"
+                  : "border-border hover:border-primary/50 hover:shadow-sm hover:bg-muted/50"
               }`}
             >
-              <div className={`p-2 rounded-md ${mode === "structure" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
+              <div className={`p-2.5 rounded-lg mb-3 ${mode === "structure" ? "bg-slate-100 dark:bg-slate-900/50" : "bg-muted"}`}>
+                <span className="text-xl">📋</span>
               </div>
-              <div>
-                <div className="font-medium">Document Structure</div>
-                <div className="text-sm text-muted-foreground">Show how your document is organized. Faithful to the original structure, no additions.</div>
+              <div className="font-semibold text-sm mb-1.5">Document Structure</div>
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                Visualize how a document is organized
+              </div>
+              <div className="flex flex-wrap gap-1 mt-3">
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Documents</span>
+                <span className="px-2 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground">Reports</span>
               </div>
             </button>
           </div>

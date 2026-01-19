@@ -14,6 +14,9 @@ class MindMapMode(str, Enum):
     SUMMARIZE = "summarize"
     BRAINSTORM = "brainstorm"
     STRUCTURE = "structure"
+    GOAL_PLANNING = "goal_planning"
+    PROS_CONS = "pros_cons"
+    PRESENTATION_STRUCTURE = "presentation_structure"
 
 
 class MindMapRequest(BaseModel):

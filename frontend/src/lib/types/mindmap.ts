@@ -1,6 +1,6 @@
 // frontend/src/lib/types/mindmap.ts
 
-export type MindMapMode = "summarize" | "brainstorm" | "structure";
+export type MindMapMode = "summarize" | "brainstorm" | "structure" | "goal_planning" | "pros_cons" | "presentation_structure";
 
 export interface MindMapNode {
   id: string;
