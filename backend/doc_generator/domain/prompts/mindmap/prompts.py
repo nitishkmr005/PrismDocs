@@ -84,12 +84,11 @@ Instructions:
     return base_prompt + mode_instructions.get(mode, mode_instructions["summarize"])
 
 
-def mindmap_user_prompt(content: str, max_depth: int, source_count: int) -> str:
+def mindmap_user_prompt(content: str, source_count: int) -> str:
     """Get the user prompt for mind map generation.
 
     Args:
         content: The source content to create a mind map from
-        max_depth: Maximum depth of the tree (2-5)
         source_count: Number of sources being processed
 
     Returns:
@@ -98,10 +97,18 @@ def mindmap_user_prompt(content: str, max_depth: int, source_count: int) -> str:
     return f"""Create a mind map from the following content.
 
 CONSTRAINTS:
-- Maximum tree depth: {max_depth} levels (root counts as level 1)
+- Determine the appropriate depth based on content complexity (maximum 20 levels allowed)
+- Use deeper hierarchies for complex topics with many sub-concepts
+- Use shallower hierarchies for simpler, straightforward topics
 - Aim for 3-7 children per node when appropriate
-- Total nodes should be between 15-50 depending on content complexity
+- Total nodes should scale with content complexity (15-100+ nodes depending on content)
 - Sources combined: {source_count}
+
+DEPTH GUIDELINES:
+- Simple topics: 2-4 levels
+- Moderate topics: 4-8 levels
+- Complex technical topics: 6-12 levels
+- Very detailed/comprehensive content: 10-20 levels
 
 CONTENT:
 {content}

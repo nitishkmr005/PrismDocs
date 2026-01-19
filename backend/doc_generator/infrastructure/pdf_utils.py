@@ -84,10 +84,16 @@ def inline_md(text: str) -> str:
     rendered: list[str] = []
     for part in parts:
         if part.startswith("`") and part.endswith("`") and len(part) >= 2:
-            code = html.escape(part[1:-1])
+            # For inline code, escape HTML special chars like < and >
+            code = part[1:-1]
+            # Only escape < and > which could break XML/HTML parsing
+            # Keep quotes as-is since ReportLab handles them fine
+            code = code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             rendered.append(f"<font face='Courier'>{code}</font>")
             continue
-        safe = html.escape(part)
+        # For regular text, only escape < and > that could break tags
+        # Keep quotes and apostrophes as-is for better readability
+        safe = part.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         safe = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", safe)
         safe = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<i>\1</i>", safe)
         rendered.append(safe)
@@ -97,8 +103,12 @@ def inline_md(text: str) -> str:
     # Restore links with proper ReportLab link tags
     for i, (link_text, url) in enumerate(links):
         placeholder = f"__LINK_{i}__"
-        # ReportLab supports <link> tags for clickable URLs
-        link_html = f'<link href="{html.escape(url)}" color="blue"><u>{html.escape(link_text)}</u></link>'
+        # Only escape < and > in URLs, keep quotes
+        safe_url = url.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        safe_text = (
+            link_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        )
+        link_html = f'<link href="{safe_url}" color="blue"><u>{safe_text}</u></link>'
         result = result.replace(placeholder, link_html)
 
     return result
@@ -201,11 +211,29 @@ def parse_markdown_lines(text: str) -> Iterator[tuple[str, any]]:
         if table_lines:
             yield from flush_table()
 
-        # Bullet lists
+        # Bullet lists - but skip if it looks like code
         list_match = re.match(r"^[-*]\s+(.*)$", line)
         if list_match:
-            bullets.append(list_match.group(1))
-            continue
+            bullet_content = list_match.group(1)
+            # Check if the bullet content looks like code (common patterns)
+            code_patterns = [
+                r"^\w+\s*=\s*\w+.*\(.*\)",  # function calls: var = func(...)
+                r"^(def|class|import|from|if|for|while|return|print|async|await)\s+",  # Python keywords
+                r"^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\s+",  # SQL keywords
+                r"^[\w_]+\(.*?\)",  # function calls: func(...)
+                r"^(const|let|var|function|async)\s+",  # JavaScript keywords
+                r"^\$\w+",  # shell variables
+                r"^[a-z_]+\s*\(",  # function call at start
+            ]
+            is_likely_code = any(
+                re.match(pattern, bullet_content, re.IGNORECASE)
+                for pattern in code_patterns
+            )
+
+            if not is_likely_code:
+                bullets.append(bullet_content)
+                continue
+            # If it looks like code, let it fall through to regular paragraph handling
 
         if bullets:
             yield from flush_bullets()
@@ -584,9 +612,8 @@ def make_code_block(
             for idx, line in enumerate(chunk_lines, start=i + 1):
                 # Format: line number (right-aligned, 4 chars) + separator + code
                 line_num = f"{idx:4d}"
-                # Escape HTML in code content
-                escaped_line = html.escape(line)
-                numbered_lines.append(f"{line_num} │ {escaped_line}")
+                # Preformatted displays text as-is, no escaping needed
+                numbered_lines.append(f"{line_num} │ {line}")
 
             chunk = "\n".join(numbered_lines)
         else:

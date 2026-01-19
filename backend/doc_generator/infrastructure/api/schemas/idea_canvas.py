@@ -16,8 +16,14 @@ class CanvasTemplate(str, Enum):
     AI_AGENT = "ai_agent"
     PROJECT_SPEC = "project_spec"
     TECH_STACK = "tech_stack"
-    FEATURE = "feature"
     CUSTOM = "custom"
+    # Developer-focused templates
+    IMPLEMENT_FEATURE = "implement_feature"
+    SOLVE_PROBLEM = "solve_problem"
+    PERFORMANCE = "performance"
+    SCALING = "scaling"
+    SECURITY_REVIEW = "security_review"
+    CODE_ARCHITECTURE = "code_architecture"
 
 
 class QuestionType(str, Enum):

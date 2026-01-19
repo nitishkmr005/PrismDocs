@@ -8,8 +8,14 @@ export type CanvasTemplate =
   | "ai_agent"
   | "project_spec"
   | "tech_stack"
-  | "feature"
-  | "custom";
+  | "custom"
+  // Developer-focused templates
+  | "implement_feature"
+  | "solve_problem"
+  | "performance"
+  | "scaling"
+  | "security_review"
+  | "code_architecture";
 
 export type QuestionType = "single_choice" | "multi_choice" | "text_input" | "approach";
 
@@ -184,12 +190,48 @@ export const CANVAS_TEMPLATES: TemplateInfo[] = [
     icon: "layers",
     color: "from-indigo-500 to-blue-500",
   },
+  // Developer-focused templates
   {
-    id: "feature",
-    title: "Feature Planning",
-    description: "Scope features, edge cases, and implementation approach",
-    icon: "sparkles",
-    color: "from-pink-500 to-rose-500",
+    id: "implement_feature",
+    title: "Implement a Feature",
+    description: "Plan implementation from requirements to code",
+    icon: "wrench",
+    color: "from-teal-500 to-cyan-500",
+  },
+  {
+    id: "solve_problem",
+    title: "Solve a Problem",
+    description: "Explore different approaches with trade-offs",
+    icon: "lightbulb",
+    color: "from-yellow-500 to-orange-500",
+  },
+  {
+    id: "performance",
+    title: "Performance Optimization",
+    description: "Diagnose bottlenecks and plan improvements",
+    icon: "zap",
+    color: "from-red-500 to-orange-500",
+  },
+  {
+    id: "scaling",
+    title: "Scale a System",
+    description: "Plan horizontal/vertical scaling strategies",
+    icon: "trending-up",
+    color: "from-blue-500 to-indigo-500",
+  },
+  {
+    id: "security_review",
+    title: "Security Review",
+    description: "Audit security posture and plan hardening",
+    icon: "shield",
+    color: "from-slate-500 to-zinc-600",
+  },
+  {
+    id: "code_architecture",
+    title: "Code Architecture",
+    description: "Design or refactor codebase structure",
+    icon: "folder-tree",
+    color: "from-violet-500 to-purple-500",
   },
 ];
 

@@ -21,7 +21,6 @@ export interface MindMapRequest {
   mode: MindMapMode;
   provider: import("./requests").Provider;
   model: string;
-  max_depth?: number;
 }
 
 export interface MindMapProgressEvent {

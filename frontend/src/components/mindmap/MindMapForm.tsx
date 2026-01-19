@@ -27,7 +27,6 @@ interface MindMapFormProps {
       mode: MindMapMode;
       provider: Provider;
       model: string;
-      maxDepth: number;
     },
     apiKey: string
   ) => void;
@@ -63,7 +62,6 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
   const [mode, setMode] = useState<MindMapMode>("summarize");
   const [provider, setProvider] = useState<Provider>("gemini");
   const [model, setModel] = useState("gemini-2.5-flash");
-  const [maxDepth, setMaxDepth] = useState(5);
   const [apiKey, setApiKey] = useState("");
 
   // Update model when provider changes
@@ -118,9 +116,9 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
 
       if (sources.length === 0) return;
 
-      onSubmit(sources, { mode, provider, model, maxDepth }, apiKey);
+      onSubmit(sources, { mode, provider, model }, apiKey);
     },
-    [apiKey, uploadedFiles, urls, textContent, mode, provider, model, maxDepth, onSubmit]
+    [apiKey, uploadedFiles, urls, textContent, mode, provider, model, onSubmit]
   );
 
   const hasSources = uploadedFiles.length > 0 || urls.length > 0 || textContent.trim().length > 0;
@@ -301,7 +299,7 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
           <CardTitle>AI Settings</CardTitle>
           <CardDescription>Configure the AI model</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
+        <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Provider</Label>
             <Select value={provider} onValueChange={(v) => setProvider(v as Provider)}>
@@ -328,21 +326,6 @@ export function MindMapForm({ onSubmit, isGenerating = false }: MindMapFormProps
                     {opt.label}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Max Depth</Label>
-            <Select value={String(maxDepth)} onValueChange={(v) => setMaxDepth(Number(v))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="2">2 levels</SelectItem>
-                <SelectItem value="3">3 levels</SelectItem>
-                <SelectItem value="4">4 levels</SelectItem>
-                <SelectItem value="5">5 levels</SelectItem>
               </SelectContent>
             </Select>
           </div>

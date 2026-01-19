@@ -209,3 +209,47 @@ export async function generateCanvasReport(options: GenerateReportOptions): Prom
 
   return response.json();
 }
+
+export interface GenerateMindmapOptions {
+  sessionId: string;
+  provider: Provider;
+  apiKey: string;
+}
+
+export interface CanvasMindmapResult {
+  title: string;
+  summary: string;
+  source_count: number;
+  mode: "summarize" | "brainstorm" | "structure";
+  nodes: {
+    id: string;
+    label: string;
+    children?: CanvasMindmapResult["nodes"][];
+  };
+}
+
+export async function generateCanvasMindmap(options: GenerateMindmapOptions): Promise<CanvasMindmapResult> {
+  const { sessionId, provider, apiKey } = options;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    [getApiKeyHeader(provider)]: apiKey,
+  };
+
+  const url = getApiUrl("/api/canvas/mindmap");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      session_id: sessionId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to generate mindmap: ${errorText}`);
+  }
+
+  return response.json();
+}

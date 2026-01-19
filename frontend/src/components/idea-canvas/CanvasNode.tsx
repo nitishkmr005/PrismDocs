@@ -90,11 +90,13 @@ const nodeTypeLabels: Record<CanvasNodeType, string> = {
 function CanvasNodeComponent({ data }: NodeProps<CanvasNodeFlowType>) {
   const { label, description, nodeType, isActive, isSelected } = data;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const colors = nodeColors[nodeType] || nodeColors.question;
   const icon = nodeIcons[nodeType];
   const typeLabel = nodeTypeLabels[nodeType];
 
   const hasFullContent = description && description !== label && description.length > label.length;
+  const showTooltip = isHovered && hasFullContent && !isExpanded;
 
   // Handle click for expanding full content (description)
   const handleClick = useCallback((e: React.MouseEvent) => {
@@ -117,6 +119,22 @@ function CanvasNodeComponent({ data }: NodeProps<CanvasNodeFlowType>) {
         position={Position.Left}
         className="!bg-slate-400 !w-3 !h-3 !border-2 !border-white dark:!border-slate-900"
       />
+      {/* Hover tooltip */}
+      {showTooltip && (
+        <div 
+          className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-50 
+                     bg-slate-900 dark:bg-slate-800 text-white text-xs px-3 py-2 rounded-lg 
+                     max-w-[280px] shadow-xl border border-slate-700 animate-in fade-in-0 
+                     zoom-in-95 duration-150"
+        >
+          <div className="font-medium mb-1 text-slate-300">{typeLabel}</div>
+          <div className="leading-relaxed">{description}</div>
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full">
+            <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] 
+                          border-r-transparent border-t-[6px] border-t-slate-900 dark:border-t-slate-800" />
+          </div>
+        </div>
+      )}
       {/* Wrapper to allow badge to overflow */}
       <div className="relative pt-3" style={{ overflow: 'visible' }}>
         {/* Type badge - positioned at top of node */}
@@ -138,6 +156,8 @@ function CanvasNodeComponent({ data }: NodeProps<CanvasNodeFlowType>) {
         
         <div
           onClick={handleClick}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
           className={`
             relative group ${hasFullContent ? 'cursor-pointer' : ''}
             px-4 py-3 rounded-xl border-2 shadow-lg
