@@ -30,6 +30,8 @@ export interface CompleteEvent {
   file_path: string;
   expires_in: number;
   metadata: CompletionMetadata;
+  pdf_base64?: string | null;
+  markdown_content?: string | null;
 }
 
 export interface CacheHitEvent {
@@ -39,6 +41,8 @@ export interface CacheHitEvent {
   file_path: string;
   expires_in: number;
   cached_at: string;
+  pdf_base64?: string | null;
+  markdown_content?: string | null;
 }
 
 export interface ErrorEvent {

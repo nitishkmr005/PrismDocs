@@ -36,6 +36,8 @@ class CompleteEvent(BaseModel):
     file_path: str
     expires_in: int = 3600
     metadata: CompletionMetadata
+    pdf_base64: str | None = None  # Base64-encoded PDF data for inline preview
+    markdown_content: str | None = None  # Markdown content for inline preview
 
 
 class CacheHitEvent(BaseModel):
@@ -45,6 +47,8 @@ class CacheHitEvent(BaseModel):
     file_path: str
     expires_in: int = 3600
     cached_at: str
+    pdf_base64: str | None = None  # Base64-encoded PDF data for inline preview
+    markdown_content: str | None = None  # Markdown content for inline preview
 
 
 class ErrorEvent(BaseModel):

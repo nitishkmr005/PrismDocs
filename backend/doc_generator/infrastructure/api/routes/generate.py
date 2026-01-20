@@ -109,12 +109,34 @@ async def event_generator(
             else:
                 download_url = cached_download_url
 
+            # Read cached file for inline preview
+            pdf_base64 = None
+            markdown_content = None
+            if cached_file_path:
+                cached_path = (
+                    generation_service.storage.base_output_dir / cached_file_path
+                )
+                if cached_path.exists():
+                    import base64
+
+                    suffix = cached_path.suffix.lower()
+                    try:
+                        if suffix == ".pdf":
+                            with open(cached_path, "rb") as f:
+                                pdf_base64 = base64.b64encode(f.read()).decode("utf-8")
+                        elif suffix == ".md":
+                            markdown_content = cached_path.read_text(encoding="utf-8")
+                    except Exception as e:
+                        logger.warning(f"Could not read cached file for preview: {e}")
+
             event = CacheHitEvent(
                 download_url=download_url,
                 file_path=cached_file_path,
                 cached_at=datetime.datetime.fromtimestamp(
                     cached["created_at"]
                 ).isoformat(),
+                pdf_base64=pdf_base64,
+                markdown_content=markdown_content,
             )
             yield {"data": event.model_dump_json()}
             return
