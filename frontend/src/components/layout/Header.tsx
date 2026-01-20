@@ -84,12 +84,6 @@ export function Header() {
           </Link>
 
           <nav className="flex items-center gap-4">
-            <Link
-              href="/generate"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              Generate
-            </Link>
             <AuthButton onSignInClick={() => setIsAuthModalOpen(true)} />
           </nav>
         </div>

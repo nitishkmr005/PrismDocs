@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ApiKeysModal } from "@/components/studio/ApiKeysModal";
+import { AuthModal } from "@/components/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { Provider } from "@/lib/types/requests";
 
 function RefractionIllustration() {
@@ -176,9 +178,14 @@ function RefractionIllustration() {
 
 export default function HomePage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Modal states
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [pendingApiKeyModal, setPendingApiKeyModal] = useState(false);
   
   // API Keys state for modal
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [provider, setProvider] = useState<Provider>("gemini");
   const [contentModel, setContentModel] = useState("gemini-2.5-flash");
   const [contentApiKey, setContentApiKey] = useState("");
@@ -187,11 +194,33 @@ export default function HomePage() {
   
   const hasContentKey = contentApiKey.trim().length > 0;
 
+  // After successful auth, open API key modal if pending
+  useEffect(() => {
+    if (isAuthenticated && pendingApiKeyModal) {
+      setPendingApiKeyModal(false);
+      setShowApiKeyModal(true);
+    }
+  }, [isAuthenticated, pendingApiKeyModal]);
+
   const handleStartGenerating = () => {
-    setShowApiKeyModal(true);
+    if (authLoading) return;
+    
+    if (!isAuthenticated) {
+      // Not logged in - show auth modal first, then open API key modal after login
+      setPendingApiKeyModal(true);
+      setShowAuthModal(true);
+    } else {
+      // Already logged in - show API key modal directly
+      setShowApiKeyModal(true);
+    }
   };
 
-  const handleModalClose = (open: boolean) => {
+  const handleAuthModalClose = () => {
+    setShowAuthModal(false);
+    // Don't clear pendingApiKeyModal here - let the useEffect handle it after auth
+  };
+
+  const handleApiKeyModalClose = (open: boolean) => {
     setShowApiKeyModal(open);
     // If modal is closing and we have API key, navigate to generate page
     if (!open && hasContentKey) {
@@ -208,10 +237,16 @@ export default function HomePage() {
 
   return (
     <div className="relative overflow-hidden">
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={handleAuthModalClose}
+      />
+
       {/* API Keys Modal */}
       <ApiKeysModal
         isOpen={showApiKeyModal}
-        onOpenChange={handleModalClose}
+        onOpenChange={handleApiKeyModalClose}
         provider={provider}
         contentModel={contentModel}
         onProviderChange={setProvider}
