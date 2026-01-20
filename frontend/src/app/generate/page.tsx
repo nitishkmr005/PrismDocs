@@ -710,11 +710,11 @@ export default function GeneratePage() {
         </div>
       </header>
 
-      {/* Main Studio Layout - Centered with margins on large screens */}
-      <main className="h-[calc(100vh-4rem)] px-6 py-4 lg:px-12 xl:px-20">
-        <div className="h-full max-w-screen-2xl mx-auto grid gap-4 lg:grid-cols-2 items-start">
+      {/* Main Studio Layout - Responsive with stacked mobile, side-by-side desktop */}
+      <main className="min-h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] px-4 py-4 lg:px-12 xl:px-20 overflow-auto lg:overflow-hidden">
+        <div className="h-full max-w-screen-2xl mx-auto grid gap-4 grid-cols-1 lg:grid-cols-2 items-start">
           {/* Left Panel - Inputs with Collapsible Sections */}
-          <div className="h-full border border-border/30 rounded-2xl bg-white/60 dark:bg-slate-900/60 overflow-y-auto scroll-smooth p-2 space-y-2">
+          <div className="min-h-[400px] lg:h-full max-h-[600px] lg:max-h-none border border-border/30 rounded-2xl bg-white/60 dark:bg-slate-900/60 overflow-y-auto scroll-smooth p-2 space-y-2">
             {/* Sources Section */}
             <div className="rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
               <button
@@ -875,8 +875,8 @@ export default function GeneratePage() {
           </div>
 
 
-          {/* Right Panel - Output (full height) */}
-          <div className="h-full overflow-hidden p-4 rounded-2xl border border-border/30 bg-white/60 dark:bg-slate-900/60">
+          {/* Right Panel - Output (responsive height) */}
+          <div className="min-h-[400px] lg:h-full max-h-[500px] lg:max-h-none overflow-hidden p-4 rounded-2xl border border-border/30 bg-white/60 dark:bg-slate-900/60">
             <div className="h-full">
               {isMindMap && mindMapState === "generating" ? (
                 <div className="flex items-center justify-center h-full rounded-xl border bg-card">
