@@ -10,6 +10,7 @@
   <em>From Research Papers to Pitch Decks • From Web Articles to Study Guides</em>
 </p>
 
+[![PrismDocs Beta](https://img.shields.io/badge/Status-Beta-orange?style=for-the-badge)](https://prism-docs-pink.vercel.app/generate)
 [![PrismDocs Live](https://img.shields.io/badge/Try_Live-PrismDocs-7c3aed?style=for-the-badge&logo=vercel&logoColor=white)](https://prism-docs-pink.vercel.app/generate)
 [![License](https://img.shields.io/badge/License-MIT-06d6a0?style=flat-square)](https://opensource.org/licenses/MIT)
 
@@ -61,7 +62,7 @@ Beyond standard documents, explore our specialized creative studios:
 
 ### 💡 Idea Canvas
 
-_Perfect for: Brainstorming & Planning_
+_Perfect for: Brainstorming & Planning (In Development)_
 
 - Answer guided questions to build a decision tree.
 - Automatically generates an implementation spec pack (PDF + Markdown + Visual Summary).
