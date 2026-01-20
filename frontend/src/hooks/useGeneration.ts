@@ -28,6 +28,8 @@ export interface UseGenerationResult {
   status: string;
   downloadUrl: string | null;
   error: string | null;
+  pdfBase64: string | null;
+  markdownContent: string | null;
   metadata: {
     title?: string;
     pages?: number;
@@ -49,6 +51,8 @@ export function useGeneration(): UseGenerationResult {
   const [status, setStatus] = useState("");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [markdownContent, setMarkdownContent] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<UseGenerationResult["metadata"]>(null);
 
   const reset = useCallback(() => {
@@ -57,6 +61,8 @@ export function useGeneration(): UseGenerationResult {
     setStatus("");
     setDownloadUrl(null);
     setError(null);
+    setPdfBase64(null);
+    setMarkdownContent(null);
     setMetadata(null);
   }, []);
 
@@ -80,6 +86,8 @@ export function useGeneration(): UseGenerationResult {
     if (isCompleteEvent(event)) {
       setState("complete");
       setDownloadUrl(resolveDownloadUrl(event.download_url));
+      setPdfBase64(event.pdf_base64 || null);
+      setMarkdownContent(event.markdown_content || null);
       setMetadata({
         title: event.metadata.title,
         pages: event.metadata.pages,
@@ -90,6 +98,8 @@ export function useGeneration(): UseGenerationResult {
     } else if (isCacheHitEvent(event)) {
       setState("cache_hit");
       setDownloadUrl(resolveDownloadUrl(event.download_url));
+      setPdfBase64(event.pdf_base64 || null);
+      setMarkdownContent(event.markdown_content || null);
       setStatus(`Retrieved from cache (${event.cached_at})`);
     } else if (isErrorEvent(event)) {
       setState("error");
@@ -154,6 +164,8 @@ export function useGeneration(): UseGenerationResult {
     status,
     downloadUrl,
     error,
+    pdfBase64,
+    markdownContent,
     metadata,
     generate,
     reset,

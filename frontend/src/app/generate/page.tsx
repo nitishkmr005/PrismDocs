@@ -180,6 +180,8 @@ export default function GeneratePage() {
     status: generationStatus,
     downloadUrl,
     error: generationError,
+    pdfBase64,
+    markdownContent,
     metadata,
     generate,
     reset: resetGeneration,
@@ -899,6 +901,8 @@ export default function GeneratePage() {
                   progress={getCurrentProgress()}
                   status={getCurrentStatus()}
                   error={getCurrentError()}
+                  pdfBase64={pdfBase64}
+                  markdownContent={markdownContent}
                   downloadUrl={downloadUrl}
                   mindMapTree={mindMapTree}
                   metadata={metadata}

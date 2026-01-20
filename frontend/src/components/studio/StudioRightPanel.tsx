@@ -577,16 +577,20 @@ export function StudioRightPanel({
             <div className="flex gap-2">
               <Button 
                 size="sm" 
-                variant="ghost" 
+                variant={markdownCopied ? "outline" : "ghost"}
                 onClick={handleCopyMarkdown} 
-                className={`h-7 text-xs transition-all ${markdownCopied ? 'copy-glow' : ''}`}
+                className={`h-7 text-xs transition-all duration-300 ${
+                  markdownCopied 
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50' 
+                    : ''
+                }`}
               >
                 {markdownCopied ? (
                   <>
-                    <svg className="w-3.5 h-3.5 mr-1 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 mr-1.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    Copied!
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">Copied!</span>
                   </>
                 ) : (
                   <>

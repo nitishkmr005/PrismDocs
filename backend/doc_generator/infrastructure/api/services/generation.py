@@ -335,6 +335,29 @@ class GenerationService:
                 total_tokens_used=supabase_logger.get_session_tokens_used(),
             )
 
+            # Read output file for inline preview
+            pdf_base64 = None
+            markdown_content = None
+            if output_path and Path(output_path).exists():
+                output_path_obj = Path(output_path)
+                suffix = output_path_obj.suffix.lower()
+                try:
+                    if suffix == ".pdf":
+                        import base64
+
+                        with open(output_path_obj, "rb") as f:
+                            pdf_base64 = base64.b64encode(f.read()).decode("utf-8")
+                        logger.debug(
+                            f"Read PDF for inline preview: {len(pdf_base64)} chars"
+                        )
+                    elif suffix == ".md":
+                        markdown_content = output_path_obj.read_text(encoding="utf-8")
+                        logger.debug(
+                            f"Read markdown for inline preview: {len(markdown_content)} chars"
+                        )
+                except Exception as e:
+                    logger.warning(f"Could not read output file for preview: {e}")
+
             # Complete
             yield CompleteEvent(
                 download_url=download_url,
@@ -346,6 +369,8 @@ class GenerationService:
                     slides=slides,
                     images_generated=images_generated,
                 ),
+                pdf_base64=pdf_base64,
+                markdown_content=markdown_content,
             )
 
         except Exception as e:
@@ -429,7 +454,9 @@ class GenerationService:
                     }
                 )
             elif isinstance(source, UrlSource):
-                parser = WebParser(parser=source.parser.value if source.parser else None)
+                parser = WebParser(
+                    parser=source.parser.value if source.parser else None
+                )
                 content, metadata = parser.parse(source.url)
                 title = metadata.get("title") or source.url
                 parsed_blocks.append(
