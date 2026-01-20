@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { ScrollingImage } from "@/components/ui/scrolling-image";
 import { ApiKeysModal } from "@/components/studio/ApiKeysModal";
 import { AuthModal } from "@/components/auth";
 import { useAuth } from "@/hooks/useAuth";
@@ -492,31 +493,21 @@ export default function HomePage() {
               <h3 className="text-2xl font-bold border-l-4 border-cyan-500 pl-4">📄 Articles & Reports</h3>
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 group">
-                    <Image 
-                      src="/screenshots/Article_PDF.png" 
-                      alt="PDF Article Output" 
-                      fill 
-                      className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                      <span className="text-white font-medium">Professional PDF Report</span>
-                    </div>
-                  </div>
+                  <ScrollingImage 
+                    src="/screenshots/Article_PDF.png" 
+                    alt="PDF Article Output"
+                    aspectRatio="portrait"
+                    className="border-slate-200 dark:border-slate-800"
+                  />
                   <p className="text-center font-medium text-muted-foreground">PDF Report</p>
                 </div>
                 <div className="space-y-3">
-                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 group">
-                    <Image 
-                      src="/screenshots/Article_Markdown.png" 
-                      alt="Markdown Article Output" 
-                      fill 
-                      className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
-                    />
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                      <span className="text-white font-medium">Clean Markdown</span>
-                    </div>
-                  </div>
+                  <ScrollingImage 
+                    src="/screenshots/Article_Markdown.png" 
+                    alt="Markdown Article Output"
+                    aspectRatio="portrait"
+                    className="border-slate-200 dark:border-slate-800"
+                  />
                   <p className="text-center font-medium text-muted-foreground">Markdown Document</p>
                 </div>
               </div>
@@ -527,17 +518,12 @@ export default function HomePage() {
               <h3 className="text-2xl font-bold border-l-4 border-fuchsia-500 pl-4">📊 Presentations</h3>
               <div className="grid md:grid-cols-1 gap-8">
                 <div className="space-y-3">
-                  <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 group">
-                    <Image 
-                      src="/screenshots/Slides_PDF.png" 
-                      alt="Slides Output" 
-                      fill 
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                      <span className="text-white font-medium">PowerPoint & PDF Slides</span>
-                    </div>
-                  </div>
+                  <ScrollingImage 
+                    src="/screenshots/Slides_PDF.png" 
+                    alt="Slides Output"
+                    aspectRatio="landscape"
+                    className="border-slate-200 dark:border-slate-800"
+                  />
                   <p className="text-center font-medium text-muted-foreground">Slides (PDF Preview)</p>
                 </div>
               </div>
@@ -548,7 +534,7 @@ export default function HomePage() {
               <h3 className="text-2xl font-bold border-l-4 border-violet-500 pl-4">🎙️ Audio & Visuals</h3>
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 group bg-slate-900">
+                   <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 group bg-slate-900">
                     <Image 
                       src="/screenshots/Podcast.png" 
                       alt="Podcast Output" 
@@ -562,15 +548,12 @@ export default function HomePage() {
                   <p className="text-center font-medium text-muted-foreground">AI-Generated Podcast</p>
                 </div>
                 <div className="space-y-3">
-                  <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 group bg-white">
-                    <Image 
-                      src="/screenshots/Mindmap.png" 
-                      alt="Mind Map Output" 
-                      fill 
-                      className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
-                    />
-                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
+                  <ScrollingImage 
+                    src="/screenshots/Mindmap.png" 
+                    alt="Mind Map Output"
+                    aspectRatio="landscape"
+                    className="border-slate-200 dark:border-slate-800 bg-white"
+                  />
                   <p className="text-center font-medium text-muted-foreground">Interactive Mind Map</p>
                 </div>
               </div>

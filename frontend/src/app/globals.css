@@ -428,11 +428,29 @@
     -10px 0;
 }
 
-.dark .bg-checkered {
-  background-color: #1a1a1a;
-  background-image:
-    linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
-    linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
-    linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+
+/* Image Scroll Animation */
+@keyframes scroll-y {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%); /* Assumes we duplicate content or just scroll halfway? */
+    /* Actually for single image scroll we usually go 0 to -100% + height? */
+    /* Let's do a simple 0 to (100% - container height) approach using JS or calc? */
+    /* Simpler approach: hover reveals bottom. */
+    transform: translateY(calc(-100% + 100%)); /* This is tricky in pure CSS without knowing height */
+  }
 }
+
+/* We will use a more robust 'hover to scroll' mechanism in CSS directly on the component 
+   using 'object-position' or 'transform' based on parent hover. 
+   But let's add a slow pulse or something if needed. 
+   
+   Actually, for the ScrollingImage component, we can use Tailwind arbitrary values in the component itself.
+   Let's just add a generic slow scroll class if needed, but the component logic is better handled locally.
+*/
+.animate-scroll-y {
+  transition: transform 10s ease-in-out;
+}
+
