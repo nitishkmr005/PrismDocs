@@ -237,15 +237,6 @@ export default function HomePage() {
     }
   };
 
-  const galleryAccentStyles = {
-    cyan: "border-cyan-500/40 bg-cyan-50/80 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
-    fuchsia: "border-fuchsia-500/40 bg-fuchsia-50/80 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
-    violet: "border-violet-500/40 bg-violet-50/80 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
-    amber: "border-amber-500/40 bg-amber-50/80 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  } as const;
-
-  const galleryMediaHeight = "h-64 sm:h-72 lg:h-80";
-
   type GalleryItem = {
     id: string;
     category: string;
@@ -262,6 +253,25 @@ export default function HomePage() {
     containerClassName?: string;
     audioSrc?: string;
   };
+
+  const [activeImage, setActiveImage] = useState<GalleryItem | null>(null);
+
+  const handleOpenImage = (item: GalleryItem) => {
+    setActiveImage(item);
+  };
+
+  const handleCloseImage = () => {
+    setActiveImage(null);
+  };
+
+  const galleryAccentStyles = {
+    cyan: "border-cyan-500/40 bg-cyan-50/80 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
+    fuchsia: "border-fuchsia-500/40 bg-fuchsia-50/80 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
+    violet: "border-violet-500/40 bg-violet-50/80 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+    amber: "border-amber-500/40 bg-amber-50/80 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  } as const;
+
+  const galleryMediaHeight = "h-64 sm:h-72 lg:h-80";
 
   const galleryItems: GalleryItem[] = [
     {
@@ -364,6 +374,23 @@ export default function HomePage() {
       fit: "contain",
     },
   ];
+
+  useEffect(() => {
+    if (!activeImage) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveImage(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [activeImage]);
 
   return (
     <div className="relative overflow-hidden">
@@ -626,29 +653,36 @@ export default function HomePage() {
                       <span className="text-xs font-medium text-muted-foreground">{item.format}</span>
                     </div>
                     <div className="space-y-3">
-                      {item.kind === "scrolling" ? (
-                        <ScrollingImage 
-                          src={item.src} 
-                          alt={item.alt}
-                          aspectRatio={item.aspect}
-                          className={`${galleryMediaHeight} ${item.className ?? ""}`}
-                          fixedHeight
-                        />
-                      ) : (
-                        <div className={`relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-900 ${galleryMediaHeight} ${item.containerClassName ?? ""}`}>
-                          <Image 
+                      <button
+                        type="button"
+                        className="block w-full rounded-xl text-left cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+                        onClick={() => handleOpenImage(item)}
+                        aria-label={`Open ${item.title} in full screen`}
+                      >
+                        {item.kind === "scrolling" ? (
+                          <ScrollingImage 
                             src={item.src} 
-                            alt={item.alt} 
-                            fill 
-                            className={`transition-transform duration-500 group-hover:scale-105 ${item.fit === "contain" ? "object-contain p-4" : "object-cover"}`}
+                            alt={item.alt}
+                            aspectRatio={item.aspect}
+                            className={`${galleryMediaHeight} ${item.className ?? ""}`}
+                            fixedHeight
                           />
-                          {item.showPlay && (
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                              <span className="text-white text-3xl">▶️</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        ) : (
+                          <div className={`relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-900 ${galleryMediaHeight} ${item.containerClassName ?? ""}`}>
+                            <Image 
+                              src={item.src} 
+                              alt={item.alt} 
+                              fill 
+                              className={`transition-transform duration-500 group-hover:scale-105 ${item.fit === "contain" ? "object-contain p-4" : "object-cover"}`}
+                            />
+                            {item.showPlay && (
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                <span className="text-white text-3xl">▶️</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </button>
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">{item.title}</p>
                       {item.audioSrc && (
                         <audio controls preload="none" className="w-full">
@@ -765,6 +799,43 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {activeImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${activeImage.title} full screen`}
+          onClick={handleCloseImage}
+        >
+          <button
+            type="button"
+            onClick={handleCloseImage}
+            className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/20"
+            aria-label="Close full screen image"
+          >
+            Close
+          </button>
+          <div
+            className="relative w-full max-w-6xl overflow-hidden rounded-2xl bg-slate-900/90 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="relative h-[70vh] sm:h-[75vh] w-full bg-black/80">
+              <Image
+                src={activeImage.src}
+                alt={activeImage.alt}
+                fill
+                sizes="100vw"
+                className="object-contain"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4 px-5 py-3 text-sm text-white/80">
+              <span className="font-medium text-white">{activeImage.title}</span>
+              <span className="text-xs text-white/60">{activeImage.category}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
