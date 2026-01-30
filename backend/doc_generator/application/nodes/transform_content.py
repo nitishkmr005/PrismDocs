@@ -171,6 +171,7 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
                 max_tokens=max_tokens,
                 include_visual_markers=include_visual_markers,
                 force_single_chunk=bool(metadata.get("summary_generated")),
+                audience=metadata.get("audience"),
             )
             
             # Store generated content

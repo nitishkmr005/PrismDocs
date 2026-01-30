@@ -81,6 +81,14 @@ def _resolve_image_path(
     return images_dir / f"{title_slug}.png"
 
 
+def _resolve_cover_image_path(images_dir: Path) -> Path:
+    """
+    Resolve output path for the cover/banner image.
+    Invoked by: src/doc_generator/application/nodes/generate_images.py
+    """
+    return images_dir / "cover.png"
+
+
 def _temp_image_output_path(output_path: Path) -> Path:
     """Return a temp output path to avoid overwriting on timeout."""
     return output_path.with_name(f"{output_path.stem}_tmp{output_path.suffix}")
@@ -311,6 +319,68 @@ def _generate_raster_image(
 
     logger.warning(f"Image generation failed for '{section_title}'")
     return None, prompt_used, {}, 1, 0
+
+
+def _build_cover_prompt(title: str) -> str:
+    """
+    Build a concise prompt for the cover/banner image.
+    Invoked by: src/doc_generator/application/nodes/generate_images.py
+    """
+    return f"Banner-style header image representing: {title}"
+
+
+def _maybe_generate_cover_image(
+    *,
+    images_dir: Path,
+    title: str,
+    gemini_gen: GeminiImageGenerator | None,
+    output_format: str,
+    output_type: str,
+    use_cache: bool,
+    style_name: str | None,
+) -> dict | None:
+    """
+    Generate (or reuse) a cover/banner image based on the document title.
+    Invoked by: src/doc_generator/application/nodes/generate_images.py
+    """
+    if not title:
+        return None
+    cover_path = _resolve_cover_image_path(images_dir)
+    if use_cache:
+        if cover_path.exists():
+            return {
+                "path": str(cover_path),
+                "image_type": ImageType.DECORATIVE.value,
+                "section_title": title,
+                "prompt": "Previously generated",
+                "confidence": 1.0,
+                "embed_base64": "",
+                "description": "",
+            }
+        return None
+
+    if not gemini_gen or not gemini_gen.is_available():
+        return None
+
+    prompt_used = _build_cover_prompt(title)
+    image_path = gemini_gen.generate_image(
+        prompt=prompt_used,
+        image_type=ImageType.DECORATIVE,
+        section_title=title,
+        output_path=cover_path,
+        style=style_name,
+    )
+    if image_path and image_path.exists():
+        return {
+            "path": str(image_path),
+            "image_type": ImageType.DECORATIVE.value,
+            "section_title": title,
+            "prompt": prompt_used,
+            "confidence": 0.7,
+            "embed_base64": "",
+            "description": "",
+        }
+    return None
 
 
 
@@ -726,6 +796,31 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         images_dir = resolve_images_dir(state, settings)
         log_metric("Images Directory", str(images_dir))
 
+        # Initialize image generator early (needed for cover image).
+        log_subsection("Initializing Image Generator")
+        detector, gemini_gen = _init_image_components(metadata, settings)
+
+        if gemini_gen:
+            log_metric("Image Provider", "Gemini Imagen")
+        else:
+            log_progress("No image generator available")
+
+        use_cache = _should_skip_generation(metadata, settings)
+        style_name = metadata.get("image_style", "auto")
+        cover_title = structured_content.get("title") or metadata.get("title", "")
+        cover_image = _maybe_generate_cover_image(
+            images_dir=images_dir,
+            title=cover_title,
+            gemini_gen=gemini_gen,
+            output_format=state.get("output_format", ""),
+            output_type=metadata.get("output_type", ""),
+            use_cache=use_cache,
+            style_name=style_name,
+        )
+        if cover_image:
+            structured_content["cover_image"] = cover_image
+            state["structured_content"] = structured_content
+
         # Reuse cached images when available to avoid regen costs.
         cached_images = _maybe_load_cached_images(images_dir, metadata, settings)
         if cached_images:
@@ -739,7 +834,7 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
                 details=f"Loaded {len(cached_images)} cached images",
             )
             return state
-        if _should_skip_generation(metadata, settings):
+        if use_cache:
             log_progress("Image cache mismatch, regenerating images")
 
         # Extract sections from markdown
@@ -750,15 +845,6 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         if not sections:
             log_node_end("generate_images", success=True, details="No sections found")
             return state
-
-        # Initialize LLM helpers and image generator once per run.
-        log_subsection("Initializing Image Generator")
-        detector, gemini_gen = _init_image_components(metadata, settings)
-
-        if gemini_gen:
-            log_metric("Image Provider", "Gemini Imagen")
-        else:
-            log_progress("No image generator available")
 
         existing_images = structured_content.get("section_images", {})
         section_images = dict(existing_images)

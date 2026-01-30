@@ -28,6 +28,7 @@ from .utils import (
     inline_md,
     make_banner,
     make_code_block,
+    make_cover_image_flowable,
     make_image_flowable,
     make_mermaid_flowable,
     make_quote,
@@ -107,10 +108,16 @@ class PDFGenerator:
                 raise GenerationError("No content provided for PDF generation")
 
             section_images = content.get("section_images", {})
+            cover_image = content.get("cover_image", {})
 
             # Create PDF
             self._create_pdf(
-                output_path, title, markdown_content, metadata, section_images
+                output_path,
+                title,
+                markdown_content,
+                metadata,
+                section_images,
+                cover_image=cover_image,
             )
 
             logger.info(f"PDF generated successfully: {output_path}")
@@ -128,6 +135,7 @@ class PDFGenerator:
         markdown_content: str,
         metadata: dict,
         section_images: dict = None,
+        cover_image: dict | None = None,
     ) -> None:
         """
         Create blog-like PDF document with inline media.
@@ -244,6 +252,11 @@ class PDFGenerator:
             subtitle = "Generated from web content"
         if subtitle:
             story.append(Paragraph(inline_md(subtitle), self.styles["SubtitleCover"]))
+
+        cover_path = Path(cover_image.get("path", "")) if cover_image else None
+        if cover_path and cover_path.exists():
+            story.append(Spacer(1, 16))
+            story.extend(make_cover_image_flowable(cover_path))
 
         # Decorative divider line
         story.append(Spacer(1, 24))

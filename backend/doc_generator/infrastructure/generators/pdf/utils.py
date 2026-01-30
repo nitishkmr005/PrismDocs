@@ -598,6 +598,36 @@ def make_image_flowable(
     return flow
 
 
+def make_cover_image_flowable(
+    image_path: Path,
+    max_width: float = 6.9 * inch,
+    max_height: float = 3.2 * inch,
+) -> list:
+    """
+    Create a cover/banner image flowable without captions.
+
+    Args:
+        image_path: Path to image file
+        max_width: Maximum image width
+        max_height: Maximum image height
+
+    Returns:
+        List of flowables (Image + spacer)
+    Invoked by: (no references found)
+    """
+    if not image_path.exists():
+        logger.warning(f"Cover image not found: {image_path}")
+        return []
+
+    img = ImageReader(str(image_path))
+    width_px, height_px = img.getSize()
+    scale = min(max_width / width_px, max_height / height_px)
+    render_w = width_px * scale
+    render_h = height_px * scale
+
+    return [Image(str(image_path), width=render_w, height=render_h), Spacer(1, 16)]
+
+
 def make_code_block(
     code: str,
     styles: dict,

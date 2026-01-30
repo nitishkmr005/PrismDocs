@@ -184,6 +184,12 @@ class PPTXGenerator:
         subtitle = metadata.get("subtitle", metadata.get("author", ""))
         add_title_slide(prs, title, subtitle)
 
+        if structured_content:
+            cover_image = structured_content.get("cover_image", {})
+            cover_path = Path(cover_image.get("path", "")) if cover_image else None
+            if cover_path and cover_path.exists():
+                add_image_slide(prs, title, cover_path, caption="")
+
         agenda_items = self._extract_agenda(markdown_content)
         if agenda_items:
             add_content_slide(prs, "Agenda", agenda_items, is_bullets=True)

@@ -177,6 +177,7 @@ class LLMContentGenerator:
         max_tokens: int = 8000,
         include_visual_markers: bool = True,
         force_single_chunk: bool = False,
+        audience: str | None = None,
     ) -> GeneratedContent:
         """
         Transform raw content into structured blog-style markdown using chunked processing.
@@ -201,7 +202,7 @@ class LLMContentGenerator:
         content_length = len(raw_content)
         logger.info(f"Processing {content_length} characters of {content_type} content")
 
-        outline = self.generate_blog_outline(raw_content, content_type, topic)
+        outline = self.generate_blog_outline(raw_content, content_type, topic, audience=audience)
         
         # For short content or forced single-chunk, process directly
         if force_single_chunk or content_length <= self.settings.llm.content_single_chunk_char_limit:
@@ -212,6 +213,7 @@ class LLMContentGenerator:
                 max_tokens,
                 outline=outline,
                 include_visual_markers=include_visual_markers,
+                audience=audience,
             )
         
         # For long content, use chunked processing
@@ -223,6 +225,7 @@ class LLMContentGenerator:
             max_tokens,
             outline=outline,
             include_visual_markers=include_visual_markers,
+            audience=audience,
         )
     
     def _process_single_chunk(
@@ -233,6 +236,7 @@ class LLMContentGenerator:
         max_tokens: int,
         outline: str = "",
         include_visual_markers: bool = True,
+        audience: str | None = None,
     ) -> GeneratedContent:
         """
         Process a single chunk of content.
@@ -245,6 +249,7 @@ class LLMContentGenerator:
                 topic,
                 outline,
                 include_visual_markers=include_visual_markers,
+                audience=audience,
             )
         else:
             prompt = self._build_generation_prompt(
@@ -253,6 +258,7 @@ class LLMContentGenerator:
                 topic,
                 is_chunk=False,
                 include_visual_markers=include_visual_markers,
+                audience=audience,
             )
         
         try:
@@ -270,6 +276,7 @@ class LLMContentGenerator:
         max_tokens: int,
         outline: str = "",
         include_visual_markers: bool = True,
+        audience: str | None = None,
     ) -> GeneratedContent:
         """
         Process long content in chunks and merge results.
@@ -307,6 +314,7 @@ class LLMContentGenerator:
                 section_start=section_counter,
                 outline=outline,
                 include_visual_markers=include_visual_markers,
+                audience=audience,
             )
             
             try:
@@ -582,6 +590,7 @@ class LLMContentGenerator:
         content_type: str,
         topic: str,
         max_tokens: int = 1200,
+        audience: str | None = None,
     ) -> str:
         """
         Generate a blog outline from raw content.
@@ -594,7 +603,7 @@ class LLMContentGenerator:
         if not outline_source:
             return ""
 
-        prompt = self._build_outline_prompt(outline_source, content_type, topic)
+        prompt = self._build_outline_prompt(outline_source, content_type, topic, audience=audience)
 
         try:
             outline = self._call_llm(prompt, max_tokens, step="content_outline")
@@ -778,6 +787,7 @@ class LLMContentGenerator:
         topic: str,
         is_chunk: bool = False,
         include_visual_markers: bool = True,
+        audience: str | None = None,
     ) -> str:
         """
         Build the prompt for single content generation.
@@ -789,14 +799,17 @@ class LLMContentGenerator:
             topic,
             is_chunk=is_chunk,
             include_visual_markers=include_visual_markers,
+            audience=audience,
         )
 
-    def _build_outline_prompt(self, content: str, content_type: str, topic: str) -> str:
+    def _build_outline_prompt(
+        self, content: str, content_type: str, topic: str, audience: str | None = None
+    ) -> str:
         """
         Build the prompt for outline generation.
         Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
         """
-        return build_outline_prompt(content, content_type, topic)
+        return build_outline_prompt(content, content_type, topic, audience=audience)
 
     def _build_blog_from_outline_prompt(
         self,
@@ -805,6 +818,7 @@ class LLMContentGenerator:
         topic: str,
         outline: str,
         include_visual_markers: bool = True,
+        audience: str | None = None,
     ) -> str:
         """
         Build the prompt for blog generation using an outline.
@@ -816,6 +830,7 @@ class LLMContentGenerator:
             topic,
             outline,
             include_visual_markers=include_visual_markers,
+            audience=audience,
         )
     
     def _build_chunk_prompt(
@@ -828,6 +843,7 @@ class LLMContentGenerator:
         section_start: int,
         outline: str = "",
         include_visual_markers: bool = True,
+        audience: str | None = None,
     ) -> str:
         """
         Build prompt for processing a content chunk.
@@ -842,6 +858,7 @@ class LLMContentGenerator:
             section_start=section_start,
             outline=outline,
             include_visual_markers=include_visual_markers,
+            audience=audience,
         )
 
     def _safe_json_load(self, text: str) -> Optional[object]:

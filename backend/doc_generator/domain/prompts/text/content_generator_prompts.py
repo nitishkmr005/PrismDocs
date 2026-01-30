@@ -3,6 +3,18 @@ Prompt templates for LLM content generation.
 """
 
 
+def _audience_guidance(audience: str | None) -> str:
+    audience_key = (audience or "technical").lower()
+    guidance_map = {
+        "technical": "- Use precise technical terminology and deeper explanations.\n- Assume reader is comfortable with technical details.",
+        "executive": "- Focus on outcomes, trade-offs, and high-level implications.\n- Keep details concise; avoid deep technical digressions.",
+        "client": "- Use polished, client-friendly language.\n- Emphasize benefits, clarity, and practical outcomes; minimize jargon.",
+        "educational": "- Explain concepts step-by-step in simple language.\n- Define key terms when first introduced.",
+        "creator": "- Use engaging, punchy phrasing while staying factual.\n- Keep pacing brisk and highlight key takeaways.",
+    }
+    return guidance_map.get(audience_key, guidance_map["technical"])
+
+
 def get_content_system_prompt() -> str:
     """
     System prompt for content generation.
@@ -16,7 +28,7 @@ Hard constraints:
 - If a detail is missing in the source, omit it
 
 Your writing style:
-- Clear, professional, and suitable for technical audiences
+- Clear, professional, and suitable for the target audience
 - Educational with detailed explanations
 - Well-organized with numbered sections (1., 1.1, etc.)
 - Use examples/comparisons only when they appear in the source
@@ -44,6 +56,7 @@ def build_generation_prompt(
     topic: str,
     is_chunk: bool = False,
     include_visual_markers: bool = True,
+    audience: str | None = None,
 ) -> str:
     """
     Prompt for single-pass content generation.
@@ -93,6 +106,10 @@ def build_generation_prompt(
 **Content Type**: {content_type}
 **Topic**: {topic or "Detect from content"}
 **Special Instructions**: {instruction}
+**Target Audience**: {audience or "technical"}
+
+Audience guidance:
+{_audience_guidance(audience)}
 
 ## Requirements
 
@@ -188,7 +205,12 @@ Return JSON in this shape (string values may include markdown like **bold**, `co
 Return ONLY the JSON object. No surrounding commentary."""
 
 
-def build_outline_prompt(content: str, content_type: str, topic: str) -> str:
+def build_outline_prompt(
+    content: str,
+    content_type: str,
+    topic: str,
+    audience: str | None = None,
+) -> str:
     """
     Prompt for outline generation.
     """
@@ -205,6 +227,10 @@ def build_outline_prompt(content: str, content_type: str, topic: str) -> str:
 **Content Type**: {content_type}
 **Topic**: {topic or "Detect from content"}
 **Special Instructions**: {instruction}
+**Target Audience**: {audience or "technical"}
+
+Audience guidance:
+{_audience_guidance(audience)}
 
 Requirements:
 1. Use ONLY information present in the content. Do not add new topics or facts.
@@ -230,6 +256,7 @@ def build_blog_from_outline_prompt(
     topic: str,
     outline: str,
     include_visual_markers: bool = True,
+    audience: str | None = None,
 ) -> str:
     """
     Prompt for blog generation using an outline.
@@ -271,6 +298,10 @@ def build_blog_from_outline_prompt(
 **Content Type**: {content_type}
 **Topic**: {topic or "Detect from content"}
 **Special Instructions**: {instruction}
+**Target Audience**: {audience or "technical"}
+
+Audience guidance:
+{_audience_guidance(audience)}
 
 ## Outline
 {outline}
@@ -358,6 +389,7 @@ def build_chunk_prompt(
     section_start: int,
     outline: str = "",
     include_visual_markers: bool = True,
+    audience: str | None = None,
 ) -> str:
     """
     Prompt for processing a content chunk.
@@ -372,6 +404,8 @@ def build_chunk_prompt(
         f"You are processing part {chunk_index + 1} of {total_chunks} of a {content_type}.\n"
         f"This is the {position} of the document.\n"
         f"Topic: {topic}\n"
+        f"Target audience: {audience or 'technical'}\n"
+        f"Audience guidance:\n{_audience_guidance(audience)}\n"
         f"Start section numbering from: {section_start}\n"
         f"Use the outline to keep section titles consistent; only write sections supported by this chunk."
         f"{outline_block}"
