@@ -229,10 +229,6 @@ def _generate_raster_image(
         1,
     )
 
-    if output_path.exists():
-        logger.info(f"Reusing existing image for section {section_id}: {section_title}")
-        return output_path, prompt_used, {}, 1, 1
-
     image_path: Path | None = None
     fallback_allowed = _should_fallback_to_flash_image(output_format, output_type)
 

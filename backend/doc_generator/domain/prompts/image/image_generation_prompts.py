@@ -5,7 +5,7 @@ Prompt templates for image generation and evaluation.
 from ...content_types import ImageType
 
 _STYLE_GUIDANCE = {
-    "handwritten": "- Handwritten/whiteboard aesthetic with marker strokes and slight imperfections; keep labels legible.",
+    "handwritten": "- Handwritten/whiteboard aesthetic with marker strokes and slight imperfections; keep labels legible. Avoid polished infographic styling.",
     "minimalist": "- Minimalist design with generous whitespace, thin lines, and a restrained color palette.",
     "corporate": "- Corporate, polished look with clean lines, consistent iconography, and professional colors.",
     "educational": "- Classroom-friendly visuals with clear labels and step-by-step flow.",
