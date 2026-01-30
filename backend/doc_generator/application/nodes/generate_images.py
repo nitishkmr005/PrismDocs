@@ -99,6 +99,16 @@ def _is_intro_section(title: str) -> bool:
     return normalized == "introduction"
 
 
+def _clean_section_title(title: str) -> str:
+    """
+    Normalize a section title for display in prompts.
+    Invoked by: src/doc_generator/application/nodes/generate_images.py
+    """
+    _, clean_title = extract_section_number(title.strip())
+    cleaned = clean_title.strip().rstrip(":.-")
+    return cleaned
+
+
 def _temp_image_output_path(output_path: Path) -> Path:
     """Return a temp output path to avoid overwriting on timeout."""
     return output_path.with_name(f"{output_path.stem}_tmp{output_path.suffix}")
@@ -331,19 +341,37 @@ def _generate_raster_image(
     return None, prompt_used, {}, 1, 0
 
 
-def _build_cover_prompt(title: str) -> str:
+def _build_cover_prompt(title: str, section_titles: list[str] | None = None) -> str:
     """
-    Build a concise prompt for the cover/banner image.
+    Build a focused prompt for the cover/banner image.
     Invoked by: src/doc_generator/application/nodes/generate_images.py
     """
-    return f"Banner-style header image representing: {title}"
+    keywords = []
+    if section_titles:
+        for raw_title in section_titles:
+            cleaned = _clean_section_title(raw_title)
+            if cleaned and cleaned.lower() != "introduction":
+                keywords.append(cleaned)
+    keywords = keywords[:4]
+    keyword_hint = ""
+    if keywords:
+        keyword_hint = " Key concepts to visualize: " + ", ".join(keywords) + "."
+
+    return (
+        "Handwritten whiteboard banner illustration for the article title: "
+        f"'{title}'.{keyword_hint} "
+        "Use concrete, topic-specific objects/diagrams that clearly represent the title. "
+        "Avoid generic abstract doodles. No people, no brand logos, no large text or title text."
+    )
 
 
 def _maybe_generate_cover_image(
     *,
     images_dir: Path,
     title: str,
+    section_titles: list[str] | None,
     gemini_gen: GeminiImageGenerator | None,
+    image_api_key: str | None,
     output_format: str,
     output_type: str,
     use_cache: bool,
@@ -370,14 +398,63 @@ def _maybe_generate_cover_image(
     if not gemini_gen or not gemini_gen.is_available():
         return None
 
-    prompt_used = _build_cover_prompt(title)
-    image_path = gemini_gen.generate_image(
-        prompt=prompt_used,
-        image_type=ImageType.DECORATIVE,
-        section_title=title,
-        output_path=cover_path,
-        style=style_name,
-    )
+    prompt_used = _build_cover_prompt(title, section_titles=section_titles)
+    fallback_allowed = _should_fallback_to_flash_image(output_format, output_type)
+
+    image_path: Path | None = None
+    if fallback_allowed and gemini_gen.model_name == "gemini-3-pro-image-preview":
+        temp_output_path = _temp_image_output_path(cover_path)
+        image_path = _generate_image_with_timeout(
+            gemini_gen=gemini_gen,
+            prompt=prompt_used,
+            image_type=ImageType.DECORATIVE,
+            section_title=title,
+            output_path=temp_output_path,
+            timeout_seconds=180,
+            style_name=style_name,
+        )
+        if image_path and image_path.exists():
+            if image_path != cover_path:
+                try:
+                    image_path.replace(cover_path)
+                    image_path = cover_path
+                except OSError as exc:
+                    logger.warning(
+                        "Failed to move cover image output for '%s': %s",
+                        title,
+                        exc,
+                    )
+    else:
+        image_path = gemini_gen.generate_image(
+            prompt=prompt_used,
+            image_type=ImageType.DECORATIVE,
+            section_title=title,
+            output_path=cover_path,
+            style=style_name,
+        )
+
+    if (
+        (not image_path or not image_path.exists())
+        and fallback_allowed
+        and gemini_gen.model_name == "gemini-3-pro-image-preview"
+    ):
+        logger.warning(
+            "Cover image generation failed for '%s' with %s, retrying with gemini-2.5-flash-image",
+            title,
+            gemini_gen.model_name,
+        )
+        fallback_gen = GeminiImageGenerator(
+            api_key=image_api_key or gemini_gen.api_key,
+            model="gemini-2.5-flash-image",
+        )
+        image_path = fallback_gen.generate_image(
+            prompt=prompt_used,
+            image_type=ImageType.DECORATIVE,
+            section_title=title,
+            output_path=cover_path,
+            style=style_name,
+        )
+
     if image_path and image_path.exists():
         return {
             "path": str(image_path),
@@ -418,9 +495,13 @@ def _maybe_load_cached_images(
 
 def _should_fallback_to_flash_image(output_format: str, output_type: str) -> bool:
     """Return True when fallback to gemini-2.5-flash-image is allowed."""
-    if output_format != "pdf":
+    if output_format not in ("pdf", "pptx", "pdf_from_pptx"):
         return False
-    if output_type and output_type != "article_pdf":
+    if output_type and output_type not in (
+        "article_pdf",
+        "presentation_pptx",
+        "slide_deck_pdf",
+    ):
         return False
     return True
 
@@ -819,10 +900,18 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
         use_cache = _should_skip_generation(metadata, settings)
         style_name = metadata.get("image_style", "auto")
         cover_title = structured_content.get("title") or metadata.get("title", "")
+        api_keys = metadata.get("api_keys", {})
+        image_api_key = api_keys.get("image") if isinstance(api_keys, dict) else None
+        sections = extract_sections(markdown)
+        log_metric("Sections Found", len(sections))
+
+        section_titles_for_cover = [s.get("title", "") for s in sections]
         cover_image = _maybe_generate_cover_image(
             images_dir=images_dir,
             title=cover_title,
+            section_titles=section_titles_for_cover,
             gemini_gen=gemini_gen,
+            image_api_key=image_api_key,
             output_format=state.get("output_format", ""),
             output_type=metadata.get("output_type", ""),
             use_cache=use_cache,
@@ -847,11 +936,6 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
             return state
         if use_cache:
             log_progress("Image cache mismatch, regenerating images")
-
-        # Extract sections from markdown
-        log_subsection("Extracting Sections")
-        sections = extract_sections(markdown)
-        log_metric("Sections Found", len(sections))
 
         if not sections:
             log_node_end("generate_images", success=True, details="No sections found")
