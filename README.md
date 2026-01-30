@@ -146,13 +146,6 @@ docker-compose up --build
 
 Open [http://localhost:3000](http://localhost:3000)
 
-**Documentation:**
-
-- [✨ Use Cases](docs/USE_CASES.md)
-- [🏗️ Architecture](docs/ARCHITECTURE.md)
-- [📡 API Reference](docs/API.md)
-- [🛠️ Development Guide](docs/DEVELOPMENT.md)
-
 ---
 
 ## 🗺️ Roadmap
