@@ -22,7 +22,7 @@
 
 ## 🌟 What is PrismDocs?
 
-PrismDocs is an AI-powered platform that turns your raw content—PDFs, URLs, notes, or images—into polished, professional documents. Whether you need a pitch deck from meeting notes or a podcast from a research paper, PrismDocs handles the transformation for you, one source at a time.
+PrismDocs is an AI-powered platform that turns a single source (PDF, URL, text, or image) into multiple polished outputs. Generate professional PDFs with TOCs, ready-to-present PPTX decks, clean Markdown docs, mind maps, podcasts, FAQ cards, and even summarized visuals like handwritten notes or architecture diagrams—all from the same content.
 
 ---
 
