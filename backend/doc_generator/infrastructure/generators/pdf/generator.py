@@ -409,29 +409,32 @@ class PDFGenerator:
                     Spacer(1, 12),
                 ]
 
-                # Check for Gemini-generated section image and keep it under the heading.
-                img_info = section_images.get(section_id) or section_image_lookup.get(
-                    self._normalize_title(content_item)
-                )
-                if img_info:
-                    img_path = Path(img_info.get("path", ""))
-                    if img_path.exists():
-                        heading_flow.extend(
-                            make_image_flowable(
-                                img_info.get("section_title", content_item),
-                                img_path,
-                                self.styles,
-                            )
-                        )
-                        description = (img_info.get("description") or "").strip()
-                        if description:
-                            heading_flow.append(
-                                Paragraph(
-                                    inline_md(description), self.styles["BodyCustom"]
+                # Skip section images for Introduction.
+                normalized_section = self._normalize_section_title(content_item)
+                if normalized_section != "introduction":
+                    # Check for Gemini-generated section image and keep it under the heading.
+                    img_info = section_images.get(section_id) or section_image_lookup.get(
+                        self._normalize_title(content_item)
+                    )
+                    if img_info:
+                        img_path = Path(img_info.get("path", ""))
+                        if img_path.exists():
+                            heading_flow.extend(
+                                make_image_flowable(
+                                    img_info.get("section_title", content_item),
+                                    img_path,
+                                    self.styles,
                                 )
                             )
-                        heading_flow.append(Spacer(1, 12))
-                        logger.debug(f"Embedded section image for: {content_item}")
+                            description = (img_info.get("description") or "").strip()
+                            if description:
+                                heading_flow.append(
+                                    Paragraph(
+                                        inline_md(description), self.styles["BodyCustom"]
+                                    )
+                                )
+                            heading_flow.append(Spacer(1, 12))
+                            logger.debug(f"Embedded section image for: {content_item}")
 
                 queue_heading(heading_flow, wants_lead=True)
 

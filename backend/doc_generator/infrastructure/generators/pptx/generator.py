@@ -639,7 +639,7 @@ class PPTXGenerator:
 
             # Handle section image first
             img_info = section_images.get(section.get("section_id"))
-            if img_info:
+            if img_info and normalized_no_num != "introduction":
                 img_path = Path(img_info.get("path", ""))
                 if img_path.exists():
                     image_type = img_info.get("image_type", "image").title()
