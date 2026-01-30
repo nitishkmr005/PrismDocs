@@ -47,6 +47,8 @@ Choose what you want to create:
 - **🎙️ Podcasts**: Multi-speaker audio conversations based on your content.
 - **🧠 Mind Maps**: Visual hierarchies to brainstorm or summarize complex topics.
 - **📝 Markdown**: Clean, structured text for documentation.
+- **🖼️ Image Generation**: Summarized visuals in handwritten notes, architecture diagrams, or comparison tables.
+- **✏️ Image Editing**: Edit or refine generated images (inpainting, style transfer).
 
 ### 3. Customize & Generate ✨
 
@@ -59,13 +61,6 @@ Choose what you want to create:
 ## 🎨 Interactive Studios
 
 Beyond standard documents, explore our specialized creative studios:
-
-### 💡 Idea Canvas [Beta]
-
-_Perfect for: Brainstorming & Planning (In Development)_
-
-- Answer guided questions to build a decision tree.
-- Automatically generates an implementation spec pack (PDF + Markdown + Visual Summary).
 
 ### 🧠 Mind Map Studio
 
@@ -162,16 +157,15 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## 🗺️ Roadmap
 
-- [x] **Mind Maps**: Interactive viewer and export.
-- [x] **Podcast Generation**: Multi-speaker Audio (Beta).
+- [ ] **Scale the pipeline** to handle bigger documents with better performance.
+- [ ] **Research paper formatted documents**.
+- [ ] **Internet search + citations** in documents.
+- [ ] **Voice agent** to interact with uploaded documents.
+- [ ] **Guardrails** on user queries and LLM responses.
 - [ ] **Template Library**: Pre-built templates for resumes and papers.
 - [ ] **PyPI Package**: `pip install prismdocs` (Planned).
 
 ---
-
-## 📄 License
-
-MIT License - See [LICENSE](LICENSE) file for details.
 
 <div align="center">
   <sub>Built with ❤️ by Nitish Harsoor</sub>
