@@ -285,10 +285,11 @@ export default function HomePage() {
   // API Keys state for modal
   const [provider, setProvider] = useState<Provider>("gemini");
   const [contentModel, setContentModel] = useState("gemini-2.5-flash");
-  const [imageModel, setImageModel] = useState("gemini-2.5-flash-image");
+  const [imageModel, setImageModel] = useState("gemini-3-pro-image-preview");
   const [contentApiKey, setContentApiKey] = useState("");
   const [imageApiKey, setImageApiKey] = useState("");
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
+  const [disableCache, setDisableCache] = useState(false);
 
   const hasContentKey = contentApiKey.trim().length > 0;
 
@@ -328,6 +329,7 @@ export default function HomePage() {
       "prismdocs_enable_image_generation",
       enableImageGeneration ? "1" : "0"
     );
+    sessionStorage.setItem("prismdocs_disable_cache", disableCache ? "1" : "0");
     if (imageApiKey) {
       sessionStorage.setItem("prismdocs_image_api_key", imageApiKey);
     }
@@ -453,6 +455,8 @@ export default function HomePage() {
         onImageModelChange={setImageModel}
         imageApiKey={imageApiKey}
         onImageApiKeyChange={setImageApiKey}
+        disableCache={disableCache}
+        onDisableCacheChange={setDisableCache}
         canClose={true}
         canConfirm={hasContentKey}
       />

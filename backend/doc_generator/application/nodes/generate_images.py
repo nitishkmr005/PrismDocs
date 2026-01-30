@@ -30,6 +30,7 @@ from ...infrastructure.settings import get_settings
 from ...utils.gemini_client import create_gemini_client, get_gemini_api_key
 from ...utils.images_paths import resolve_images_dir
 from ...utils.markdown_sections import extract_sections
+from ...infrastructure.api.services.common.json_utils import safe_json_parse
 
 # Try to import Gemini client for prompt generation
 try:
@@ -130,6 +131,10 @@ def _should_skip_generation(metadata: dict, settings) -> bool:
     """
     if "skip_image_generation" in metadata:
         return metadata.get("skip_image_generation", False)
+    if "use_cache" in metadata:
+        return metadata.get("use_cache", False)
+    if "reuse_cache" in metadata:
+        return metadata.get("reuse_cache", False)
     return settings.generator.reuse_cache_by_default
 
 
@@ -174,6 +179,24 @@ def _apply_requested_style(
     elif requested_style == "mermaid":
         decision.image_type = ImageType.MERMAID
     else:
+        decision.image_type = ImageType.INFOGRAPHIC
+
+
+def _apply_requested_image_type(
+    decision: ImageDecision, requested_type: str | None
+) -> None:
+    """
+    Force image type based on explicit user preference.
+    Invoked by: src/doc_generator/application/nodes/generate_images.py
+    """
+    if not requested_type or requested_type == "auto":
+        return
+    if requested_type == "none":
+        decision.image_type = ImageType.NONE
+        return
+    try:
+        decision.image_type = ImageType(requested_type)
+    except ValueError:
         decision.image_type = ImageType.INFOGRAPHIC
 
 
@@ -396,6 +419,7 @@ def _process_section_image(
     # LLM decides image type + prompt based on section content.
     decision = detector.detect(section_title, section_content, api_key=image_api_key)
     _apply_requested_style(decision, metadata.get("image_style", "auto"))
+    _apply_requested_image_type(decision, metadata.get("image_type", "auto"))
     logger.debug(
         f"Section '{section_title}': {decision.image_type.value} "
         f"(confidence: {decision.confidence:.2f})"
@@ -568,10 +592,10 @@ class ImageTypeDetector:
                 confidence=0.0,
             )
 
-        prompt = prompt_generator.generate_prompt(
+        response_text = prompt_generator.generate_prompt(
             section_title=section_title, content=content
         )
-        if not prompt:
+        if not response_text:
             return ImageDecision(
                 image_type=ImageType.NONE,
                 prompt="",
@@ -579,11 +603,47 @@ class ImageTypeDetector:
                 confidence=0.9,
             )
 
+        decision_payload = safe_json_parse(response_text) or {}
+        needs_image = decision_payload.get("needs_image")
+        image_type_raw = str(decision_payload.get("image_type", "none")).lower()
+        prompt = (decision_payload.get("prompt") or "").strip()
+        confidence = decision_payload.get("confidence", 0.7)
+
+        if isinstance(needs_image, str):
+            needs_image = needs_image.strip().lower() in ("true", "yes", "1")
+        if needs_image is False or image_type_raw == "none":
+            return ImageDecision(
+                image_type=ImageType.NONE,
+                prompt="",
+                section_title=section_title,
+                confidence=0.9,
+            )
+
+        if not prompt:
+            return ImageDecision(
+                image_type=ImageType.NONE,
+                prompt="",
+                section_title=section_title,
+                confidence=0.8,
+            )
+
+        try:
+            confidence_val = float(confidence)
+        except (TypeError, ValueError):
+            confidence_val = 0.7
+        confidence_val = max(0.0, min(1.0, confidence_val))
+
+        image_type = ImageType.INFOGRAPHIC
+        try:
+            image_type = ImageType(image_type_raw)
+        except ValueError:
+            image_type = ImageType.INFOGRAPHIC
+
         return ImageDecision(
-            image_type=ImageType.INFOGRAPHIC,
+            image_type=image_type,
             prompt=prompt,
             section_title=section_title,
-            confidence=0.7,
+            confidence=confidence_val,
         )
 
 

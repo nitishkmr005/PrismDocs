@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { StudioOutputType } from "./OutputTypeSelector";
 import { Provider, Audience, ImageStyle } from "@/lib/types/requests";
 import { MindMapMode } from "@/lib/types/mindmap";
@@ -435,27 +434,7 @@ export function DynamicOptions({
         </div>
       )}
 
-      {/* Image Style - for content with images enabled (NOT for standalone image generation) */}
-      {/* Note: Image generation toggle and image model are now configured in the API keys modal */}
-      {isContentType && enableImageGeneration && (
-        <div className="space-y-1.5">
-          <Label htmlFor="image-style" className="text-xs">Image Style</Label>
-          <Select value={imageStyle} onValueChange={(v) => onImageStyleChange(v as ImageStyle)}>
-            <SelectTrigger id="image-style" className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="auto">Auto</SelectItem>
-              <SelectItem value="infographic">Infographic</SelectItem>
-              <SelectItem value="minimalist">Minimalist</SelectItem>
-              <SelectItem value="corporate">Corporate</SelectItem>
-              <SelectItem value="educational">Educational</SelectItem>
-              <SelectItem value="diagram">Diagram</SelectItem>
-              <SelectItem value="handwritten">Handwritten</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+
 
       {/* Mind Map Mode - Rich cards for mindmap type */}
       {isMindMap && (

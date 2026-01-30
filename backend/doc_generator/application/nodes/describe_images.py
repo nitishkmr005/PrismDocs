@@ -14,6 +14,7 @@ from ...infrastructure.observability.opik import log_llm_call
 from ...infrastructure.settings import get_settings
 from ...domain.prompts.image.image_generation_prompts import build_image_description_prompt
 from ...utils.gemini_client import create_gemini_client, get_gemini_api_key
+from ...utils.markdown_sections import extract_sections
 
 try:
     from google.genai import types
@@ -117,6 +118,8 @@ def describe_images_node(state: WorkflowState) -> WorkflowState:
     log_metric("Images to Describe", len(section_images))
     
     markdown = structured_content.get("markdown", "")
+    sections = extract_sections(markdown)
+    section_content_by_id = {s["id"]: s.get("content", "") for s in sections}
     settings = get_settings()
     api_keys = metadata.get("api_keys", {})
     content_api_key = api_keys.get("content")
@@ -138,9 +141,14 @@ def describe_images_node(state: WorkflowState) -> WorkflowState:
         description = (info.get("description") or "").strip()
         if not description:
             if describer.is_available():
+                section_content = section_content_by_id.get(section_id, "")
+                if not section_content and isinstance(section_id, str) and section_id.isdigit():
+                    section_content = section_content_by_id.get(int(section_id), "")
+                if not section_content:
+                    section_content = markdown
                 description = describer.describe(
                     section_title=section_title,
-                    content=markdown,
+                    content=section_content,
                     image_path=image_path,
                 ).strip()
                 if description:

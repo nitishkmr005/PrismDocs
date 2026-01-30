@@ -61,6 +61,9 @@ interface ApiKeysModalProps {
   onEnablePodcastChange?: (enabled: boolean) => void;
   podcastGeminiApiKey?: string;
   onPodcastGeminiApiKeyChange?: (key: string) => void;
+  disableCache?: boolean;
+  onDisableCacheChange?: (disabled: boolean) => void;
+  showCacheToggle?: boolean;
 }
 
 export function ApiKeysModal({
@@ -87,6 +90,9 @@ export function ApiKeysModal({
   onEnablePodcastChange,
   podcastGeminiApiKey = "",
   onPodcastGeminiApiKeyChange,
+  disableCache = false,
+  onDisableCacheChange,
+  showCacheToggle = true,
 }: ApiKeysModalProps) {
   const providerLabel = PROVIDER_LABELS[provider];
   const keyUrl = PROVIDER_KEY_URLS[provider];
@@ -422,6 +428,37 @@ export function ApiKeysModal({
               <p className="text-xs text-emerald-700 dark:text-emerald-300">
                 Your Gemini content key will be used for podcast generation automatically.
               </p>
+            </div>
+          )}
+
+          {/* Cache control */}
+          {showCacheToggle && (
+            <div className="space-y-3 p-4 rounded-xl border transition-all border-border/60 bg-gradient-to-br from-slate-50/60 to-slate-100/40 dark:from-slate-900/50 dark:to-slate-900/30">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  4
+                </div>
+                <span className="font-medium text-sm">Cache</span>
+              </div>
+              <div className="flex items-start gap-2 rounded-lg border border-border/30 bg-white/70 dark:bg-slate-900/60 p-2.5">
+                <Checkbox
+                  id="disable-cache"
+                  checked={disableCache}
+                  onCheckedChange={(checked) => {
+                    if (onDisableCacheChange) {
+                      onDisableCacheChange(checked === true);
+                    }
+                  }}
+                />
+                <div className="space-y-0.5">
+                  <Label htmlFor="disable-cache" className="text-xs font-medium cursor-pointer">
+                    Disable cache (force regenerate)
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground">
+                    Always regenerate content and images instead of reusing cached outputs.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

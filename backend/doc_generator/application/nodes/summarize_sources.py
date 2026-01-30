@@ -2,8 +2,6 @@
 Chunked summarization node for unified workflow.
 """
 
-from pathlib import Path
-
 from loguru import logger
 
 from ..unified_state import UnifiedWorkflowState, is_document_type
@@ -69,22 +67,14 @@ def summarize_sources_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:
         )
         return state
 
-    state["summary_content"] = summary
-    state["raw_content"] = summary
-
     metadata["summary_chars"] = len(summary)
     metadata["summary_generated"] = True
     state["metadata"] = metadata
+    state["summary_content"] = summary
 
-    if is_document_type(state.get("output_type", "")):
-        input_path = state.get("input_path", "")
-        if input_path:
-            path = Path(input_path)
-            try:
-                path.write_text(summary, encoding="utf-8")
-                log_progress(f"Rewrote summary markdown: {path.name}")
-            except Exception as exc:
-                logger.warning(f"Failed to write summary markdown: {exc}")
+    # For document generation, keep full raw_content for blog-style transforms.
+    if not is_document_type(state.get("output_type", "")):
+        state["raw_content"] = summary
 
     log_node_end(
         "summarize_sources",

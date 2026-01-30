@@ -41,6 +41,16 @@ class ImageStyle(str, Enum):
     DECORATIVE = "decorative"
 
 
+class ImageTypePreference(str, Enum):
+    AUTO = "auto"
+    INFOGRAPHIC = "infographic"
+    DIAGRAM = "diagram"
+    CHART = "chart"
+    MERMAID = "mermaid"
+    DECORATIVE = "decorative"
+    NONE = "none"
+
+
 class UrlParser(str, Enum):
     MARKITDOWN = "markitdown"
     FIRECRAWL = "firecrawl"
@@ -72,6 +82,7 @@ SourceItem = Annotated[
 class Preferences(BaseModel):
     audience: Audience = Audience.TECHNICAL
     image_style: ImageStyle = ImageStyle.HANDWRITTEN
+    image_type: ImageTypePreference = ImageTypePreference.AUTO
     temperature: float = Field(default=0.4, ge=0.0, le=1.0)
     max_tokens: int = Field(default=8000, ge=100, le=32000)
     max_slides: int = Field(default=25, ge=1, le=50)

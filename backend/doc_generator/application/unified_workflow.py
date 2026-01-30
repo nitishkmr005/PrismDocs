@@ -426,11 +426,15 @@ def _wrap_document_node(original_node: Callable) -> Callable:
         # Add request-specific metadata
         if request_data:
             preferences = request_data.get("preferences", {})
+            cache = request_data.get("cache", {})
             compat_state["metadata"]["audience"] = preferences.get(
                 "audience", "general"
             )
             compat_state["metadata"]["image_style"] = preferences.get(
                 "image_style", "auto"
+            )
+            compat_state["metadata"]["image_type"] = preferences.get(
+                "image_type", "auto"
             )
             if "image_model" in request_data:
                 compat_state["metadata"]["image_model"] = request_data.get(
@@ -441,6 +445,10 @@ def _wrap_document_node(original_node: Callable) -> Callable:
             compat_state["metadata"]["provider"] = request_data.get("provider")
             compat_state["metadata"]["model"] = request_data.get("model")
             compat_state["metadata"]["output_type"] = state.get("output_type", "")
+            if "reuse" in cache:
+                compat_state["metadata"]["reuse_cache"] = bool(cache.get("reuse"))
+                compat_state["metadata"]["use_cache"] = bool(cache.get("reuse"))
+                compat_state["metadata"]["cache_content"] = bool(cache.get("reuse"))
             enable_images = bool(preferences.get("enable_image_generation", True))
             compat_state["metadata"]["enable_image_generation"] = enable_images
             if compat_state["metadata"]["output_type"] in (

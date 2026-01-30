@@ -21,7 +21,7 @@ const DEFAULT_STORE: ApiKeyStore = {
   contentModel: "gemini-2.5-flash",
   contentApiKey: "",
   imageApiKey: "",
-  imageModel: "gemini-2.5-flash-image",
+  imageModel: "gemini-3-pro-image-preview",
   enableImageGeneration: true,
 };
 

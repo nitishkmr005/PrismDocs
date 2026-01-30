@@ -18,6 +18,15 @@ export type ImageStyle =
   | "mermaid"
   | "decorative";
 
+export type ImageTypePreference =
+  | "auto"
+  | "infographic"
+  | "diagram"
+  | "chart"
+  | "mermaid"
+  | "decorative"
+  | "none";
+
 export type UrlParser = "markitdown" | "firecrawl" | "auto";
 
 export interface FileSource {
@@ -41,6 +50,7 @@ export type SourceItem = FileSource | UrlSource | TextSource;
 export interface Preferences {
   audience: Audience;
   image_style: ImageStyle;
+  image_type: ImageTypePreference;
   temperature: number;
   max_tokens: number;
   max_slides: number;
@@ -65,6 +75,7 @@ export interface GenerateRequest {
 export const DEFAULT_PREFERENCES: Preferences = {
   audience: "technical",
   image_style: "handwritten",
+  image_type: "auto",
   temperature: 0.4,
   max_tokens: 12000,
   max_slides: 25,

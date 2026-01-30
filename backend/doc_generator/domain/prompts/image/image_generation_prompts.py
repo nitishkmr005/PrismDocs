@@ -104,15 +104,31 @@ def build_prompt_generator_prompt(
     content_preview: str,
 ) -> str:
     """
-    Prompt to generate a content-specific image prompt.
+    Prompt to decide if an image is needed and produce a structured decision.
     """
-    prompt = "Decide whether this section needs an image.\n\n"
-    prompt += f"Section Title: {section_title}\n"
-    prompt += f"Section Content:\n{content_preview}\n\n"
-    prompt += "Rules:\n"
-    prompt += "- If an image is NOT needed, return exactly: none\n"
-    prompt += "- If an image IS needed, return a single concise image prompt.\n"
-    prompt += "- Use ONLY concepts present in the content.\n"
-    prompt += "- Do NOT add new facts, tools, or labels.\n"
-    prompt += "- The prompt should describe what to depict clearly.\n"
-    return prompt
+    return f"""You are deciding whether a section needs a visual. Be selective.
+
+Section Title: {section_title}
+Section Content:
+{content_preview}
+
+Decision rules:
+- Only say an image is needed when the section contains explicit visualizable structure,
+  such as: steps/workflow, system components/relationships, comparisons/criteria,
+  hierarchies/taxonomies, or a process that benefits from a diagram.
+- Do NOT request an image for simple narrative, overview, opinion, or purely textual guidance.
+- If the section already reads like a summary with no concrete entities/steps, return none.
+- Use ONLY concepts and labels explicitly present in the section content.
+- Avoid generic visuals. If you cannot name at least 2 concrete elements from the text,
+  you must return none.
+
+Return ONLY valid JSON with no extra text:
+{{
+  "needs_image": true|false,
+  "image_type": "infographic|diagram|chart|mermaid|decorative|none",
+  "prompt": "Concise visual prompt using only section concepts",
+  "confidence": 0.0 to 1.0
+}}
+
+If needs_image is false, set image_type to "none" and prompt to "".
+"""

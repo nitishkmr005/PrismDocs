@@ -94,11 +94,13 @@ export default function GeneratePage() {
   // Configuration state
   const [provider, setProvider] = useState<Provider>("gemini");
   const [contentModel, setContentModel] = useState("gemini-2.5-flash");
-  const [imageModel, setImageModel] = useState("gemini-2.5-flash-image");
+  const [imageModel, setImageModel] = useState("gemini-3-pro-image-preview");
   const [audience, setAudience] = useState<Audience>("technical");
   const [imageStyle, setImageStyle] = useState<ImageStyle>("handwritten");
+  const fixedImageStyle: ImageStyle = "handwritten";
   const [mindMapMode, setMindMapMode] = useState<MindMapMode>("summarize");
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
+  const [disableCache, setDisableCache] = useState(false);
   const [contentApiKey, setContentApiKey] = useState("");
   const [imageApiKey, setImageApiKey] = useState("");
   const hasContentKey = contentApiKey.trim().length > 0;
@@ -263,6 +265,7 @@ export default function GeneratePage() {
     const storedModel = sessionStorage.getItem('prismdocs_content_model');
     const storedImageKey = sessionStorage.getItem('prismdocs_image_api_key');
     const storedEnableImages = sessionStorage.getItem('prismdocs_enable_image_generation');
+    const storedDisableCache = sessionStorage.getItem('prismdocs_disable_cache');
     
     if (storedContentKey) {
       setContentApiKey(storedContentKey);
@@ -283,6 +286,10 @@ export default function GeneratePage() {
     if (storedEnableImages !== null) {
       setEnableImageGeneration(storedEnableImages === "1");
       sessionStorage.removeItem('prismdocs_enable_image_generation');
+    }
+    if (storedDisableCache !== null) {
+      setDisableCache(storedDisableCache === "1");
+      sessionStorage.removeItem('prismdocs_disable_cache');
     }
   }, []);
 
@@ -378,9 +385,11 @@ export default function GeneratePage() {
           provider,
           model: contentModel,
           image_model: imageModel,
+          cache: { reuse: !disableCache },
           preferences: {
             audience,
-            image_style: imageStyle,
+            image_style: fixedImageStyle,
+            image_type: "auto",
             temperature: 0.4,
             max_tokens: 12000,
             max_slides: 25,
@@ -417,14 +426,14 @@ export default function GeneratePage() {
           preferences: {
             ...DEFAULT_PREFERENCES,
             audience,
-            image_style: imageStyle,
+            image_style: fixedImageStyle,
             temperature: 0.4,
             max_tokens: 12000,
             max_slides: 25,
             max_summary_points: 5,
             enable_image_generation: enableImageGeneration,
           },
-          cache: DEFAULT_CACHE_OPTIONS,
+          cache: { ...DEFAULT_CACHE_OPTIONS, reuse: !disableCache },
         };
 
         // Trigger secondary generation in parallel
@@ -734,6 +743,8 @@ export default function GeneratePage() {
         onImageModelChange={setImageModel}
         imageApiKey={imageApiKey}
         onImageApiKeyChange={setImageApiKey}
+        disableCache={disableCache}
+        onDisableCacheChange={setDisableCache}
         canClose={hasContentKey}
         enablePodcast={enablePodcast}
         onEnablePodcastChange={setEnablePodcast}
