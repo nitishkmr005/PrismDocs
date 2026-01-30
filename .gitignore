@@ -2,6 +2,7 @@
 .worktrees
 .venv
 .env
+.env.example
 .ruff_cache
 .mypy_cache
 .pytest_cache

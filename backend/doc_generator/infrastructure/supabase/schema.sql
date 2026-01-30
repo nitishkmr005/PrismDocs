@@ -267,7 +267,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================
 
 -- View: LLM usage stats
-CREATE OR REPLACE VIEW llm_usage_stats AS
+CREATE OR REPLACE VIEW llm_usage_stats
+WITH (security_invoker = true) AS
 SELECT
     user_id,
     DATE_TRUNC('day', created_at) as date,
@@ -281,7 +282,8 @@ WHERE created_at >= NOW() - INTERVAL '30 days'
 GROUP BY user_id, DATE_TRUNC('day', created_at);
 
 -- View: Content feedback summary
-CREATE OR REPLACE VIEW content_feedback_summary AS
+CREATE OR REPLACE VIEW content_feedback_summary
+WITH (security_invoker = true) AS
 SELECT
     content_type,
     output_format,
