@@ -356,18 +356,16 @@ def _maybe_generate_cover_image(
     if not title:
         return None
     cover_path = _resolve_cover_image_path(images_dir)
-    if use_cache:
-        if cover_path.exists():
-            return {
-                "path": str(cover_path),
-                "image_type": ImageType.DECORATIVE.value,
-                "section_title": title,
-                "prompt": "Previously generated",
-                "confidence": 1.0,
-                "embed_base64": "",
-                "description": "",
-            }
-        return None
+    if use_cache and cover_path.exists():
+        return {
+            "path": str(cover_path),
+            "image_type": ImageType.DECORATIVE.value,
+            "section_title": title,
+            "prompt": "Previously generated",
+            "confidence": 1.0,
+            "embed_base64": "",
+            "description": "",
+        }
 
     if not gemini_gen or not gemini_gen.is_available():
         return None
