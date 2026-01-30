@@ -49,6 +49,7 @@ Choose what you want to create:
 - **📝 Markdown**: Clean, structured text for documentation.
 - **🖼️ Image Generation**: Summarized visuals in handwritten notes, architecture diagrams, or comparison tables.
 - **✏️ Image Editing**: Edit or refine generated images (inpainting, style transfer).
+- **❓ FAQ Cards**: Turn complex content into crisp Q&A for onboarding, support, sales enablement, and study guides.
 
 ### 3. Customize & Generate ✨
 
