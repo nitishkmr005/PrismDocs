@@ -156,7 +156,7 @@ Open [http://localhost:3000](http://localhost:3000)
 - [ ] **Internet search + citations** in documents.
 - [ ] **Voice agent** to interact with uploaded documents.
 - [ ] **Guardrails** on user queries and LLM responses.
-- [ ] **Template Library**: Pre-built templates for resumes and papers.
+- [ ] **Template Library**: Pre-built templates for presentations.
 - [ ] **PyPI Package**: `pip install prismdocs` (Planned).
 
 ---
