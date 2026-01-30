@@ -29,7 +29,7 @@ from ...infrastructure.observability.opik import log_llm_call
 from ...infrastructure.settings import get_settings
 from ...utils.gemini_client import create_gemini_client, get_gemini_api_key
 from ...utils.images_paths import resolve_images_dir
-from ...utils.markdown_sections import extract_sections
+from ...utils.markdown_sections import extract_sections, extract_section_number
 from ...infrastructure.api.services.common.json_utils import safe_json_parse
 
 # Try to import Gemini client for prompt generation
@@ -87,6 +87,16 @@ def _resolve_cover_image_path(images_dir: Path) -> Path:
     Invoked by: src/doc_generator/application/nodes/generate_images.py
     """
     return images_dir / "cover.png"
+
+
+def _is_intro_section(title: str) -> bool:
+    """
+    Return True if the section is an Introduction section.
+    Invoked by: src/doc_generator/application/nodes/generate_images.py
+    """
+    _, clean_title = extract_section_number(title.strip())
+    normalized = clean_title.strip().lower()
+    return normalized == "introduction"
 
 
 def _temp_image_output_path(output_path: Path) -> Path:
@@ -481,6 +491,9 @@ def _process_section_image(
     section_id = section["id"]
     section_title = section["title"]
     section_content = section["content"]
+
+    if _is_intro_section(section_title):
+        return section_id, None, 1, 0
 
     # Get API key from metadata
     api_keys = metadata.get("api_keys", {})

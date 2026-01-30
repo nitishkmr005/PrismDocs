@@ -289,7 +289,7 @@ export default function HomePage() {
   const [contentApiKey, setContentApiKey] = useState("");
   const [imageApiKey, setImageApiKey] = useState("");
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
-  const [disableCache, setDisableCache] = useState(false);
+  const [disableCache, setDisableCache] = useState(true);
 
   const hasContentKey = contentApiKey.trim().length > 0;
 

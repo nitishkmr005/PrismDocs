@@ -100,7 +100,7 @@ export default function GeneratePage() {
   const fixedImageStyle: ImageStyle = "handwritten";
   const [mindMapMode, setMindMapMode] = useState<MindMapMode>("summarize");
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
-  const [disableCache, setDisableCache] = useState(false);
+  const [disableCache, setDisableCache] = useState(true);
   const [contentApiKey, setContentApiKey] = useState("");
   const [imageApiKey, setImageApiKey] = useState("");
   const hasContentKey = contentApiKey.trim().length > 0;
