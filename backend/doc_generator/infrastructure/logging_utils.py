@@ -56,6 +56,15 @@ SEPARATOR_HEAVY = "=" * 80
 SEPARATOR_LIGHT = "-" * 80
 SEPARATOR_DOT = "·" * 80
 
+# Friendly display names for clearer progress output (internal node names unchanged).
+DISPLAY_NAME_OVERRIDES = {
+    "extract_sources": "Parse Sources",
+    "parse_document_content": "Parse Document Input",
+    "generate_images": "Generate Section Images",
+    "build_image_prompt": "Build Standalone Image Prompt",
+    "generate_output": "Render Output",
+}
+
 
 def log_node_start(node_name: str, step_number: int, total_steps: int = 9) -> None:
     """
@@ -67,7 +76,9 @@ def log_node_start(node_name: str, step_number: int, total_steps: int = 9) -> No
         total_steps: Total number of steps in workflow
     """
     # Convert snake_case to Title Case
-    display_name = node_name.replace("_", " ").title()
+    display_name = DISPLAY_NAME_OVERRIDES.get(
+        node_name, node_name.replace("_", " ").title()
+    )
     _emit_progress(step_number, total_steps, node_name, display_name)
     
     logger.opt(colors=True).info(
@@ -86,7 +97,9 @@ def log_node_end(node_name: str, success: bool = True, details: str = "") -> Non
         success: Whether the node completed successfully
         details: Optional details to include
     """
-    display_name = node_name.replace("_", " ").title()
+    display_name = DISPLAY_NAME_OVERRIDES.get(
+        node_name, node_name.replace("_", " ").title()
+    )
     
     if success:
         status_icon = "✓"

@@ -1,5 +1,3 @@
-"""Podcast generation prompts."""
+"""Podcast generation prompts (currently unused)."""
 
-from .prompts import podcast_script_prompt, podcast_system_prompt
-
-__all__ = ["podcast_system_prompt", "podcast_script_prompt"]
+__all__: list[str] = []

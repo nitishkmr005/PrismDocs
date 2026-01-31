@@ -14,18 +14,12 @@ from loguru import logger
 from ..settings import get_settings
 from ..observability.opik import log_llm_call
 from ...domain.prompts.text.llm_service_prompts import (
-    enhance_bullets_prompt,
-    enhance_bullets_system_prompt,
     executive_summary_prompt,
     executive_summary_system_prompt,
     section_slide_structure_prompt,
     section_slide_structure_system_prompt,
     slide_structure_prompt,
     slide_structure_system_prompt,
-    speaker_notes_prompt,
-    speaker_notes_system_prompt,
-    visualization_suggestions_prompt,
-    visualization_suggestions_system_prompt,
 )
 
 try:
@@ -638,163 +632,6 @@ class LLMService:
         except Exception as e:
             logger.error(f"Failed to generate section slide structure: {e}")
             return []
-
-    def enhance_bullet_points(self, bullets: list[str]) -> list[str]:
-        """
-        Enhance bullet points for executive presentation.
-
-        Args:
-            bullets: List of raw bullet points
-
-        Returns:
-            Enhanced bullet points
-        Invoked by: (no references found)
-        """
-        if not self.is_available() or not bullets:
-            return bullets
-
-        prompt = enhance_bullets_prompt(bullets)
-
-        try:
-            system_msg = enhance_bullets_system_prompt()
-            result = self._call_llm(
-                system_msg, prompt, 300, 0.3, step="enhance_bullets"
-            )
-            enhanced = [
-                line.lstrip("- ").strip()
-                for line in result.split("\n")
-                if line.strip().startswith("-")
-            ]
-            return enhanced if enhanced else bullets
-        except Exception as e:
-            logger.error(f"Failed to enhance bullets: {e}")
-            return bullets
-
-    def generate_speaker_notes(self, slide_title: str, slide_content: list[str]) -> str:
-        """
-        Generate speaker notes for a slide.
-
-        Args:
-            slide_title: Title of the slide
-            slide_content: Bullet points on the slide
-
-        Returns:
-            Speaker notes text
-        Invoked by: (no references found)
-        """
-        if not self.is_available():
-            return ""
-
-        prompt = speaker_notes_prompt(slide_title, slide_content)
-
-        try:
-            system_msg = speaker_notes_system_prompt()
-            return self._call_llm(system_msg, prompt, 200, 0.4, step="speaker_notes")
-        except Exception as e:
-            logger.error(f"Failed to generate speaker notes: {e}")
-            return ""
-
-    def suggest_visualizations(self, content: str, max_visuals: int = 3) -> list[dict]:
-        """
-        Analyze content and suggest visual diagrams.
-
-        Automatically detects patterns in content that can be visualized as:
-        - Architecture diagrams (system components, layers)
-        - Flowcharts (processes, decisions, steps)
-        - Comparison visuals (feature comparisons, options)
-        - Concept maps (hierarchical relationships)
-        - Mind maps (topic overviews)
-
-        Args:
-            content: Content to analyze for visualization opportunities
-            max_visuals: Maximum number of visualizations to suggest
-
-        Returns:
-            List of visualization suggestions with type, title, and structured data
-        Invoked by: (no references found)
-        """
-        if not self.is_available():
-            return []
-
-        prompt = visualization_suggestions_prompt(content, max_visuals)
-
-        try:
-            system_msg = visualization_suggestions_system_prompt()
-            result = self._call_llm(
-                system_msg,
-                prompt,
-                2000,
-                0.4,
-                json_mode=True,
-                step="visualization_suggestions",
-            )
-            logger.debug(f"Visualization suggestions raw response: {result[:300]}...")
-            data = self._safe_json_load(result)
-            if data is None:
-                retry = self._call_llm(
-                    system_msg,
-                    prompt,
-                    2000,
-                    0.4,
-                    json_mode=True,
-                    step="visualization_suggestions:retry",
-                )
-                data = self._safe_json_load(retry)
-            if data is None:
-                raise ValueError("Invalid JSON response")
-
-            # Handle various response formats
-            if isinstance(data, dict):
-                visuals = data.get("visualizations", data.get("visuals", []))
-                if not visuals and len(data) == 1:
-                    visuals = list(data.values())[0]
-            elif isinstance(data, list):
-                visuals = data
-            else:
-                visuals = []
-
-            # Validate and clean visualizations
-            valid_visuals = []
-            valid_types = {
-                "architecture",
-                "flowchart",
-                "comparison_visual",
-                "concept_map",
-                "mind_map",
-            }
-
-            for visual in visuals[:max_visuals]:
-                if not isinstance(visual, dict):
-                    continue
-
-                vis_type = visual.get("type", "")
-                if vis_type not in valid_types:
-                    continue
-
-                vis_data = visual.get("data", {})
-                if not vis_data:
-                    continue
-
-                valid_visuals.append(
-                    {
-                        "type": vis_type,
-                        "title": visual.get(
-                            "title", f"{vis_type.replace('_', ' ').title()} Diagram"
-                        ),
-                        "data": vis_data,
-                    }
-                )
-
-            logger.info(f"Suggested {len(valid_visuals)} visualizations")
-            return valid_visuals
-
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse visualization suggestions JSON: {e}")
-            return []
-        except Exception as e:
-            logger.error(f"Failed to suggest visualizations: {e}")
-            return []
-
 
 # Singleton instance with lazy initialization
 _llm_service: Optional[LLMService] = None
