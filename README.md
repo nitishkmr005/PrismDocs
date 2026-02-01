@@ -121,6 +121,15 @@ See examples of what PrismDocs can generate:
 | :---------------------------------------------------------------------: | :------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------: |
 | ![Original](sampleOutputs/Screenshots/Original%20Generated%20Image.png) | ![Edited](sampleOutputs/Screenshots/Image%20Editing%20By%20Selecting%20area%20to%20edit.png) | ![Final Edited Image](sampleOutputs/Screenshots/Edited%20Image.png) |
 
+### ❓ FAQ Generation
+
+|                                           FAQ Document                                           |
+| :----------------------------------------------------------------------------------------------: |
+| [![FAQ](sampleOutputs/Screenshots/FAQ.png)](sampleOutputs/Generated%20Documents/FAQ.md) |
+|                    [View FAQ](sampleOutputs/Generated%20Documents/FAQ.md)                    |
+
+_Turn complex content into structured Q&A for onboarding, troubleshooting, and knowledge bases._
+
 ---
 
 ## ⚡ Get Started
