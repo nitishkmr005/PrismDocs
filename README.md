@@ -119,7 +119,7 @@ See examples of what PrismDocs can generate:
 
 |                         Original AI Generation                          |                                  AI Editing (Inpainting UI)                                  |                      AI Edited Image (Result)                       |
 | :---------------------------------------------------------------------: | :------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------: |
-| ![Original](sampleOutputs/Screenshots/Original%20Generated%20Image.png) | ![Edited](sampleOutputs/Screenshots/Image%20Editing%20By%20Selecting%20area%20to%20edit.png) | ![Final Edited Image](sampleOutputs/Screenshots/Edited%20Image.png) |
+| ![Original](sampleOutputs/Screenshots/Original%20Generated%20Image.png) | ![Inpainting UI](sampleOutputs/Screenshots/Editing%20Original%20Image%20by%20Adding%20Text.png) | ![Final Edited Image](sampleOutputs/Screenshots/Edited%20Image.png) |
 
 ### ❓ FAQ Generation
 
