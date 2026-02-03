@@ -164,6 +164,7 @@ Open [http://localhost:3000](http://localhost:3000)
 - [ ] **Research paper formatted documents**.
 - [ ] **Internet search + citations** in documents.
 - [ ] **Voice agent** to interact with uploaded documents.
+- [ ] **WhatsApp integration** for document generation and delivery, so users can request and receive outputs on mobile.
 - [ ] **Guardrails** on user queries and LLM responses.
 - [ ] **Template Library**: Pre-built templates for presentations.
 - [ ] **PyPI Package**: `pip install prismdocs` (Planned).
