@@ -3,19 +3,19 @@ Source merge node for unified workflow.
 """
 
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
     log_metric,
+    log_node_end,
+    log_node_start,
     resolve_step_number,
     resolve_total_steps,
 )
-from ..unified_state import UnifiedWorkflowState, is_document_type
 from ...utils.source_utils import (
+    merge_markdown_sources,
     should_skip_source_processing,
     skip_source_reason,
-    merge_markdown_sources,
     write_temp_markdown,
 )
+from ..unified_state import UnifiedWorkflowState, is_document_type
 
 
 def merge_sources_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:

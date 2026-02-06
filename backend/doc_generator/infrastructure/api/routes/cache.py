@@ -18,7 +18,7 @@ CACHE_DIR = get_settings().generator.cache_dir
 
 class ClearResponse(BaseModel):
     """Response for clear operations."""
-    
+
     cleared_projects: int = 0
     cleared_cache: int = 0
     total_cleared: int = 0
@@ -27,7 +27,7 @@ class ClearResponse(BaseModel):
 
 class CacheStatsResponse(BaseModel):
     """Response for cache stats."""
-    
+
     projects_count: int = 0
     projects_size_bytes: int = 0
     cache_entries: int = 0
@@ -65,11 +65,11 @@ async def get_cache_stats() -> CacheStatsResponse:
     project_dirs = get_project_dirs()
     projects_count = len(project_dirs)
     projects_size = sum(get_total_size(d) for d in project_dirs)
-    
+
     cache_files = list(CACHE_DIR.glob("*.json")) if CACHE_DIR.exists() else []
     cache_count = len(cache_files)
     cache_size = sum(f.stat().st_size for f in cache_files if f.exists())
-    
+
     return CacheStatsResponse(
         projects_count=projects_count,
         projects_size_bytes=projects_size,
@@ -94,9 +94,9 @@ async def clear_cache() -> ClearResponse:
                 cache_cleared += 1
             except OSError:
                 pass
-    
+
     logger.info(f"Cleared {cache_cleared} cache entries")
-    
+
     return ClearResponse(
         cleared_cache=cache_cleared,
         total_cleared=cache_cleared,
@@ -122,7 +122,7 @@ async def clear_all() -> ClearResponse:
             projects_cleared += 1
         except OSError as e:
             logger.warning(f"Failed to remove {project_dir}: {e}")
-    
+
     # Clear cache
     cache_cleared = 0
     if CACHE_DIR.exists():
@@ -146,14 +146,14 @@ async def clear_all() -> ClearResponse:
                 temp_cleared += 1
             except OSError as e:
                 logger.warning(f"Failed to remove temp item {item}: {e}")
-    
+
     total = projects_cleared + cache_cleared + temp_cleared
-    
+
     logger.info(
         f"Cleared all: {projects_cleared} projects, "
         f"{cache_cleared} cache entries, {temp_cleared} temp items"
     )
-    
+
     return ClearResponse(
         cleared_projects=projects_cleared,
         cleared_cache=cache_cleared,

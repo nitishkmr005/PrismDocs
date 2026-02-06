@@ -10,14 +10,10 @@ This layer contains:
 """
 
 # Unified workflow exports
-from .unified_workflow import (
-    build_unified_workflow,
-    run_unified_workflow,
-    run_unified_workflow_async,
-    # Checkpointed workflow functions
-    run_unified_workflow_with_session,
-    run_unified_workflow_async_with_session,
-    get_session_info,
+# Checkpoint manager
+from .checkpoint_manager import (
+    CheckpointManager,
+    get_checkpoint_manager,
 )
 from .unified_state import (
     UnifiedWorkflowState,
@@ -26,11 +22,14 @@ from .unified_state import (
     requires_content_extraction,
     requires_gemini_key,
 )
-
-# Checkpoint manager
-from .checkpoint_manager import (
-    CheckpointManager,
-    get_checkpoint_manager,
+from .unified_workflow import (
+    build_unified_workflow,
+    get_session_info,
+    run_unified_workflow,
+    run_unified_workflow_async,
+    run_unified_workflow_async_with_session,
+    # Checkpointed workflow functions
+    run_unified_workflow_with_session,
 )
 
 __all__ = [

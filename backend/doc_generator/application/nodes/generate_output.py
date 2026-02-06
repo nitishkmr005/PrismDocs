@@ -26,33 +26,33 @@ def generate_output_node(state: WorkflowState) -> WorkflowState:
     Invoked by: src/doc_generator/application/graph_workflow.py, src/doc_generator/application/workflow/graph.py
     """
     from ...infrastructure.logging_utils import (
-        log_node_start,
-        log_node_end,
-        log_progress,
-        log_metric,
         log_file_operation,
+        log_metric,
+        log_node_end,
+        log_node_start,
+        log_progress,
         resolve_step_number,
         resolve_total_steps,
     )
-    
+
     log_node_start(
         "generate_output",
         step_number=resolve_step_number(state, "generate_output", 8),
         total_steps=resolve_total_steps(state, 9),
     )
-    
+
     try:
         # Get appropriate generator
         output_format = state["output_format"]
         log_metric("Output Format", output_format.upper())
-        
+
         generator = get_generator(output_format)
 
         # Check if custom output_path is provided
         custom_output_path = state.get("output_path", "")
 
         if custom_output_path:
-            log_progress(f"Using custom output path")
+            log_progress("Using custom output path")
             custom_path = Path(custom_output_path)
             output_dir = custom_path.parent
             state["metadata"]["custom_filename"] = custom_path.stem
@@ -94,7 +94,7 @@ def generate_output_node(state: WorkflowState) -> WorkflowState:
             )
 
         state["output_path"] = str(output_path)
-        
+
         file_size = Path(output_path).stat().st_size
         log_file_operation("write", str(output_path), file_size)
 
@@ -112,7 +112,7 @@ def generate_output_node(state: WorkflowState) -> WorkflowState:
                 save_structured_content(state["structured_content"], input_path)
                 log_progress("Cached structured content")
 
-        log_node_end("generate_output", success=True, 
+        log_node_end("generate_output", success=True,
                     details=f"Generated {output_format.upper()}: {Path(output_path).name}")
 
     except GenerationError as e:

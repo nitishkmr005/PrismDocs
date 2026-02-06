@@ -1,8 +1,8 @@
 """Supabase integration module for logging and authentication."""
 
+from .auth_service import AuthenticatedUser, AuthService, authenticate_request
 from .client import get_supabase_client, is_supabase_configured
 from .logging_service import SupabaseLoggingService, get_logging_service
-from .auth_service import AuthService, AuthenticatedUser, authenticate_request
 
 __all__ = [
     "get_supabase_client",

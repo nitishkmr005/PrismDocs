@@ -8,7 +8,6 @@ including markdown parsing, styling, and flowable creation.
 from __future__ import annotations
 
 import hashlib
-import html
 import re
 import subprocess
 import tempfile
@@ -29,7 +28,6 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from ....utils.markdown_utils import strip_frontmatter  # noqa: F401
 from ...settings import get_settings
 
 # Modern blog-style color palette - Vibrant and readable

@@ -7,9 +7,9 @@ from pathlib import Path
 
 from loguru import logger
 
+from ..application.unified_state import UnifiedWorkflowState
 from ..domain.content_types import ContentFormat
 from ..infrastructure.settings import get_settings
-from ..application.unified_state import UnifiedWorkflowState
 
 
 def coerce_source_dict(source: object) -> dict:

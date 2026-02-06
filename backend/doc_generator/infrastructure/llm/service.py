@@ -11,8 +11,6 @@ from typing import Optional
 
 from loguru import logger
 
-from ..settings import get_settings
-from ..observability.opik import log_llm_call
 from ...domain.prompts.text.llm_service_prompts import (
     executive_summary_prompt,
     executive_summary_system_prompt,
@@ -21,6 +19,8 @@ from ...domain.prompts.text.llm_service_prompts import (
     slide_structure_prompt,
     slide_structure_system_prompt,
 )
+from ..observability.opik import log_llm_call
+from ..settings import get_settings
 
 try:
     from google import genai

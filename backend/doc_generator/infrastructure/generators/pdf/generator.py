@@ -4,9 +4,9 @@ PDF generator using ReportLab.
 Generates blog-style PDF documents from structured markdown content.
 """
 
+import re
 from datetime import datetime
 from pathlib import Path
-import re
 
 from loguru import logger
 from reportlab.lib.pagesizes import A4, legal, letter
@@ -22,6 +22,8 @@ from reportlab.platypus import (
 )
 
 from ....domain.exceptions import GenerationError
+from ....utils.image_utils import resolve_image_path
+from ...settings import get_settings
 from .utils import (
     create_custom_styles,
     extract_headings,
@@ -38,8 +40,6 @@ from .utils import (
     parse_markdown_lines,
     reset_figure_counter,
 )
-from ...settings import get_settings
-from ....utils.image_utils import resolve_image_path
 
 
 class PDFGenerator:

@@ -8,6 +8,7 @@ from loguru import logger
 
 from ...settings import get_settings
 
+
 class StorageService:
     """Manages uploads and generated outputs with organized folder structure.
     
@@ -105,7 +106,7 @@ class StorageService:
         """
         file_id = f"f_{secrets.token_hex(12)}"
         dirs = self._ensure_file_dirs(file_id)
-        
+
         # Save to source directory with original filename
         storage_path = dirs["source"] / filename
 
@@ -140,7 +141,7 @@ class StorageService:
         """
         if file_id in self._uploads:
             return self._uploads[file_id]["path"]
-        
+
         # Try to find on disk if not in memory (after server restart)
         file_dir = self._get_file_dir(file_id)
         source_dir = file_dir / "source"
@@ -148,7 +149,7 @@ class StorageService:
             files = list(source_dir.iterdir())
             if files:
                 return files[0]
-        
+
         raise FileNotFoundError(f"Upload not found: {file_id}")
 
 
@@ -167,7 +168,7 @@ class StorageService:
         """
         # Generate a simple token (in production, use signed URLs)
         token = secrets.token_urlsafe(16)
-        
+
         # Try to extract file_id and create a cleaner URL
         parts = output_path.parts
         for i, part in enumerate(parts):

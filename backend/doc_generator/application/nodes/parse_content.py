@@ -10,16 +10,15 @@ from loguru import logger
 
 from ...domain.exceptions import ParseError
 from ...domain.models import WorkflowState
-from ..parsers import get_parser
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
-    log_progress,
     log_metric,
-    log_file_operation,
+    log_node_end,
+    log_node_start,
+    log_progress,
     resolve_step_number,
     resolve_total_steps,
 )
+from ..parsers import get_parser
 
 
 def parse_document_content_node(state: WorkflowState) -> WorkflowState:
@@ -38,7 +37,7 @@ def parse_document_content_node(state: WorkflowState) -> WorkflowState:
         step_number=resolve_step_number(state, "parse_document_content", 2),
         total_steps=resolve_total_steps(state, 9),
     )
-    
+
     try:
         # Get appropriate parser
         input_format = state["input_format"]
@@ -51,7 +50,7 @@ def parse_document_content_node(state: WorkflowState) -> WorkflowState:
 
         state["raw_content"] = content
         state["metadata"].update(metadata)
-        
+
         # Compute content hash for caching
         content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
         state["metadata"]["content_hash"] = content_hash
@@ -60,11 +59,11 @@ def parse_document_content_node(state: WorkflowState) -> WorkflowState:
         log_metric("Content Length", len(content), "chars")
         log_metric("Title", metadata.get('title', 'N/A'))
         log_metric("Content Hash", content_hash[:16] + "...")
-        
+
         if "page_count" in metadata:
             log_metric("Pages", metadata["page_count"])
-        
-        log_node_end("parse_document_content", success=True, 
+
+        log_node_end("parse_document_content", success=True,
                     details=f"Parsed {len(content)} characters")
 
     except ParseError as e:

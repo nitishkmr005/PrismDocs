@@ -22,17 +22,10 @@ from typing import Any, Callable, Optional
 from langgraph.graph import END, StateGraph
 from loguru import logger
 
-from .unified_state import (
-    UnifiedWorkflowState,
-    get_output_branch,
-    is_document_type,
-    requires_content_extraction,
-)
-
 # Import existing document generation nodes
 from .nodes import (
-    detect_format_node,
     describe_images_node,
+    detect_format_node,
     enhance_content_node,
     generate_images_node,
     generate_output_node,
@@ -41,21 +34,26 @@ from .nodes import (
     transform_content_node,
     validate_output_node,
 )
+from .nodes.edit_image import edit_image_node
+from .nodes.extract_sources import extract_sources_node
+from .nodes.generate_faq import generate_faq_node
+from .nodes.generate_image import generate_image_node
+from .nodes.image_prompt import build_image_prompt_node
+from .nodes.merge_sources import merge_sources_node
+from .nodes.mindmap_nodes import generate_mindmap_node
+from .nodes.podcast_audio import synthesize_podcast_audio_node
+from .nodes.podcast_script import generate_podcast_script_node
+from .nodes.resolve_sources import resolve_sources_node
+from .nodes.route_by_output_type import route_by_output_type
+from .nodes.summarize_sources import summarize_sources_node
 
 # Import new unified nodes
 from .nodes.validate_sources import validate_sources_node
-from .nodes.resolve_sources import resolve_sources_node
-from .nodes.extract_sources import extract_sources_node
-from .nodes.merge_sources import merge_sources_node
-from .nodes.route_by_output_type import route_by_output_type
-from .nodes.summarize_sources import summarize_sources_node
-from .nodes.podcast_script import generate_podcast_script_node
-from .nodes.podcast_audio import synthesize_podcast_audio_node
-from .nodes.mindmap_nodes import generate_mindmap_node
-from .nodes.generate_faq import generate_faq_node
-from .nodes.generate_image import generate_image_node
-from .nodes.edit_image import edit_image_node
-from .nodes.image_prompt import build_image_prompt_node
+from .unified_state import (
+    UnifiedWorkflowState,
+    is_document_type,
+    requires_content_extraction,
+)
 
 
 def _build_step_metadata(output_type: str) -> tuple[dict, int]:

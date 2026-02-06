@@ -2,9 +2,9 @@
 
 from .generator import PPTXGenerator
 from .utils import (
-    create_presentation,
-    add_title_slide,
     add_content_slide,
+    add_title_slide,
+    create_presentation,
 )
 
 __all__ = [

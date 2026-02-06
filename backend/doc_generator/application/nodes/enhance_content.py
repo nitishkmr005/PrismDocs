@@ -2,21 +2,20 @@
 Content enhancement node for LangGraph workflow.
 """
 
-from loguru import logger
 
 from ...domain.models import WorkflowState
 from ...infrastructure.llm import get_llm_service
 from ...infrastructure.llm.service import LLMService
-from ...infrastructure.settings import get_settings
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
-    log_progress,
     log_metric,
+    log_node_end,
+    log_node_start,
+    log_progress,
     log_subsection,
     resolve_step_number,
     resolve_total_steps,
 )
+from ...infrastructure.settings import get_settings
 
 
 def enhance_content_node(state: WorkflowState) -> WorkflowState:
@@ -29,17 +28,17 @@ def enhance_content_node(state: WorkflowState) -> WorkflowState:
         step_number=resolve_step_number(state, "enhance_content", 4),
         total_steps=resolve_total_steps(state, 9),
     )
-    
+
     structured = state.get("structured_content", {})
     markdown = structured.get("markdown", "")
-    
+
     if not markdown:
         log_node_end("enhance_content", success=True, details="No content to enhance")
         return state
 
     output_format = state.get("output_format", "pdf")
     log_metric("Output Format", output_format.upper())
-    
+
     settings = get_settings()
     metadata = state.get("metadata", {})
     api_keys = metadata.get("api_keys", {})
@@ -83,7 +82,7 @@ def enhance_content_node(state: WorkflowState) -> WorkflowState:
         return state
 
     enhancements_added = []
-    
+
     def _count_summary_points(summary) -> int:
         """
         Count bullet points in an executive summary.
@@ -129,7 +128,7 @@ def enhance_content_node(state: WorkflowState) -> WorkflowState:
             return state
 
     state["structured_content"] = structured
-    
+
     details = ", ".join(enhancements_added) if enhancements_added else "No enhancements needed"
     log_node_end("enhance_content", success=True, details=details)
     return state

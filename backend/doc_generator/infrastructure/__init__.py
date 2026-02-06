@@ -11,10 +11,8 @@ This layer contains external dependencies and adapters:
 """
 
 # Re-export commonly used items for backward compatibility
-from .settings import get_settings, Settings
-
-# LLM services
-from .llm import LLMService, LLMContentGenerator
+# Parsers
+from . import parsers
 
 # Image generators
 from .image import (
@@ -22,8 +20,9 @@ from .image import (
     encode_image_base64,
 )
 
-# Parsers
-from . import parsers
+# LLM services
+from .llm import LLMContentGenerator, LLMService
+from .settings import Settings, get_settings
 
 __all__ = [
     # Settings

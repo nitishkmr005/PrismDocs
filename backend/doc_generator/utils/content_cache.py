@@ -229,7 +229,7 @@ def load_existing_images(
 
                 logger.debug(f"Found existing image: section_{section_id}")
 
-        except (ValueError, IndexError) as e:
+        except (ValueError, IndexError):
             logger.debug(f"Could not parse section ID from: {img_path.name}")
 
     logger.info(f"Loaded {len(section_images)} existing images from {images_dir}")

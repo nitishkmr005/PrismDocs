@@ -8,17 +8,16 @@ from collections import deque
 
 from loguru import logger
 
-from ..unified_state import UnifiedWorkflowState
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
     log_metric,
+    log_node_end,
+    log_node_start,
     log_progress,
     resolve_step_number,
     resolve_total_steps,
 )
+from ..unified_state import UnifiedWorkflowState
 from .mindmap_nodes import generate_mindmap_tree
-
 
 MAX_IMAGE_PROMPT_CHARS = 3600
 MAX_MINDMAP_OUTLINE_NODES = 30

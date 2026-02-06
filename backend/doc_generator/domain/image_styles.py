@@ -346,24 +346,6 @@ IMAGE_STYLES: list[ImageStyle] = [
 ]
 
 
-# Category display names
-CATEGORY_DISPLAY_NAMES: dict[StyleCategory, str] = {
-    StyleCategory.HANDWRITTEN_AND_HUMAN: "Handwritten & Human",
-    StyleCategory.DIAGRAM_AND_ARCHITECTURE: "Diagram & Architecture",
-    StyleCategory.DEVELOPER_AND_TECHNICAL: "Developer & Technical",
-    StyleCategory.TEACHING_AND_PRESENTATION: "Teaching & Presentation",
-    StyleCategory.RESEARCH_AND_ACADEMIC: "Research & Academic",
-    StyleCategory.CREATIVE_AND_SOCIAL: "Creative & Social",
-    StyleCategory.PRODUCT_AND_BUSINESS: "Product & Business",
-    StyleCategory.COMPARISON_AND_TABLE: "Comparison & Table",
-}
-
-
-def get_styles_by_category(category: StyleCategory) -> list[ImageStyle]:
-    """Get all styles for a given category."""
-    return [s for s in IMAGE_STYLES if s.category == category]
-
-
 def get_style_by_id(style_id: str) -> Optional[ImageStyle]:
     """Get a style by its ID."""
     for style in IMAGE_STYLES:
@@ -372,14 +354,19 @@ def get_style_by_id(style_id: str) -> Optional[ImageStyle]:
     return None
 
 
-def get_svg_eligible_styles() -> list[ImageStyle]:
-    """Get all styles that support SVG output."""
-    return [s for s in IMAGE_STYLES if s.supports_svg]
-
-
 def get_all_categories() -> list[dict]:
     """Get all categories with their display names."""
+    category_names = {
+        StyleCategory.HANDWRITTEN_AND_HUMAN: "Handwritten & Human",
+        StyleCategory.DIAGRAM_AND_ARCHITECTURE: "Diagram & Architecture",
+        StyleCategory.DEVELOPER_AND_TECHNICAL: "Developer & Technical",
+        StyleCategory.TEACHING_AND_PRESENTATION: "Teaching & Presentation",
+        StyleCategory.RESEARCH_AND_ACADEMIC: "Research & Academic",
+        StyleCategory.CREATIVE_AND_SOCIAL: "Creative & Social",
+        StyleCategory.PRODUCT_AND_BUSINESS: "Product & Business",
+        StyleCategory.COMPARISON_AND_TABLE: "Comparison & Table",
+    }
     return [
-        {"id": cat.value, "name": CATEGORY_DISPLAY_NAMES[cat]}
+        {"id": cat.value, "name": category_names[cat]}
         for cat in StyleCategory
     ]

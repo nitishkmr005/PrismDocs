@@ -10,20 +10,20 @@ from pathlib import Path
 from loguru import logger
 
 from ...domain.models import WorkflowState
-from ...infrastructure.llm import LLMContentGenerator, get_content_generator
-from ...infrastructure.settings import get_settings
-from ...utils.content_cleaner import clean_content_for_output
-from ...utils.content_cache import load_structured_content
+from ...infrastructure.llm import get_content_generator
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
-    log_progress,
-    log_metric,
     log_cache_hit,
+    log_metric,
+    log_node_end,
+    log_node_start,
+    log_progress,
     log_subsection,
     resolve_step_number,
     resolve_total_steps,
 )
+from ...infrastructure.settings import get_settings
+from ...utils.content_cache import load_structured_content
+from ...utils.content_cleaner import clean_content_for_output
 
 
 def _detect_content_type(input_format: str, raw_content: str) -> str:
@@ -42,15 +42,15 @@ def _detect_content_type(input_format: str, raw_content: str) -> str:
     import re
     timestamp_pattern = r'^\d{1,2}:\d{2}(:\d{2})?\s*$'
     timestamp_count = len(re.findall(timestamp_pattern, raw_content, re.MULTILINE))
-    
+
     # If many timestamps, it's likely a transcript
     if timestamp_count > 10:
         return "transcript"
-    
+
     # PDF/PPTX inputs are likely slides
     if input_format in ("pdf", "pptx"):
         return "slides"
-    
+
     # Default to document
     return "document"
 
@@ -82,27 +82,26 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
         step_number=resolve_step_number(state, "transform_content", 3),
         total_steps=resolve_total_steps(state, 9),
     )
-    
+
     try:
         content = state.get("raw_content", "")
         metadata = state.get("metadata", {})
-        output_format = state.get("output_format", "pdf")
         input_format = state.get("input_format", "txt")
-        
+
         if not content:
             logger.warning("No content to transform")
             state["structured_content"] = {"markdown": "", "title": "Empty Document"}
             log_node_end("transform_content", success=True, details="No content to transform")
             return state
-        
+
         # Detect content type for appropriate transformation
         content_type = _detect_content_type(input_format, content)
         topic = metadata.get("title", metadata.get("topic", ""))
-        
+
         log_metric("Content Type", content_type)
         log_metric("Input Format", input_format)
         log_metric("Topic", topic or "Auto-detected")
-        
+
         # Try cache reuse if requested/default and content hash matches
         settings = get_settings()
         if "use_cache" in metadata:
@@ -125,7 +124,7 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
                         metadata["title"] = cached.get("title", metadata.get("title", "Document"))
                     state["metadata"] = metadata
                     log_cache_hit("content")
-                    log_node_end("transform_content", success=True, 
+                    log_node_end("transform_content", success=True,
                                 details="Reused cached content")
                     return state
                 log_progress("Cache miss - content hash mismatch")
@@ -141,24 +140,24 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
             provider=provider,
             model=model,
         )
-        
+
         # Initialize structured content
         structured = {
             "title": metadata.get("title", "Document"),
             "visual_markers": [],
             "outline": "",
         }
-        
+
         if content_generator.is_available():
             log_progress("LLM available - transforming to blog format")
-            
+
             # Transform content using LLM
             max_tokens = metadata.get("max_tokens")
             if not max_tokens:
                 max_tokens = settings.llm.content_max_tokens
-            
+
             log_metric("Max Tokens", max_tokens)
-            
+
             include_visual_markers = (
                 metadata.get("enable_image_generation", True)
                 and settings.image_generation.enable_all
@@ -173,13 +172,13 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
                 force_single_chunk=bool(metadata.get("summary_generated")),
                 audience=metadata.get("audience"),
             )
-            
+
             # Store generated content
             structured["markdown"] = generated.markdown
             structured["title"] = generated.title
             structured["sections"] = generated.sections
             structured["outline"] = generated.outline
-            
+
             # Convert visual markers to dict format for state
             structured["visual_markers"] = [
                 {
@@ -191,22 +190,22 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
                 }
                 for m in generated.visual_markers
             ]
-            
+
             log_metric("Generated Length", len(generated.markdown), "chars")
             log_metric("Visual Markers", len(generated.visual_markers))
             log_metric("Sections", len(generated.sections))
             log_metric("Title", generated.title)
-            
+
         else:
             # Fallback: Just clean the content
             log_progress("LLM not available - using basic content cleaning")
             cleaned_content = clean_content_for_output(content)
             structured["markdown"] = cleaned_content
             log_metric("Cleaned Length", len(cleaned_content), "chars")
-        
+
         structured["content_hash"] = metadata.get("content_hash")
         state["structured_content"] = structured
-        
+
         # Update metadata with generated title when filename-derived titles are used
         input_path = state.get("input_path", "")
         input_stem = Path(input_path).stem if input_path else ""
@@ -218,7 +217,7 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
         ):
             metadata["title"] = structured["title"]
             state["metadata"] = metadata
-        
+
         log_node_end("transform_content", success=True,
                     details=f"Transformed to {len(structured.get('markdown', ''))} chars")
 
@@ -227,14 +226,14 @@ def transform_content_node(state: WorkflowState) -> WorkflowState:
         state["errors"].append(error_msg)
         logger.error(error_msg)
         logger.exception("Transformation error details:")
-        
+
         # Fallback to raw content
         state["structured_content"] = {
             "markdown": state.get("raw_content", ""),
             "title": state.get("metadata", {}).get("title", "Document"),
             "visual_markers": []
         }
-        
+
         log_node_end("transform_content", success=False, details=error_msg)
 
     return state

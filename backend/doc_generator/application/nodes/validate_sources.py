@@ -7,14 +7,14 @@ from pathlib import Path
 from loguru import logger
 
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
     log_metric,
+    log_node_end,
+    log_node_start,
     resolve_step_number,
     resolve_total_steps,
 )
-from ..unified_state import UnifiedWorkflowState, is_document_type, requires_content_extraction
 from ...utils.source_utils import set_skip_source_processing
+from ..unified_state import UnifiedWorkflowState, is_document_type, requires_content_extraction
 
 
 def validate_sources_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:

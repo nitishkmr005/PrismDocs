@@ -786,7 +786,6 @@ Return the complete updated approach as JSON."""
 
         # Configure LLM
         self._configure_api_key(session.provider, api_key)
-        llm_service = LLMService(provider=session.provider, model=session.model)
 
         # Build Q&A summary for the LLM
         qa_summary = ""
@@ -1046,10 +1045,9 @@ Wrong (do NOT do this):
             Base64-encoded PDF data
         """
         import base64
-        import re
         import tempfile
-        from pathlib import Path
         from datetime import datetime
+        from pathlib import Path
 
         try:
             from ....infrastructure.generators.pdf.generator import PDFGenerator
@@ -1059,12 +1057,6 @@ Wrong (do NOT do this):
             # Create temporary directory for output
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_path = Path(temp_dir)
-
-                # Generate a clean filename from the title
-                # Remove special characters and limit length
-                clean_title = re.sub(r"[^\w\s-]", "", title).strip()
-                clean_title = re.sub(r"[-\s]+", "_", clean_title)[:50]
-                filename = f"{clean_title}.pdf" if clean_title else "canvas_report.pdf"
 
                 pdf_markdown = markdown_content
                 if image_base64:

@@ -11,7 +11,6 @@ from typing import Callable
 
 from loguru import logger
 
-
 ProgressCallback = Callable[[int, int, str, str], None]
 _progress_callback: ContextVar[ProgressCallback | None] = ContextVar(
     "progress_callback",
@@ -80,7 +79,7 @@ def log_node_start(node_name: str, step_number: int, total_steps: int = 9) -> No
         node_name, node_name.replace("_", " ").title()
     )
     _emit_progress(step_number, total_steps, node_name, display_name)
-    
+
     logger.opt(colors=True).info(
         f"\n{SEPARATOR_HEAVY}\n"
         f"<bold><cyan>STEP {step_number}/{total_steps}: {display_name}</cyan></bold>\n"
@@ -100,7 +99,7 @@ def log_node_end(node_name: str, success: bool = True, details: str = "") -> Non
     display_name = DISPLAY_NAME_OVERRIDES.get(
         node_name, node_name.replace("_", " ").title()
     )
-    
+
     if success:
         status_icon = "✓"
         status_color = "green"
@@ -109,9 +108,9 @@ def log_node_end(node_name: str, success: bool = True, details: str = "") -> Non
         status_icon = "✗"
         status_color = "red"
         status_text = "FAILED"
-    
+
     detail_line = f"\n{details}" if details else ""
-    
+
     logger.opt(colors=True).info(
         f"<{status_color}>{status_icon} {display_name} {status_text}</{status_color}>{detail_line}\n"
         f"{SEPARATOR_DOT}\n"
@@ -189,11 +188,11 @@ def log_llm_call(
     tokens_str = ""
     if input_tokens is not None and output_tokens is not None:
         tokens_str = f" ({input_tokens} → {output_tokens} tokens)"
-    
+
     duration_str = ""
     if duration_ms is not None:
         duration_str = f" in {duration_ms/1000:.2f}s"
-    
+
     logger.opt(colors=True).info(
         f"  <magenta>🤖 LLM Call:</magenta> {provider}/{model} - {step}{tokens_str}{duration_str}"
     )
@@ -216,7 +215,7 @@ def log_file_operation(operation: str, path: str, size_bytes: int = None) -> Non
             size_str = f" ({size_bytes / 1024:.1f} KB)"
         else:
             size_str = f" ({size_bytes / (1024 * 1024):.1f} MB)"
-    
+
     logger.opt(colors=True).info(
         f"  <cyan>📄 {operation.title()}:</cyan> {path}{size_str}"
     )
@@ -259,7 +258,7 @@ def log_workflow_end(
         duration_str = ""
         if duration_seconds is not None:
             duration_str = f" in {duration_seconds:.1f}s"
-        
+
         logger.opt(colors=True).success(
             f"\n{'=' * 80}\n"
             f"<bold><green>✓ WORKFLOW COMPLETED SUCCESSFULLY</green></bold>{duration_str}\n"
@@ -269,7 +268,7 @@ def log_workflow_end(
         )
     else:
         error_list = "\n".join(f"  • {err}" for err in (errors or ["Unknown error"]))
-        
+
         logger.opt(colors=True).error(
             f"\n{'=' * 80}\n"
             f"<bold><red>✗ WORKFLOW FAILED</red></bold>\n"
@@ -301,16 +300,16 @@ def log_usage_summary(
         f"<bold><cyan>📊 USAGE SUMMARY</cyan></bold>\n"
         f"{SEPARATOR_HEAVY}"
     )
-    
+
     log_metric("Total LLM Calls", llm_calls)
     log_metric("Total Image Calls", image_calls)
     log_metric("Models Used", ", ".join(models) if models else "None")
     log_metric("Providers Used", ", ".join(providers) if providers else "None")
-    
+
     if call_details:
-        logger.opt(colors=True).info(f"\n<yellow>Detailed Call Breakdown:</yellow>")
+        logger.opt(colors=True).info("\n<yellow>Detailed Call Breakdown:</yellow>")
         _log_call_table(call_details)
-    
+
     logger.info(f"{SEPARATOR_HEAVY}\n")
 
 
@@ -323,43 +322,43 @@ def _log_call_table(rows: list[dict]) -> None:
     """
     if not rows:
         return
-    
+
     headers = ["Type", "Step", "Provider", "Model", "Duration", "Tokens (In→Out)"]
-    
+
     # Calculate column widths
     col_widths = [len(h) for h in headers]
-    
+
     table_data = []
     for row in rows:
         kind = row.get("kind", "")[:10]
         step = row.get("step", "")[:20]
         provider = row.get("provider", "")[:10]
         model = row.get("model", "")[:25]
-        
+
         duration_ms = row.get("duration_ms")
         duration = f"{duration_ms/1000:.2f}s" if duration_ms else "-"
-        
+
         input_tokens = row.get("input_tokens")
         output_tokens = row.get("output_tokens")
         if input_tokens is not None and output_tokens is not None:
             tokens = f"{input_tokens}→{output_tokens}"
         else:
             tokens = "-"
-        
+
         row_data = [kind, step, provider, model, duration, tokens]
         table_data.append(row_data)
-        
+
         # Update column widths
         for i, val in enumerate(row_data):
             col_widths[i] = max(col_widths[i], len(str(val)))
-    
+
     # Print header
     header_line = "  ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers))
     separator_line = "  ".join("-" * col_widths[i] for i in range(len(headers)))
-    
+
     logger.info(f"\n  {header_line}")
     logger.info(f"  {separator_line}")
-    
+
     # Print rows
     for row_data in table_data:
         row_line = "  ".join(str(val).ljust(col_widths[i]) for i, val in enumerate(row_data))
@@ -383,28 +382,28 @@ def node_logger(step_number: int, total_steps: int = 9):
         @wraps(func)
         def wrapper(state, *args, **kwargs):
             node_name = func.__name__.replace("_node", "")
-            
+
             # Log start
             log_node_start(node_name, step_number, total_steps)
-            
+
             try:
                 # Execute node
                 result = func(state, *args, **kwargs)
-                
+
                 # Check for errors
                 errors = result.get("errors", [])
                 has_new_errors = len(errors) > len(state.get("errors", []))
-                
+
                 if has_new_errors:
                     log_node_end(node_name, success=False, details=errors[-1])
                 else:
                     log_node_end(node_name, success=True)
-                
+
                 return result
-                
+
             except Exception as e:
                 log_node_end(node_name, success=False, details=str(e))
                 raise
-        
+
         return wrapper
     return decorator

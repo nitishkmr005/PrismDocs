@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
-from typing import Any
 
 from loguru import logger
 
 try:
-    from supabase import create_client, Client
+    from supabase import Client, create_client
 except ImportError:
     create_client = None
     Client = None

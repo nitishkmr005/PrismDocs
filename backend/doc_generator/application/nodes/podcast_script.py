@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from loguru import logger
 
-from ..unified_state import UnifiedWorkflowState
 from ...utils.podcast_utils import extract_json
+from ..unified_state import UnifiedWorkflowState
 
 
 def generate_podcast_script_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:
@@ -45,8 +45,9 @@ def generate_podcast_script_node(state: UnifiedWorkflowState) -> UnifiedWorkflow
     )
 
     try:
-        from ...infrastructure.llm import LLMService
         import os
+
+        from ...infrastructure.llm import LLMService
 
         provider_name = provider if provider != "google" else "gemini"
 

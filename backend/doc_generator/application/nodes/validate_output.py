@@ -29,10 +29,10 @@ def validate_output_node(state: WorkflowState) -> WorkflowState:
     Invoked by: src/doc_generator/application/graph_workflow.py, src/doc_generator/application/workflow/graph.py
     """
     from ...infrastructure.logging_utils import (
-        log_node_start,
-        log_node_end,
-        log_progress,
         log_metric,
+        log_node_end,
+        log_node_start,
+        log_progress,
         resolve_step_number,
         resolve_total_steps,
     )

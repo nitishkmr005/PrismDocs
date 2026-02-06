@@ -20,33 +20,33 @@ from ....application import (
     run_unified_workflow_with_session,
 )
 from ....application.unified_state import UnifiedWorkflowState
-from ..schemas.responses import (
-    CompleteEvent,
-    ErrorEvent,
-    ProgressEvent,
-    CompletionMetadata,
-    GenerationStatus,
+from ..schemas.faq import (
+    FAQCompleteEvent,
+    FAQDocumentResponse,
+    FAQErrorEvent,
+    FAQItemResponse,
+    FAQMetadataResponse,
+    FAQProgressEvent,
+)
+from ..schemas.mindmap import (
+    MindMapCompleteEvent,
+    MindMapErrorEvent,
+    MindMapMode,
+    MindMapNode,
+    MindMapProgressEvent,
+    MindMapTree,
 )
 from ..schemas.podcast import (
     PodcastCompleteEvent,
     PodcastErrorEvent,
     PodcastProgressEvent,
 )
-from ..schemas.mindmap import (
-    MindMapCompleteEvent,
-    MindMapErrorEvent,
-    MindMapProgressEvent,
-    MindMapTree,
-    MindMapNode,
-    MindMapMode,
-)
-from ..schemas.faq import (
-    FAQCompleteEvent,
-    FAQDocumentResponse,
-    FAQErrorEvent,
-    FAQMetadataResponse,
-    FAQItemResponse,
-    FAQProgressEvent,
+from ..schemas.responses import (
+    CompleteEvent,
+    CompletionMetadata,
+    ErrorEvent,
+    GenerationStatus,
+    ProgressEvent,
 )
 from .storage import StorageService
 

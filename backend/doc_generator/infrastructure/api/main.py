@@ -10,7 +10,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-
 # Flag to track if heavy routes are loaded
 _routes_initialized = False
 

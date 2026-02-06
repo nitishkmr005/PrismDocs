@@ -11,10 +11,10 @@ from loguru import logger
 from ...domain.content_types import ContentFormat
 from ...domain.models import WorkflowState
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
-    log_progress,
     log_metric,
+    log_node_end,
+    log_node_start,
+    log_progress,
     resolve_step_number,
     resolve_total_steps,
 )
@@ -36,7 +36,7 @@ def detect_format_node(state: WorkflowState) -> WorkflowState:
         step_number=resolve_step_number(state, "detect_format", 1),
         total_steps=resolve_total_steps(state, 9),
     )
-    
+
     input_path = state["input_path"]
     log_progress(f"Analyzing input: {input_path}")
 

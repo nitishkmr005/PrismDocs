@@ -12,8 +12,10 @@ from pathlib import Path
 from loguru import logger
 
 from ....domain.exceptions import GenerationError
-from ...pdf_utils import parse_markdown_lines
+from ....utils.image_utils import resolve_image_path
+from ...llm.service import LLMService, get_llm_service
 from ...settings import get_settings
+from ..pdf.utils import parse_markdown_lines
 from .utils import (
     add_content_slide,
     add_executive_summary_slide,
@@ -23,8 +25,6 @@ from .utils import (
     create_presentation,
     save_presentation,
 )
-from ...llm.service import LLMService, get_llm_service
-from ....utils.image_utils import resolve_image_path
 
 
 class PPTXGenerator:

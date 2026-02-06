@@ -317,7 +317,7 @@ class SupabaseLoggingService:
 
         try:
             # Call the stored function to update user stats
-            result = client.rpc(
+            client.rpc(
                 "update_user_stats",
                 {
                     "p_user_id": self.user_id,

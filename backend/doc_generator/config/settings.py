@@ -12,29 +12,28 @@ For backwards compatibility, settings can also be imported from:
 
 # Re-export from infrastructure for convenience
 from ..infrastructure.settings import (
-    Settings,
-    get_settings,
-    settings,
     # Sub-settings classes
     GeneratorSettings,
+    ImageGenerationSettings,
     LlmSettings,
     LoggingSettings,
-    PdfSettings,
-    PdfPaletteSettings,
-    PdfMarginSettings,
-    PdfTocSettings,
+    ParserSettings,
     PdfCodeSettings,
     PdfHeaderFooterSettings,
-    PdfTypographySettings,
+    PdfMarginSettings,
     PdfMetadataSettings,
+    PdfPaletteSettings,
     PdfQualitySettings,
+    PdfSettings,
+    PdfTocSettings,
+    PdfTypographySettings,
     PptxSettings,
     PptxThemeSettings,
-    ParserSettings,
+    Settings,
     WebParserSettings,
-    ImageGenerationSettings,
+    get_settings,
+    settings,
 )
-
 
 __all__ = [
     "Settings",

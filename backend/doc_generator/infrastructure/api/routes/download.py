@@ -35,7 +35,7 @@ def find_file(file_path: str) -> Path | None:
 
     # Try just the filename in various locations
     filename = Path(file_path).name
-    
+
     # Search recursively for the file
     for match in OUTPUT_BASE.rglob(filename):
         if match.is_file():

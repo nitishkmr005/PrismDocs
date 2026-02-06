@@ -2,10 +2,9 @@
 Chunked summarization node for unified workflow.
 """
 
-from loguru import logger
 
-from ..unified_state import UnifiedWorkflowState, is_document_type
 from ...utils.chunked_summary import summarize_content_chunked
+from ..unified_state import UnifiedWorkflowState, is_document_type
 
 
 def summarize_sources_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:
@@ -13,10 +12,10 @@ def summarize_sources_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:
     Summarize extracted content without truncation using chunked summarization.
     """
     from ...infrastructure.logging_utils import (
-        log_node_start,
-        log_node_end,
-        log_progress,
         log_metric,
+        log_node_end,
+        log_node_start,
+        log_progress,
         resolve_step_number,
         resolve_total_steps,
     )

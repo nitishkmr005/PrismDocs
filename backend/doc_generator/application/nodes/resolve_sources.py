@@ -5,20 +5,20 @@ Source resolution node for unified workflow.
 from loguru import logger
 
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
     log_metric,
+    log_node_end,
+    log_node_start,
     resolve_step_number,
     resolve_total_steps,
 )
-from ..unified_state import UnifiedWorkflowState
 from ...utils.source_utils import (
     coerce_source_dict,
+    resolve_upload_path,
+    set_skip_source_processing,
     should_skip_source_processing,
     skip_source_reason,
-    set_skip_source_processing,
-    resolve_upload_path,
 )
+from ..unified_state import UnifiedWorkflowState
 
 
 def resolve_sources_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:

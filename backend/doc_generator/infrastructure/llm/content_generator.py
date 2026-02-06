@@ -9,13 +9,11 @@ for long documents.
 import json
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from loguru import logger
 
-from ..observability.opik import log_llm_call
-from ..settings import get_settings
 from ...domain.prompts.text.content_generator_prompts import (
     build_blog_from_outline_prompt,
     build_chunk_prompt,
@@ -24,6 +22,8 @@ from ...domain.prompts.text.content_generator_prompts import (
     build_title_prompt,
     get_content_system_prompt,
 )
+from ..observability.opik import log_llm_call
+from ..settings import get_settings
 
 try:
     from google import genai
@@ -48,7 +48,7 @@ except ImportError:
 @dataclass
 class VisualMarker:
     """Represents a visual marker extracted from content."""
-    
+
     marker_id: str
     visual_type: str  # architecture, flowchart, comparison, concept_map, mind_map, mermaid
     title: str
@@ -59,7 +59,7 @@ class VisualMarker:
 @dataclass
 class GeneratedContent:
     """Result of LLM content generation."""
-    
+
     markdown: str  # The generated blog-style markdown
     visual_markers: list[VisualMarker]  # Extracted visual markers
     title: str
@@ -79,12 +79,12 @@ class LLMContentGenerator:
     - Generates inline mermaid code for simple diagrams
     - Numbered sections matching professional blog style
     """
-    
+
     _total_calls: int = 0
     _models_used: set[str] = set()
     _providers_used: set[str] = set()
     _call_details: list[dict] = []
-    
+
     def __init__(
         self,
         api_key: Optional[str] = None,
@@ -101,17 +101,17 @@ class LLMContentGenerator:
         Invoked by: (no references found)
         """
         import os
-        
+
         self.settings = get_settings()
         self.claude_api_key = api_key or os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
         self.openai_api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.gemini_api_key = api_key or os.getenv("GEMINI_API_KEY")
-        
+
         # Content generation client (prefer OpenAI GPT-4o)
         self.content_client = None
         self.content_provider = None
         self.content_model = None
-        
+
         # Setup content generation client (provider-driven)
         resolved_provider = (provider or self.settings.llm.content_provider or "openai").lower()
         if resolved_provider == "google":
@@ -122,7 +122,7 @@ class LLMContentGenerator:
         self.content_model = model or self.settings.llm.content_model or self.settings.llm.model
 
         self._init_content_client()
-        
+
         # Legacy compatibility
         self.client = self.content_client
         self.provider = self.content_provider
@@ -168,7 +168,7 @@ class LLMContentGenerator:
         Invoked by: scripts/run_generator.py, src/doc_generator/application/nodes/generate_images.py, src/doc_generator/application/nodes/transform_content.py, src/doc_generator/application/workflow/nodes/generate_images.py, src/doc_generator/application/workflow/nodes/transform_content.py, src/doc_generator/infrastructure/generators/pdf/utils.py, src/doc_generator/infrastructure/image/claude_svg.py, src/doc_generator/infrastructure/image/gemini.py, src/doc_generator/infrastructure/llm/content_generator.py, src/doc_generator/infrastructure/llm/service.py, src/doc_generator/infrastructure/pdf_utils.py, src/doc_generator/utils/content_merger.py
         """
         return self.content_client is not None
-    
+
     def generate_blog_content(
         self,
         raw_content: str,
@@ -198,12 +198,12 @@ class LLMContentGenerator:
         if not self.is_available():
             logger.warning("LLM not available, returning cleaned raw content")
             return self._fallback_generation(raw_content, topic)
-        
+
         content_length = len(raw_content)
         logger.info(f"Processing {content_length} characters of {content_type} content")
 
         outline = self.generate_blog_outline(raw_content, content_type, topic, audience=audience)
-        
+
         # For short content or forced single-chunk, process directly
         if force_single_chunk or content_length <= self.settings.llm.content_single_chunk_char_limit:
             return self._process_single_chunk(
@@ -215,7 +215,7 @@ class LLMContentGenerator:
                 include_visual_markers=include_visual_markers,
                 audience=audience,
             )
-        
+
         # For long content, use chunked processing
         logger.info(f"Content too long ({content_length} chars), using chunked processing")
         return self._process_chunked(
@@ -227,7 +227,7 @@ class LLMContentGenerator:
             include_visual_markers=include_visual_markers,
             audience=audience,
         )
-    
+
     def _process_single_chunk(
         self,
         content: str,
@@ -260,14 +260,14 @@ class LLMContentGenerator:
                 include_visual_markers=include_visual_markers,
                 audience=audience,
             )
-        
+
         try:
             generated_text = self._call_llm(prompt, max_tokens, step="content_generate")
             return self._parse_generated_content(generated_text, topic, outline=outline)
         except Exception as e:
             logger.error(f"LLM content generation failed: {e}")
             return self._fallback_generation(content, topic)
-    
+
     def _process_chunked(
         self,
         raw_content: str,
@@ -282,28 +282,28 @@ class LLMContentGenerator:
         Process long content in chunks and merge results.
         Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
         """
-        
+
         # Split content into manageable chunks
         chunks = self._split_into_chunks(
             raw_content,
             max_chunk_size=self.settings.llm.content_chunk_char_limit,
         )
         logger.info(f"Split content into {len(chunks)} chunks")
-        
+
         # First, generate a title based on content overview
         title = self._extract_title_from_outline(outline, topic) if outline else ""
         if not title:
             title = self.generate_title(raw_content, topic)
         logger.info(f"Generated title: {title}")
-        
+
         # Process each chunk
         all_sections = []
         all_markers = []
         section_counter = 1
-        
+
         for i, chunk in enumerate(chunks):
             logger.info(f"Processing chunk {i + 1}/{len(chunks)} ({len(chunk)} chars)")
-            
+
             # Build chunk-specific prompt
             prompt = self._build_chunk_prompt(
                 chunk=chunk,
@@ -316,7 +316,7 @@ class LLMContentGenerator:
                 include_visual_markers=include_visual_markers,
                 audience=audience,
             )
-            
+
             try:
                 generated_text = self._call_llm(prompt, max_tokens, step="content_generate")
                 chunk_markdown, chunk_sections, chunk_markers = self._parse_chunk_response(
@@ -331,21 +331,21 @@ class LLMContentGenerator:
                 if i > 0:
                     chunk_markdown = re.sub(r'^#\s+.+\n+', '', chunk_markdown)
                 all_sections.append(chunk_markdown.strip())
-                
+
             except Exception as e:
                 logger.error(f"Failed to process chunk {i + 1}: {e}")
                 # Add fallback content for this chunk
                 all_sections.append(f"## Section {section_counter}\n\n{self._clean_content(chunk[:2000])}")
                 section_counter += 1
-        
+
         # Merge all sections
         merged_content = self._merge_sections(all_sections, title)
-        
+
         # Extract final sections list
         final_sections = re.findall(r'^##\s+(.+)$', merged_content, re.MULTILINE)
-        
+
         logger.info(f"Merged content: {len(merged_content)} chars, {len(all_markers)} visual markers, {len(final_sections)} sections")
-        
+
         return GeneratedContent(
             markdown=merged_content,
             visual_markers=all_markers,
@@ -353,7 +353,7 @@ class LLMContentGenerator:
             sections=final_sections,
             outline=outline,
         )
-    
+
     def _split_into_chunks(self, content: str, max_chunk_size: int = 10000) -> list[str]:
         """
         Split content into chunks at natural boundaries.
@@ -374,35 +374,35 @@ class LLMContentGenerator:
         # First, try to identify major section breaks
         # Look for patterns like "Topic Name\n0:00" or standalone section headers
         section_pattern = r'\n([A-Z][A-Za-z\s,]+)\n(\d{1,2}:\d{2}(?::\d{2})?)\n'
-        
+
         # Find all section boundaries
         boundaries = [0]
         for match in re.finditer(section_pattern, content):
             boundaries.append(match.start())
         boundaries.append(len(content))
-        
+
         # Create initial sections based on natural boundaries
         initial_sections = []
         for i in range(len(boundaries) - 1):
             section = content[boundaries[i]:boundaries[i + 1]].strip()
             if section:
                 initial_sections.append(section)
-        
+
         # If no natural sections found, split by paragraph
         if len(initial_sections) <= 1:
             initial_sections = content.split('\n\n')
-        
+
         # Now merge small sections and split large ones to meet size requirements
         chunks = []
         current_chunk = ""
-        
+
         for section in initial_sections:
             # If adding this section would exceed max size
             if len(current_chunk) + len(section) > max_chunk_size:
                 # Save current chunk if it has content
                 if current_chunk.strip():
                     chunks.append(current_chunk.strip())
-                
+
                 # If section itself is too large, split it
                 if len(section) > max_chunk_size:
                     # Split by newlines
@@ -419,11 +419,11 @@ class LLMContentGenerator:
                     current_chunk = section + '\n\n'
             else:
                 current_chunk += section + '\n\n'
-        
+
         # Don't forget the last chunk
         if current_chunk.strip():
             chunks.append(current_chunk.strip())
-        
+
         return chunks if chunks else [content]
 
     def _prepare_outline_content(self, raw_content: str) -> str:
@@ -489,7 +489,7 @@ class LLMContentGenerator:
 
         sampled = "\n\n".join(segments).strip()
         return sampled[:max_chars].strip()
-    
+
     def generate_title(self, content: str, topic_hint: str = "") -> str:
         """
         Generate a professional, descriptive title for the content.
@@ -504,7 +504,7 @@ class LLMContentGenerator:
         """
         if not self.is_available():
             return topic_hint.replace("-", " ").replace("_", " ").title() if topic_hint else "Document"
-        
+
         prompt = build_title_prompt(content, topic_hint)
 
         try:
@@ -772,14 +772,14 @@ class LLMContentGenerator:
         Invoked by: src/doc_generator/application/graph_workflow.py, src/doc_generator/application/workflow/graph.py
         """
         return list(cls._call_details)
-    
+
     def _get_system_prompt(self) -> str:
         """
         Get the system prompt for content generation.
         Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
         """
         return get_content_system_prompt()
-    
+
     def _build_generation_prompt(
         self,
         content: str,
@@ -832,7 +832,7 @@ class LLMContentGenerator:
             include_visual_markers=include_visual_markers,
             audience=audience,
         )
-    
+
     def _build_chunk_prompt(
         self,
         chunk: str,
@@ -1198,7 +1198,7 @@ class LLMContentGenerator:
         markers = self._extract_visual_markers(text, marker_start)
         sections = re.findall(r'^##\s+(.+)$', text, re.MULTILINE)
         return text, sections, markers
-    
+
     def _extract_visual_markers(self, text: str, start_index: int = 0) -> list[VisualMarker]:
         """
         Extract visual markers from generated text.
@@ -1206,7 +1206,7 @@ class LLMContentGenerator:
         """
         markers = []
         marker_pattern = r'\[VISUAL:(\w+):([^:]+):([^\]]+)\]'
-        
+
         # Map invalid types to valid ones
         type_mapping = {
             "diagram": "architecture",
@@ -1216,15 +1216,15 @@ class LLMContentGenerator:
             "heatmap": "comparison",
         }
         valid_types = {"architecture", "flowchart", "comparison", "concept_map", "mind_map", "mermaid"}
-        
+
         for i, match in enumerate(re.finditer(marker_pattern, text)):
             visual_type = match.group(1).lower()
-            
+
             # Map to valid type if needed
             if visual_type not in valid_types:
                 visual_type = type_mapping.get(visual_type, "architecture")
                 logger.debug(f"Mapped visual type '{match.group(1)}' to '{visual_type}'")
-            
+
             marker = VisualMarker(
                 marker_id=f"visual_{start_index + i}",
                 visual_type=visual_type,
@@ -1234,31 +1234,31 @@ class LLMContentGenerator:
             )
             markers.append(marker)
             logger.debug(f"Found visual marker: {marker.visual_type} - {marker.title}")
-        
+
         return markers
-    
+
     def _merge_sections(self, sections: list[str], title: str) -> str:
         """
         Merge processed sections into a cohesive document.
         Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
         """
-        
+
         # Start with the first section (which should have title and intro)
         merged = sections[0] if sections else ""
-        
+
         # Add remaining sections with proper spacing
         for section in sections[1:]:
             merged += "\n\n" + section
-        
+
         # Ensure document starts with proper title
         if not merged.startswith("#"):
             merged = f"# {title}\n\n{merged}"
-        
+
         # Clean up multiple consecutive newlines
         merged = re.sub(r'\n{4,}', '\n\n\n', merged)
-        
+
         return merged
-    
+
     def _clean_content(self, content: str) -> str:
         """
         Basic content cleaning without LLM.
@@ -1270,7 +1270,7 @@ class LLMContentGenerator:
         # Remove excessive blank lines
         cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
         return cleaned.strip()
-    
+
     def _parse_generated_content(self, text: str, topic: str, outline: str = "") -> GeneratedContent:
         """
         Parse generated text to extract markdown and visual markers.
@@ -1327,20 +1327,20 @@ class LLMContentGenerator:
             sections=sections,
             outline=outline,
         )
-    
+
     def _fallback_generation(self, raw_content: str, topic: str) -> GeneratedContent:
         """
         Fallback when LLM is not available - basic cleanup.
         Invoked by: src/doc_generator/infrastructure/llm/content_generator.py
         """
-        
+
         cleaned = self._clean_content(raw_content)
-        
+
         # Add title if topic provided
         title = topic.replace("-", " ").replace("_", " ").title() if topic else "Document"
         if not cleaned.startswith("#"):
             cleaned = f"# {title}\n\n{cleaned}"
-        
+
         return GeneratedContent(
             markdown=cleaned,
             visual_markers=[],

@@ -13,15 +13,15 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
-from typing import Optional
 
 from loguru import logger
 
+from ...domain.content_types import ImageType
+from ...domain.models import ImageDecision, WorkflowState
 from ...domain.prompts.image.image_generation_prompts import (
     build_prompt_generator_prompt,
 )
-from ...domain.content_types import ImageType
-from ...domain.models import ImageDecision, WorkflowState
+from ...infrastructure.api.services.common.json_utils import safe_json_parse
 from ...infrastructure.image import (
     GeminiImageGenerator,
 )
@@ -29,12 +29,10 @@ from ...infrastructure.observability.opik import log_llm_call
 from ...infrastructure.settings import get_settings
 from ...utils.gemini_client import create_gemini_client, get_gemini_api_key
 from ...utils.images_paths import resolve_images_dir
-from ...utils.markdown_sections import extract_sections, extract_section_number
-from ...infrastructure.api.services.common.json_utils import safe_json_parse
+from ...utils.markdown_sections import extract_section_number, extract_sections
 
 # Try to import Gemini client for prompt generation
 try:
-    from google import genai
     from google.genai import types
 
     GENAI_AVAILABLE = True
@@ -831,12 +829,12 @@ def generate_images_node(state: WorkflowState) -> WorkflowState:
     Invoked by: src/doc_generator/application/graph_workflow.py, src/doc_generator/application/workflow/graph.py
     """
     from ...infrastructure.logging_utils import (
-        log_node_start,
-        log_node_end,
-        log_progress,
-        log_metric,
-        log_subsection,
         log_cache_hit,
+        log_metric,
+        log_node_end,
+        log_node_start,
+        log_progress,
+        log_subsection,
         resolve_step_number,
         resolve_total_steps,
     )

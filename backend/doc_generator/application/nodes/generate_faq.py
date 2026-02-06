@@ -8,10 +8,10 @@ import os
 
 from loguru import logger
 
-from ..unified_state import UnifiedWorkflowState
 from ...domain.prompts.faq_prompts import build_faq_extraction_prompt
 from ...infrastructure.api.services.common.json_utils import safe_json_parse
 from ...infrastructure.llm import LLMService
+from ..unified_state import UnifiedWorkflowState
 
 
 def generate_faq_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:
@@ -25,10 +25,10 @@ def generate_faq_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:
         Updated state with structured_content.faq_data
     """
     from ...infrastructure.logging_utils import (
-        log_node_start,
-        log_node_end,
-        log_progress,
         log_metric,
+        log_node_end,
+        log_node_start,
+        log_progress,
         resolve_step_number,
         resolve_total_steps,
     )

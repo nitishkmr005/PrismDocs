@@ -10,7 +10,6 @@ This state model supports:
 
 from typing import Any, Literal, TypedDict
 
-
 # Output type literals
 OutputType = Literal[
     "article_pdf",

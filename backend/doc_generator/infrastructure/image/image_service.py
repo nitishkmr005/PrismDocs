@@ -15,7 +15,7 @@ from typing import Optional
 
 from loguru import logger
 
-from ...domain.image_styles import ImageStyle, get_style_by_id
+from ...domain.image_styles import ImageStyle
 
 # Try to import Gemini client
 try:
@@ -469,8 +469,8 @@ Output the SVG code directly, starting with <svg and ending with </svg>
                         image.save(buffer)
                     except TypeError:
                         # Third try: Save to temp file and read back
-                        import tempfile
                         import os
+                        import tempfile
 
                         with tempfile.NamedTemporaryFile(
                             suffix=".png", delete=False

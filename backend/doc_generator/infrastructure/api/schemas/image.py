@@ -7,7 +7,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from .requests import SourceItem, Provider
+from .requests import Provider, SourceItem
 
 
 class OutputFormat(str, Enum):

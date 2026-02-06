@@ -7,20 +7,20 @@ from pathlib import Path
 from loguru import logger
 
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
     log_metric,
+    log_node_end,
+    log_node_start,
     resolve_step_number,
     resolve_total_steps,
 )
 from ...utils.image_understanding import extract_image_content, is_image_file
-from ..unified_state import UnifiedWorkflowState
 from ...utils.source_utils import (
+    detect_format,
+    set_skip_source_processing,
     should_skip_source_processing,
     skip_source_reason,
-    set_skip_source_processing,
-    detect_format,
 )
+from ..unified_state import UnifiedWorkflowState
 
 
 def extract_sources_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:

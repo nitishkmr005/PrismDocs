@@ -8,11 +8,11 @@ Optimized for corporate/executive presentations.
 from pathlib import Path
 
 from loguru import logger
+from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_AUTO_SIZE
+from pptx.enum.text import MSO_AUTO_SIZE, PP_ALIGN
 from pptx.util import Inches, Pt
-from PIL import Image
 
 from ...settings import get_settings
 

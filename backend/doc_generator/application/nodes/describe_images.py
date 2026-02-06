@@ -9,10 +9,10 @@ from pathlib import Path
 from loguru import logger
 
 from ...domain.models import WorkflowState
+from ...domain.prompts.image.image_generation_prompts import build_image_description_prompt
 from ...infrastructure.image import encode_image_base64
 from ...infrastructure.observability.opik import log_llm_call
 from ...infrastructure.settings import get_settings
-from ...domain.prompts.image.image_generation_prompts import build_image_description_prompt
 from ...utils.gemini_client import create_gemini_client, get_gemini_api_key
 from ...utils.markdown_sections import extract_sections
 
@@ -88,20 +88,20 @@ def describe_images_node(state: WorkflowState) -> WorkflowState:
     Invoked by: src/doc_generator/application/graph_workflow.py, src/doc_generator/application/workflow/graph.py
     """
     from ...infrastructure.logging_utils import (
-        log_node_start,
-        log_node_end,
-        log_progress,
         log_metric,
+        log_node_end,
+        log_node_start,
+        log_progress,
         resolve_step_number,
         resolve_total_steps,
     )
-    
+
     log_node_start(
         "describe_images",
         step_number=resolve_step_number(state, "describe_images", 6),
         total_steps=resolve_total_steps(state, 9),
     )
-    
+
     structured_content = state.get("structured_content", {})
     metadata = state.get("metadata", {})
     if metadata.get("enable_image_generation") is False:
@@ -110,13 +110,13 @@ def describe_images_node(state: WorkflowState) -> WorkflowState:
         )
         return state
     section_images = structured_content.get("section_images", {})
-    
+
     if not section_images:
         log_node_end("describe_images", success=True, details="No images to describe")
         return state
 
     log_metric("Images to Describe", len(section_images))
-    
+
     markdown = structured_content.get("markdown", "")
     sections = extract_sections(markdown)
     section_content_by_id = {s["id"]: s.get("content", "") for s in sections}
@@ -126,14 +126,14 @@ def describe_images_node(state: WorkflowState) -> WorkflowState:
     image_api_key = api_keys.get("image")
     # Prefer the content API key as requested by UI; fall back to image key/env if missing.
     describer = GeminiImageDescriber(api_key=content_api_key or image_api_key)
-    
+
     described_count = 0
     embedded_count = 0
 
     for idx, (section_id, info) in enumerate(section_images.items(), 1):
         section_title = info.get("section_title", "")
         log_progress(f"[{idx}/{len(section_images)}] {section_title}")
-        
+
         image_path = Path(info.get("path", ""))
         if not image_path.exists():
             continue
@@ -165,9 +165,9 @@ def describe_images_node(state: WorkflowState) -> WorkflowState:
 
     structured_content["section_images"] = section_images
     state["structured_content"] = structured_content
-    
+
     log_metric("Descriptions Generated", described_count)
     log_metric("Images Embedded", embedded_count)
-    log_node_end("describe_images", success=True, 
+    log_node_end("describe_images", success=True,
                 details=f"{described_count} descriptions, {embedded_count} embedded")
     return state

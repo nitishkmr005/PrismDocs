@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-import shutil
 import time
 from pathlib import Path
 from typing import Optional

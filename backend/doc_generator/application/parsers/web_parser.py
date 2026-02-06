@@ -11,11 +11,13 @@ from typing import Tuple
 from loguru import logger
 
 from ...domain.exceptions import ParseError
-from ...infrastructure.parsers.markitdown import convert_url_to_markdown, is_markitdown_available
 from ...infrastructure.parsers.firecrawl import (
     convert_url_to_markdown as convert_url_to_markdown_firecrawl,
+)
+from ...infrastructure.parsers.firecrawl import (
     is_firecrawl_available,
 )
+from ...infrastructure.parsers.markitdown import convert_url_to_markdown, is_markitdown_available
 from ...infrastructure.settings import get_settings
 from ...utils.content_cleaner import clean_markdown_content
 

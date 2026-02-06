@@ -5,7 +5,6 @@ Provides centralized configuration loading from config/settings.yaml with
 type validation and environment variable support.
 """
 
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional

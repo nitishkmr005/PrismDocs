@@ -190,7 +190,6 @@ class PDFFromPPTXGenerator:
             List of slide dictionaries with 'title' and 'content' keys
         """
         from pptx import Presentation
-        from pptx.util import Inches
 
         slides_data = []
 
@@ -266,22 +265,21 @@ class PDFFromPPTXGenerator:
             Path to generated PDF
         """
         import re
-        import html
         from datetime import datetime
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib.units import inch
+
         from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.units import inch
         from reportlab.platypus import (
-            SimpleDocTemplate,
-            Paragraph,
-            Spacer,
             PageBreak,
+            Paragraph,
+            SimpleDocTemplate,
+            Spacer,
             Table,
             TableStyle,
-            KeepTogether,
         )
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
         # Helper function to convert markdown to ReportLab HTML
         def inline_md(text: str) -> str:
@@ -633,9 +631,10 @@ class PDFFromPPTXGenerator:
             page_width: Page width for table sizing
         """
         import re
-        from reportlab.platypus import Spacer, Paragraph, PageBreak, Table, TableStyle
-        from reportlab.lib.units import inch
+
         from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        from reportlab.platypus import PageBreak, Paragraph, Spacer, Table, TableStyle
 
         # Track seen section titles to prevent duplicates
         seen_titles = set()

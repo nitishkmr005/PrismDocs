@@ -8,13 +8,12 @@ visual separators, and stats tracking.
 import logging
 import sys
 import time
-from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Optional
 
 from loguru import logger
 
 from .settings import get_settings
+
 
 # ANSI color codes for terminal
 class Colors:
@@ -22,7 +21,7 @@ class Colors:
     RESET = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
-    
+
     # Foreground colors
     RED = "\033[31m"
     GREEN = "\033[32m"
@@ -31,7 +30,7 @@ class Colors:
     MAGENTA = "\033[35m"
     CYAN = "\033[36m"
     WHITE = "\033[37m"
-    
+
     # Bright colors
     BRIGHT_GREEN = "\033[92m"
     BRIGHT_YELLOW = "\033[93m"
@@ -49,14 +48,14 @@ class ProcessStats:
     files_processed: int = 0
     errors: int = 0
     warnings: int = 0
-    
+
     def elapsed(self) -> float:
         """
         Get elapsed time in seconds.
         Invoked by: scripts/generate_from_folder.py, src/doc_generator/infrastructure/image/gemini.py, src/doc_generator/infrastructure/logging/config.py, src/doc_generator/infrastructure/logging_config.py
         """
         return time.time() - self.start_time
-    
+
     def format_elapsed(self) -> str:
         """
         Format elapsed time as human-readable string.
@@ -68,18 +67,6 @@ class ProcessStats:
         minutes = int(elapsed // 60)
         seconds = elapsed % 60
         return f"{minutes}m {seconds:.1f}s"
-
-
-# Global stats tracker
-_current_stats: Optional[ProcessStats] = None
-
-
-def get_current_stats() -> Optional[ProcessStats]:
-    """
-    Get current process stats.
-    Invoked by: (no references found)
-    """
-    return _current_stats
 
 
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> None:
@@ -173,22 +160,6 @@ def log_success(message: str) -> None:
     logger.opt(colors=True).success(f"<green>✓</green> {message}")
 
 
-def log_warning(message: str) -> None:
-    """
-    Log a warning message with yellow icon.
-    Invoked by: (no references found)
-    """
-    logger.opt(colors=True).warning(f"<yellow>⚠</yellow> {message}")
-
-
-def log_error(message: str) -> None:
-    """
-    Log an error message with red X.
-    Invoked by: (no references found)
-    """
-    logger.opt(colors=True).error(f"<red>✗</red> {message}")
-
-
 def log_stats(stats: dict, title: str = "Statistics") -> None:
     """
     Log statistics in a formatted box.
@@ -198,84 +169,12 @@ def log_stats(stats: dict, title: str = "Statistics") -> None:
     logger.opt(colors=True).info(f"<bold><magenta>╔{'═' * 40}╗</magenta></bold>")
     logger.opt(colors=True).info(f"<bold><magenta>║  {title: <36}  ║</magenta></bold>")
     logger.opt(colors=True).info(f"<bold><magenta>╠{'═' * 40}╣</magenta></bold>")
-    
+
     for key, value in stats.items():
         key_str = f"  {key}:"
         value_str = str(value)
         padding = 36 - len(key_str) - len(value_str)
         logger.opt(colors=True).info(f"<magenta>║</magenta>{key_str}{' ' * padding}{value_str}<magenta>  ║</magenta>")
-    
+
     logger.opt(colors=True).info(f"<bold><magenta>╚{'═' * 40}╝</magenta></bold>")
     logger.opt(colors=True).info("")
-
-
-@contextmanager
-def log_process(name: str):
-    """
-    Context manager to track and log a process with timing.
-    Invoked by: (no references found)
-    """
-    global _current_stats
-    stats = ProcessStats()
-    _current_stats = stats
-    
-    logger.opt(colors=True).info("")
-    logger.opt(colors=True).info(f"<bold><cyan>{'═' * 60}</cyan></bold>")
-    logger.opt(colors=True).info(f"<bold><cyan>  🚀 Starting: {name}</cyan></bold>")
-    logger.opt(colors=True).info(f"<bold><cyan>{'═' * 60}</cyan></bold>")
-    
-    try:
-        yield stats
-        # Log completion stats
-        completion_stats = {
-            "Duration": stats.format_elapsed(),
-            "LLM Calls": stats.llm_calls,
-            "Images Generated": stats.image_calls,
-            "Files Processed": stats.files_processed,
-            "Errors": stats.errors,
-        }
-        log_stats(completion_stats, f"✅ {name} Complete")
-    except Exception as e:
-        stats.errors += 1
-        logger.opt(colors=True).error(f"<red>{'═' * 60}</red>")
-        logger.opt(colors=True).error(f"<red>  ❌ {name} Failed: {str(e)}</red>")
-        logger.opt(colors=True).error(f"<red>{'═' * 60}</red>")
-        raise
-    finally:
-        _current_stats = None
-
-
-def log_table(headers: list[str], rows: list[list[str]], title: str = "") -> None:
-    """
-    Log data in a formatted table.
-    Invoked by: (no references found)
-    """
-    if not rows:
-        return
-    
-    # Calculate column widths
-    widths = [len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            if i < len(widths):
-                widths[i] = max(widths[i], len(str(cell)))
-    
-    # Build separator
-    sep = "+" + "+".join("-" * (w + 2) for w in widths) + "+"
-    
-    if title:
-        logger.opt(colors=True).info(f"<dim>{title}</dim>")
-    
-    logger.opt(colors=True).info(f"<dim>{sep}</dim>")
-    
-    # Header row
-    header_row = "|" + "|".join(f" {h: <{widths[i]}} " for i, h in enumerate(headers)) + "|"
-    logger.opt(colors=True).info(f"<bold>{header_row}</bold>")
-    logger.opt(colors=True).info(f"<dim>{sep}</dim>")
-    
-    # Data rows
-    for row in rows:
-        data_row = "|" + "|".join(f" {str(row[i]) if i < len(row) else '': <{widths[i]}} " for i in range(len(headers))) + "|"
-        logger.opt(colors=True).info(f"{data_row}")
-    
-    logger.opt(colors=True).info(f"<dim>{sep}</dim>")

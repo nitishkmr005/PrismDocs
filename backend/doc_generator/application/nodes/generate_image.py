@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from loguru import logger
 
-from ..unified_state import UnifiedWorkflowState
 from ...infrastructure.logging_utils import (
-    log_node_start,
-    log_node_end,
     log_metric,
+    log_node_end,
+    log_node_start,
     resolve_step_number,
     resolve_total_steps,
 )
+from ..unified_state import UnifiedWorkflowState
 
 
 def generate_image_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:
@@ -59,8 +59,8 @@ def generate_image_node(state: UnifiedWorkflowState) -> UnifiedWorkflowState:
     log_metric("Style", style_id or "free_text")
 
     try:
-        from ...infrastructure.image.image_service import ImageService
         from ...domain.image_styles import get_style_by_id
+        from ...infrastructure.image.image_service import ImageService
 
         style = None
         if style_id and not free_text_mode:
